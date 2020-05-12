@@ -65,9 +65,8 @@ public class ElasticSearchController {
         }
     }
 
-    @GetMapping("/{uri}")
-    public ResponseEntity<byte[]> proxy(@PathVariable String uri,
-                                        HttpServletRequest request,
+    @GetMapping("/**/*")
+    public ResponseEntity<byte[]> proxy(HttpServletRequest request,
                                         @RequestBody(required = false) byte[] body) throws URISyntaxException {
 
         Enumeration<String> headerNames = request.getHeaderNames();
@@ -81,7 +80,7 @@ public class ElasticSearchController {
         HttpEntity<byte[]> httpEntity = new HttpEntity<>(body, headers);
 
         String originQueryString = request.getQueryString();
-        String url = String.format("%s://%s/%s%s", protocol, master, uri, (StringUtils.isEmpty(originQueryString) ? "" : "?" + originQueryString));
+        String url = String.format("%s://%s%s%s", protocol, master, request.getRequestURI().substring(14), (StringUtils.isEmpty(originQueryString) ? "" : "?" + originQueryString));
 
         return restTemplate.exchange(new URI(url), HttpMethod.valueOf(request.getMethod()), httpEntity, byte[].class);
     }
