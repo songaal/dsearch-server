@@ -1,0 +1,8 @@
+
+
+
+elasticsearch:
+  protocol: "http"
+  master: "es.danawa.io"
+
+
