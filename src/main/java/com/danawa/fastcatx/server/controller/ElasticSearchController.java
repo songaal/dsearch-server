@@ -10,10 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
@@ -34,6 +31,7 @@ public class ElasticSearchController {
     private static RestTemplate restTemplate = new RestTemplate();
 
     @GetMapping("/**/*")
+    @CrossOrigin("*")
     public ResponseEntity<byte[]> proxy(HttpServletRequest request,
                                         @RequestBody(required = false) byte[] body) throws URISyntaxException {
         logger.debug("proxy {}", request.getRequestURI());
