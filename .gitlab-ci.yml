@@ -1,25 +1,25 @@
 image: dcr.danawa.io/alpine-k8s-java:8
 
-variables:
-  spring.profiles.active: production
-
 stages:
-  - test
+  - build
+  - deploy
 
 cache:
   paths:
     - .m2/repository
 
+before_script:
+  - export IMAGE="${REGISTRY}/${CI_PROJECT_TITLE}:latest"
+  - echo "${IMAGE}"
 
-test:
-  stage: test
+build:
+  stage: build
   script:
-    - echo ${spring.profiles.active}
-    - env
-    - ls -al /root/
-    - ls -al
-    - ls -al /home/
     - sh mvnw package
-    - ls -al /root/
-    - ls -al
-    - ls -al /home/
+    - docker build -t ${IMAGE} .
+    - docker push ${IMAGE}
+
+deploy:
+  stage: deploy
+  script:
+    - env
