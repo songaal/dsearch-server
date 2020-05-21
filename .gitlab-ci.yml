@@ -1,9 +1,7 @@
 image: dcr.danawa.io/alpine-k8s-java:8
 
 variables:
-  spring:
-    profiles:
-      active: production
+  spring.profiles.active: production
 
 stages:
   - test
