@@ -14,24 +14,22 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import javax.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Enumeration;
+import java.util.List;
 
 @RestController
-@RequestMapping("/es")
+@RequestMapping("/elasticsearch")
 @ConfigurationProperties(prefix="elasticsearch")
 public class ElasticSearchController {
     private static Logger logger = LoggerFactory.getLogger(ElasticSearchController.class);
 
-    @Value("${elasticsearch.master}")
-    private String master;
-
-    @Value("${elasticsearch.protocol}")
-    private String protocol;
+    private List<String> nodes;
 
     private static RestTemplate restTemplate = new RestTemplate();
 
@@ -50,10 +48,24 @@ public class ElasticSearchController {
         HttpEntity<byte[]> httpEntity = new HttpEntity<>(body, headers);
 
         String originQueryString = request.getQueryString();
-        String url = String.format("%s://%s%s%s", protocol, master, request.getRequestURI().substring(14), (StringUtils.isEmpty(originQueryString) ? "" : "?" + originQueryString));
-
-        return restTemplate.exchange(new URI(url), HttpMethod.valueOf(request.getMethod()), httpEntity, byte[].class);
+        ResponseEntity<byte[]> response = null;
+        for (String node : nodes) {
+            String url = String.format("%s%s%s", node, request.getRequestURI().substring(14), (StringUtils.isEmpty(originQueryString) ? "" : "?" + originQueryString));
+            try {
+                response = restTemplate.exchange(new URI(url), HttpMethod.valueOf(request.getMethod()), httpEntity, byte[].class);
+                break;
+            } catch (RestClientException e) {
+                logger.debug("proxy fail : {}, {}", node, e);
+            }
+        }
+        return response;
     }
 
+    public List<String> getNodes() {
+        return nodes;
+    }
 
+    public void setNodes(List<String> nodes) {
+        this.nodes = nodes;
+    }
 }
