@@ -15,3 +15,8 @@ test:
     - ls -al /root/
     - ls -al
     - ls -al /home/
+    - mvn clean package
+    - env
+    - ls -al /root/
+    - ls -al
+    - ls -al /home/
