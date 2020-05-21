@@ -1,0 +1,17 @@
+image: dcr.danawa.io/alpine-k8s
+
+stages:
+  - test
+
+cache:
+  paths:
+    - .m2/repository
+
+
+test:
+  stage: test
+  script:
+    - env
+    - ls -al /root/
+    - ls -al
+    - ls -al /home/
