@@ -6,7 +6,7 @@ stages:
 
 cache:
   paths:
-    - /root/.m2/repository
+    - .m2/repository/
 
 before_script:
   - export IMAGE="${REGISTRY}/${CI_PROJECT_TITLE}:latest"
