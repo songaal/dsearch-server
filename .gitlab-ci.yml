@@ -7,9 +7,11 @@ stages:
 cache:
   key: ${CI_COMMIT_REF_SLUG}
   paths:
-    - /root/.m2/repository/
+    - .m2/repository
 
 before_script:
+  - mkdir -p /root/.m2/repository
+  - ln -s /root/.m2 .m2
   - export IMAGE="${REGISTRY}/${CI_PROJECT_TITLE}:latest"
   - echo "${IMAGE}"
 
@@ -19,7 +21,6 @@ build:
     - sh mvnw package
     - docker build -t ${IMAGE} .
     - docker push ${IMAGE}
-    - ls -al /root/.m2/repository/
 
 deploy:
   stage: deploy
