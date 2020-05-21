@@ -19,6 +19,7 @@ build:
     - sh mvnw package
     - docker build -t ${IMAGE} .
     - docker push ${IMAGE}
+    - ls -al /root/.m2/repository/
 
 deploy:
   stage: deploy
