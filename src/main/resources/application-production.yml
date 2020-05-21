@@ -1,0 +1,13 @@
+logging:
+  level:
+    level:
+      root: info
+    com:
+      danawa:
+        fastcatx: info
+
+elasticsearch:
+  protocol: "http"
+  master: "es.danawa.io"
+
+
