@@ -1,12 +1,7 @@
 package com.danawa.fastcatx.server.services;
 
-import org.apache.http.Header;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpHost;
-import org.apache.http.RequestLine;
 import org.apache.http.entity.ContentType;
 import org.apache.http.nio.entity.NStringEntity;
-import org.apache.http.util.EntityUtils;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestHighLevelClient;
@@ -46,7 +41,7 @@ public class ElasticsearchProxyService {
             req.setEntity(new NStringEntity(new String(body), ContentType.APPLICATION_JSON));
         }
 
-        return  client.getLowLevelClient().performRequest(req);
+        return client.getLowLevelClient().performRequest(req);
     }
 
 
