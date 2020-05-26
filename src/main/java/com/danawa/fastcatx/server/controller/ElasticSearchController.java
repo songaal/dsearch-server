@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/elasticsearch")
@@ -30,15 +31,10 @@ public class ElasticSearchController {
     @GetMapping(value = {"/**/*", "*"})
     @CrossOrigin("*")
     public ResponseEntity<?> proxy(HttpServletRequest request,
-                                        @RequestBody(required = false) byte[] body) throws ServiceException, IOException {
-        logger.debug("proxy {}", request.getRequestURI());
-        Response response = proxyService.proxy(request, body);
-        RequestLine requestLine = response.getRequestLine();
-        HttpHost host = response.getHost();
-        int statusCode = response.getStatusLine().getStatusCode();
-        Header[] headers = response.getHeaders();
+                                   @RequestParam Map<String,String> queryStringMap,
+                                   @RequestBody(required = false) byte[] body) throws ServiceException, IOException {
+        Response response = proxyService.proxy(request, queryStringMap, body);
         String responseBody = EntityUtils.toString(response.getEntity());
-
         return new ResponseEntity<>(responseBody, HttpStatus.OK);
     }
 }

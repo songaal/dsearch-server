@@ -17,6 +17,8 @@ import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.util.Iterator;
+import java.util.Map;
 
 @Service
 public class ElasticsearchProxyService {
@@ -28,10 +30,17 @@ public class ElasticsearchProxyService {
         this.client = client;
     }
 
-    public Response proxy(HttpServletRequest request, byte[] body) throws IOException {
+    public Response proxy(HttpServletRequest request, Map<String, String> queryStringMap, byte[] body) throws IOException {
 //        /elasticsearch  substring 14
         Request req = new Request(request.getMethod(), request.getRequestURI().substring(14));
-        req.addParameter("format", "json");
+
+        if (queryStringMap != null) {
+            Iterator<String> keys = queryStringMap.keySet().iterator();
+            while (keys.hasNext()) {
+                String key = keys.next();
+                req.addParameter(key, queryStringMap.get(key));
+            }
+        }
 
         if (body != null) {
             req.setEntity(new NStringEntity(new String(body), ContentType.APPLICATION_JSON));

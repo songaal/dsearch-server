@@ -6,7 +6,6 @@ import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.impl.nio.reactor.IOReactorConfig;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
@@ -20,9 +19,9 @@ import java.util.List;
 @ConfigurationProperties(prefix = "elasticsearch")
 public class ElasticSearchConfig {
 
+    private int thread;
     private String username;
     private String password;
-    private int thread;
     private List<ElasticsearchNode> nodes;
 
     @Bean(destroyMethod = "close")
@@ -32,12 +31,12 @@ public class ElasticSearchConfig {
             HttpHostList[i] = new HttpHost(nodes.get(i).getHost(), nodes.get(i).getPort(), nodes.get(i).getScheme());
         }
 
-        RestClientBuilder builder = RestClient.builder(HttpHostList)
-                .setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder
-                        .setDefaultIOReactorConfig(IOReactorConfig
-                                .custom()
-                                .setIoThreadCount(thread)
-                                .build()));
+        RestClientBuilder builder = RestClient.builder(HttpHostList);
+//                .setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder
+//                        .setDefaultIOReactorConfig(IOReactorConfig
+//                                .custom()
+//                                .setIoThreadCount(thread)
+//                                .build()));
 
         if (username != null && !"".equals(username)
                 && password != null && !"".equals(password)) {
@@ -48,6 +47,14 @@ public class ElasticSearchConfig {
         }
 
         return new RestHighLevelClient(builder);
+    }
+
+    public int getThread() {
+        return thread;
+    }
+
+    public void setThread(int thread) {
+        this.thread = thread;
     }
 
     public String getUsername() {
@@ -72,13 +79,5 @@ public class ElasticSearchConfig {
 
     public void setNodes(List<ElasticsearchNode> nodes) {
         this.nodes = nodes;
-    }
-
-    public int getThread() {
-        return thread;
-    }
-
-    public void setThread(int thread) {
-        this.thread = thread;
     }
 }

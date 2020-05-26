@@ -1,6 +1,8 @@
 package com.danawa.fastcatx.server.controller;
 
+import com.danawa.fastcatx.server.entity.DocumentPagination;
 import com.danawa.fastcatx.server.services.IndicesService;
+import org.elasticsearch.action.search.SearchResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -23,10 +25,11 @@ public class IndicesController {
 
     @GetMapping("/{indices}/_docs")
     public ResponseEntity<?> findAllDocument(@PathVariable String indices,
-                                             @RequestParam(defaultValue = "0") int page,
-                                             @RequestParam(defaultValue = "100") int size) throws IOException {
-
-        return new ResponseEntity<>(indicesService.findAllDocument(indices, page, size), HttpStatus.OK);
+                                             @RequestParam(defaultValue = "0") int from,
+                                             @RequestParam(defaultValue = "100") int size,
+                                             @RequestParam(required = false) String id) throws IOException {
+        DocumentPagination documentPagination = indicesService.findAllDocumentPagination(indices, from, size, id);
+        return new ResponseEntity<>(documentPagination, HttpStatus.OK);
     }
 
 
