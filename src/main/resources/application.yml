@@ -7,10 +7,16 @@ logging:
         fastcatx: debug
 
 elasticsearch:
+  thread: 50
+  username: fastcatx
+  password: fastcatx
   nodes:
-    - "http://es.danawa.io"
-    - "http://es.danawa.io"
-    - "http://es.danawa.io"
+    - host: es1.danawa.io
+      port: 80
+      scheme: http
+    - host: es1.danawa.io
+      port: 80
+      scheme: http
 
 
 
