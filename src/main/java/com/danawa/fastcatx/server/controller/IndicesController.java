@@ -10,6 +10,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @RestController
 @CrossOrigin("*")
@@ -25,12 +28,13 @@ public class IndicesController {
 
     @GetMapping("/{indices}/_docs")
     public ResponseEntity<?> findAllDocument(@PathVariable String indices,
-                                             @RequestParam(defaultValue = "0") int from,
-                                             @RequestParam(defaultValue = "100") int size,
+                                             @RequestParam int pageNum,
+                                             @RequestParam int rowSize,
                                              @RequestParam(required = false) String id) throws IOException {
-        DocumentPagination documentPagination = indicesService.findAllDocumentPagination(indices, from, size, id);
+
+        DocumentPagination documentPagination = indicesService.findAllDocumentPagination(indices, pageNum, rowSize, id);
+
         return new ResponseEntity<>(documentPagination, HttpStatus.OK);
     }
-
 
 }
