@@ -1,23 +1,21 @@
 package com.danawa.fastcatx.server.controller;
 
+import com.danawa.fastcatx.server.entity.CreateDictDocumentRequest;
 import com.danawa.fastcatx.server.entity.DocumentPagination;
 import com.danawa.fastcatx.server.services.DictionaryService;
-import com.danawa.fastcatx.server.services.IndicesService;
 import org.elasticsearch.search.SearchHit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.io.InputStreamResource;
-import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
 
+@CrossOrigin("*")
 @RestController
 @RequestMapping("/dictionaries")
 public class DictionaryController {
@@ -49,13 +47,29 @@ public class DictionaryController {
     @GetMapping("/{dictionary}")
     public ResponseEntity<?> dictionaryPagination(@PathVariable String dictionary,
                                                   @RequestParam(defaultValue = "0") long pageNum,
-                                                  @RequestParam(defaultValue = "15") long rowSize,
-                                                  @RequestParam(required = false) String searchField,
-                                                  @RequestParam(required = false) String searchValue) throws IOException {
+                                                  @RequestParam(defaultValue = "40") long rowSize,
+                                                  @RequestParam(defaultValue = "false") boolean isMatch,
+                                                  @RequestParam(required = false, defaultValue = "keyword.raw") String field,
+                                                  @RequestParam(required = false) String value) throws IOException {
 
-        DocumentPagination documentPagination = dictionaryService.documentPagination(dictionary.toUpperCase(), pageNum, rowSize, searchField, searchValue);
+        DocumentPagination documentPagination = dictionaryService.documentPagination(dictionary.toUpperCase(), pageNum, rowSize, isMatch, field, value);
         return new ResponseEntity<>(documentPagination, HttpStatus.OK);
     }
 
+    @PostMapping("/{dictionary}")
+    public ResponseEntity<?> createDocument(@PathVariable String dictionary,
+                                            @RequestBody CreateDictDocumentRequest request) throws IOException {
+        request.setType(dictionary.toUpperCase());
+        dictionaryService.createDocument(request);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+
+    @DeleteMapping("/{dictionary}/{id}")
+    public ResponseEntity<?> deleteDocument(@PathVariable String dictionary,
+                                            @PathVariable String id) throws IOException {
+
+        return new ResponseEntity<>(dictionaryService.deleteDocument(id), HttpStatus.OK);
+    }
 
 }

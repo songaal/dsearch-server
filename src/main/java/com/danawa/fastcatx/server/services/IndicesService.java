@@ -57,7 +57,9 @@ public class IndicesService {
         SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
 
         DocumentPagination documentPagination = new DocumentPagination();
-        documentPagination.setTotalCount(getDocumentCount(index));
+//        기본값: 최대 1만건.
+//        documentPagination.setTotalCount(getDocumentCount(index));
+        documentPagination.setTotalCount(searchResponse.getHits().getTotalHits().value);
         documentPagination.setHits(searchResponse.getHits().getHits());
         documentPagination.setPageNum(pageNum);
         documentPagination.setRowSize(rowSize);
