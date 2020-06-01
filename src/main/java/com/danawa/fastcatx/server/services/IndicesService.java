@@ -35,6 +35,7 @@ public class IndicesService {
     public DocumentPagination findAllDocumentPagination(String index, long pageNum, long rowSize, String id) throws IOException {
         SearchRequest searchRequest = new SearchRequest();
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+
         if (id != null && !"".equals(id)) {
             searchSourceBuilder
                     .query(QueryBuilders.boolQuery()

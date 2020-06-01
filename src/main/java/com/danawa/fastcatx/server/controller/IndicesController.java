@@ -26,13 +26,15 @@ public class IndicesController {
         this.indicesService = indicesService;
     }
 
-    @GetMapping("/{indices}/_docs")
-    public ResponseEntity<?> findAllDocument(@PathVariable String indices,
+    @GetMapping("/{index}/_docs")
+    public ResponseEntity<?> findAllDocument(@PathVariable String index,
                                              @RequestParam int pageNum,
                                              @RequestParam int rowSize,
                                              @RequestParam(required = false) String id) throws IOException {
 
-        DocumentPagination documentPagination = indicesService.findAllDocumentPagination(indices, pageNum, rowSize, id);
+
+
+        DocumentPagination documentPagination = indicesService.findAllDocumentPagination(index, pageNum, rowSize, id);
 
         return new ResponseEntity<>(documentPagination, HttpStatus.OK);
     }

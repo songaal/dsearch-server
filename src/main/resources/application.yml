@@ -20,3 +20,6 @@ elasticsearch:
 
 
 
+fastcatx:
+  dictionary:
+    index: .fastcat_dict_test-1
