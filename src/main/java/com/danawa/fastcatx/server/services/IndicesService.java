@@ -33,21 +33,27 @@ public class IndicesService {
     }
 
     public DocumentPagination findAllDocumentPagination(String index, long pageNum, long rowSize, String id) throws IOException {
+        return findAllDocumentPagination(index, pageNum, rowSize, id, null);
+    }
+    public DocumentPagination findAllDocumentPagination(String index, long pageNum, long rowSize, SearchSourceBuilder builder) throws IOException {
+        return findAllDocumentPagination(index, pageNum, rowSize, null, builder);
+    }
+    public DocumentPagination findAllDocumentPagination(String index, long pageNum, long rowSize, String id, SearchSourceBuilder builder) throws IOException {
         SearchRequest searchRequest = new SearchRequest();
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        if (builder == null) {
+            builder = new SearchSourceBuilder();
 
-        if (id != null && !"".equals(id)) {
-            searchSourceBuilder
-                    .query(QueryBuilders.boolQuery()
-                            .must(new TermQueryBuilder("_id", id)));
-        } else {
-            searchSourceBuilder
-                    .from((int) ((int) pageNum * rowSize))
-                    .size((int) rowSize)
-                    .query(QueryBuilders.matchAllQuery());
+            if (id != null && !"".equals(id)) {
+                builder
+                        .query(QueryBuilders.boolQuery()
+                                .must(new TermQueryBuilder("_id", id)));
+            } else {
+                builder.query(QueryBuilders.matchAllQuery());
+            }
         }
+        builder.from((int) ((int) pageNum * rowSize)).size((int) rowSize);
 
-        searchRequest.indices(index).source(searchSourceBuilder);
+        searchRequest.indices(index).source(builder);
         SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
 
         DocumentPagination documentPagination = new DocumentPagination();

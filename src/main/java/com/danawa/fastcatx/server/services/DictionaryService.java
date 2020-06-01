@@ -1,5 +1,6 @@
 package com.danawa.fastcatx.server.services;
 
+import com.danawa.fastcatx.server.entity.DocumentPagination;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchScrollRequest;
@@ -10,6 +11,7 @@ import org.elasticsearch.client.indices.GetIndexRequest;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.MatchQueryBuilder;
 import org.elasticsearch.index.query.TermQueryBuilder;
 import org.elasticsearch.search.Scroll;
@@ -34,15 +36,21 @@ import java.util.concurrent.TimeUnit;
 public class DictionaryService {
     private static Logger logger = LoggerFactory.getLogger(DictionaryService.class);
 
+    private IndicesService indicesService;
+
     private RestHighLevelClient client;
     private String dictionaryIndex;
 
     private final int searchSize = 10000;
 
     public DictionaryService(@Qualifier("getRestHighLevelClient") RestHighLevelClient restHighLevelClient,
-                             @Value("${fastcatx.dictionary.index}") String dictionaryIndex) {
+                             @Value("${fastcatx.dictionary.index}") String dictionaryIndex,
+                             IndicesService indicesService) {
+
+        this.indicesService = indicesService;
         this.client = restHighLevelClient;
         this.dictionaryIndex = dictionaryIndex;
+
     }
 
     @PostConstruct
@@ -109,10 +117,21 @@ public class DictionaryService {
         }
 
         logger.debug("hits Size: {}", documentList.size());
-
-
-
         return documentList;
+    }
+
+    public DocumentPagination documentPagination(String type, long pageNum, long rowSize, String field, String value) throws IOException {
+
+        BoolQueryBuilder boolQueryBuilder = new BoolQueryBuilder()
+                .filter(new TermQueryBuilder("type", type));
+
+        if (field != null && !"".equals(field)
+                && value != null && !"".equals(value)) {
+            boolQueryBuilder.should(new TermQueryBuilder(field, value));
+        }
+        SearchSourceBuilder builder = new SearchSourceBuilder().query(boolQueryBuilder);
+
+        return indicesService.findAllDocumentPagination(dictionaryIndex, pageNum, rowSize, null, builder);
     }
 
 
