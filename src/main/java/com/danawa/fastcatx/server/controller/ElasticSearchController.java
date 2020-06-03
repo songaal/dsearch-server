@@ -28,7 +28,7 @@ public class ElasticSearchController {
         this.proxyService = proxyService;
     }
 
-    @GetMapping(value = {"/**/*", "*"})
+    @RequestMapping({"/**/*", "*"})
     @CrossOrigin("*")
     public ResponseEntity<?> proxy(HttpServletRequest request,
                                    @RequestParam Map<String,String> queryStringMap,
