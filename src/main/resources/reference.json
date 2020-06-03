@@ -1,0 +1,28 @@
+{
+  "settings": {
+    "number_of_shards": 5,
+    "number_of_replicas": 1
+  },
+  "mappings": {
+    "properties": {
+      "name": {
+        "type": "keyword"
+      },
+      "query": {
+        "type": "keyword"
+      },
+      "title": {
+        "type": "keyword"
+      },
+      "thumbnails": {
+        "type": "keyword"
+      },
+      "fields": {
+        "type": "keyword"
+      },
+      "aggs": {
+        "type": "keyword"
+      }
+    }
+  }
+}

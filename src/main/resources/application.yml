@@ -22,4 +22,6 @@ elasticsearch:
 
 fastcatx:
   dictionary:
-    index: .fastcat_dict_test-1
+    index: .fastcatx_dict_test-1
+  reference:
+    index: .fastcatx_reference

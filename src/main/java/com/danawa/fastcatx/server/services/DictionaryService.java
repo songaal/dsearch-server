@@ -5,7 +5,6 @@ import com.danawa.fastcatx.server.entity.DocumentPagination;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchScrollRequest;
@@ -13,7 +12,6 @@ import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.client.indices.GetIndexRequest;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -25,14 +23,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StreamUtils;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
@@ -46,7 +46,7 @@ public class DictionaryService {
     private RestHighLevelClient client;
     private String dictionaryIndex;
 
-    private final int searchSize = 10000;
+    private final String DICTIONARY_INDEX_JSON = "dictionary.json";
 
     public DictionaryService(@Qualifier("getRestHighLevelClient") RestHighLevelClient restHighLevelClient,
                              @Value("${fastcatx.dictionary.index}") String dictionaryIndex,
@@ -55,49 +55,17 @@ public class DictionaryService {
         this.indicesService = indicesService;
         this.client = restHighLevelClient;
         this.dictionaryIndex = dictionaryIndex;
-
     }
 
     @PostConstruct
     public void init() throws IOException {
+        /* 프로그램 실행시 인덱스 없으면 자동 생성. */
         if (!client.indices().exists(new GetIndexRequest(dictionaryIndex), RequestOptions.DEFAULT)) {
-            CreateIndexRequest createIndexRequest = new CreateIndexRequest(dictionaryIndex);
-            createIndexRequest.settings(Settings.builder()
-                    .put("number_of_shards", 5)
-                    .put("number_of_replicas", 0).build());
-
-            createIndexRequest.mapping("{\n" +
-                    "    \"properties\": {\n" +
-                    "      \"keyword\": {\n" +
-                    "        \"type\": \"text\",\n" +
-                    "        \"fields\": {\n" +
-                    "          \"raw\": {\n" +
-                    "            \"type\": \"keyword\"\n" +
-                    "          }\n" +
-                    "        }\n" +
-                    "      },\n" +
-                    "      \"synonyms\": {\n" +
-                    "        \"type\": \"text\",\n" +
-                    "        \"fields\": {\n" +
-                    "          \"raw\": {\n" +
-                    "            \"type\": \"keyword\"\n" +
-                    "          }\n" +
-                    "        }\n" +
-                    "      },\n" +
-                    "      \"id\": {\n" +
-                    "        \"type\": \"text\",\n" +
-                    "        \"fields\": {\n" +
-                    "          \"raw\": {\n" +
-                    "            \"type\": \"keyword\"\n" +
-                    "          }\n" +
-                    "        }\n" +
-                    "      },\n" +
-                    "      \"type\": {\n" +
-                    "        \"type\": \"keyword\"\n" +
-                    "      }\n" +
-                    "    }\n" +
-                    "  }", XContentType.JSON);
-            client.indices().create(createIndexRequest, RequestOptions.DEFAULT);
+            String source = StreamUtils.copyToString(new ClassPathResource(DICTIONARY_INDEX_JSON).getInputStream(),
+                    Charset.defaultCharset());
+            client.indices().create(new CreateIndexRequest(dictionaryIndex)
+                            .source(source, XContentType.JSON),
+                    RequestOptions.DEFAULT);
         }
     }
 
@@ -110,7 +78,6 @@ public class DictionaryService {
                 .scroll(scroll)
                 .source(new SearchSourceBuilder()
                         .query(new TermQueryBuilder("type", type))
-                        .size(searchSize)
                 ), RequestOptions.DEFAULT);
 
         while (response.getScrollId() != null && response.getHits().getHits().length > 0) {
