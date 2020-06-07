@@ -32,13 +32,10 @@ public class IndicesService {
         this.client = restHighLevelClient;
     }
 
-    public DocumentPagination findAllDocumentPagination(String index, long pageNum, long rowSize, String id) throws IOException {
-        return findAllDocumentPagination(index, pageNum, rowSize, id, null);
-    }
     public DocumentPagination findAllDocumentPagination(String index, long pageNum, long rowSize, SearchSourceBuilder builder) throws IOException {
-        return findAllDocumentPagination(index, pageNum, rowSize, null, builder);
+        return findAllDocumentPagination(index, pageNum, rowSize, null, false, builder);
     }
-    public DocumentPagination findAllDocumentPagination(String index, long pageNum, long rowSize, String id, SearchSourceBuilder builder) throws IOException {
+    public DocumentPagination findAllDocumentPagination(String index, long pageNum, long rowSize, String id, boolean analysis, SearchSourceBuilder builder) throws IOException {
         SearchRequest searchRequest = new SearchRequest();
         if (builder == null) {
             builder = new SearchSourceBuilder();
@@ -72,25 +69,30 @@ public class IndicesService {
                 documentPagination.getTotalCount() / documentPagination.getRowSize() + 1;
         documentPagination.setLastPageNum(totalPageNum);
 
-
         // doc_id, <field, terms>
         Map<String, Map<String, List<AnalyzeResponse.AnalyzeToken>>> analyzeDocumentTermMap = new LinkedHashMap<>();
-        SearchHit[] searchHits = searchResponse.getHits().getHits();
-        int hitsSize = searchHits.length;
-        for (int i = 0; i < hitsSize; i++) {
-            Map<String, Object> source = searchHits[i].getSourceAsMap();
 
-            Map<String, List<AnalyzeResponse.AnalyzeToken>> analyzerTextTerms = new HashMap<>();
+        if (analysis) {
+            SearchHit[] searchHits = searchResponse.getHits().getHits();
+            int hitsSize = searchHits.length;
+            for (int i = 0; i < hitsSize; i++) {
+                Map<String, Object> source = searchHits[i].getSourceAsMap();
 
-            Iterator<String> iterator = fieldMap.keySet().iterator();
-            while (iterator.hasNext()) {
-                String field = iterator.next();
-                Map<String, String> options = ((Map<String, String>) fieldMap.get(field));
-                String analyzer = options.get("analyzer") == null ? "standard" : options.get("analyzer");
-                List<AnalyzeResponse.AnalyzeToken> analyzeTokens = analyze(index, analyzer, String.valueOf(source.get(field)));
-                analyzerTextTerms.put(field, analyzeTokens);
+                Map<String, List<AnalyzeResponse.AnalyzeToken>> analyzerTextTerms = new HashMap<>();
+
+                Iterator<String> iterator = fieldMap.keySet().iterator();
+                while (iterator.hasNext()) {
+                    String field = iterator.next();
+                    Map<String, String> options = ((Map<String, String>) fieldMap.get(field));
+                    String analyzer = options.get("analyzer") == null ? "standard" : options.get("analyzer");
+                    List<AnalyzeResponse.AnalyzeToken> analyzeTokens = new ArrayList<>();
+                    if (source.get(field) != null && !"".equals(source.get(field))) {
+                        analyzeTokens = analyze(index, analyzer, String.valueOf(source.get(field)));
+                    }
+                    analyzerTextTerms.put(field, analyzeTokens);
+                }
+                analyzeDocumentTermMap.put(searchHits[i].getId(), analyzerTextTerms);
             }
-            analyzeDocumentTermMap.put(searchHits[i].getId(), analyzerTextTerms);
         }
         documentPagination.setAnalyzeDocumentTermMap(analyzeDocumentTermMap);
 

@@ -26,11 +26,10 @@ public class IndicesController {
     public ResponseEntity<?> findAllDocument(@PathVariable String index,
                                              @RequestParam int pageNum,
                                              @RequestParam int rowSize,
+                                             @RequestParam(required = false, defaultValue = "false") boolean analysis,
                                              @RequestParam(required = false) String id) throws IOException {
 
-
-
-        DocumentPagination documentPagination = indicesService.findAllDocumentPagination(index, pageNum, rowSize, id);
+        DocumentPagination documentPagination = indicesService.findAllDocumentPagination(index, pageNum, rowSize, id, analysis, null);
 
         return new ResponseEntity<>(documentPagination, HttpStatus.OK);
     }

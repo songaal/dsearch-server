@@ -109,7 +109,7 @@ public class DictionaryService {
         }
         SearchSourceBuilder builder = new SearchSourceBuilder().query(boolQueryBuilder);
 
-        return indicesService.findAllDocumentPagination(dictionaryIndex, pageNum, rowSize, null, builder);
+        return indicesService.findAllDocumentPagination(dictionaryIndex, pageNum, rowSize, null, false, builder);
     }
 
     public void createDocument(CreateDictDocumentRequest document) throws IOException {
