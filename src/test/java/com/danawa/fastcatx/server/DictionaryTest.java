@@ -11,16 +11,16 @@ import java.io.IOException;
 @SpringBootTest
 public class DictionaryTest {
 
-    @Autowired
-    private DictionaryService dictionaryService;
+//    @Autowired
+//    private DictionaryService dictionaryService;
 
     @Test
     public void downloadTest() {
-        try {
-            dictionaryService.findAll("USER");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        try {
+//            dictionaryService.findAll("USER");
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
 
 
     }
