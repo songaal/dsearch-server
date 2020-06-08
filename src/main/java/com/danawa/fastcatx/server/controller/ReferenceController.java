@@ -1,10 +1,12 @@
 package com.danawa.fastcatx.server.controller;
 
 import com.danawa.fastcatx.server.entity.DocumentPagination;
+import com.danawa.fastcatx.server.entity.ReferenceOrdersRequest;
 import com.danawa.fastcatx.server.entity.ReferenceTemp;
 import com.danawa.fastcatx.server.services.ReferenceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -40,6 +42,16 @@ public class ReferenceController {
     @PostMapping
     public ResponseEntity<?> add(@RequestBody ReferenceTemp entity) throws IOException {
         referenceService.add(entity);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PutMapping("/actions")
+    public ResponseEntity<?> actions(@RequestParam String action,
+                                     @RequestBody(required = false) ReferenceOrdersRequest request) throws IOException {
+        if ("orders".equalsIgnoreCase(action)) {
+            referenceService.updateOrders(request);
+        }
+
         return new ResponseEntity<>(HttpStatus.OK);
     }
 

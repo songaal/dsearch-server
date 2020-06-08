@@ -1,18 +1,20 @@
 package com.danawa.fastcatx.server.services;
 
 import com.danawa.fastcatx.server.entity.DocumentPagination;
+import com.danawa.fastcatx.server.entity.ReferenceOrdersRequest;
 import com.danawa.fastcatx.server.entity.ReferenceTemp;
+import com.google.gson.Gson;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.client.indices.GetIndexRequest;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.*;
@@ -21,7 +23,6 @@ import org.elasticsearch.search.Scroll;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
-import org.elasticsearch.search.fetch.subphase.FetchSourceContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -83,25 +84,27 @@ public class ReferenceService {
         int hitsSize = SearchHitArr.length;
         for (int i = 0; i < hitsSize; i++) {
             Map<String, Object> source = SearchHitArr[i].getSourceAsMap();
-            referenceTempList.add(convertMapToObject(source));
+            referenceTempList.add(convertMapToObject(SearchHitArr[i].getId(), source));
         }
         return referenceTempList;
     }
 
     public ReferenceTemp find(String id) throws IOException {
         GetResponse response = client.get(new GetRequest().index(referenceIndex).id(id), RequestOptions.DEFAULT);
-        return convertMapToObject(response.getSourceAsMap());
+        return convertMapToObject(id, response.getSourceAsMap());
     }
 
-    private ReferenceTemp convertMapToObject(Map<String, Object> source) {
+    private ReferenceTemp convertMapToObject(String id, Map<String, Object> source) {
         if (source == null) {
             return null;
         }
         ReferenceTemp temp = new ReferenceTemp();
+        temp.setId(id);
         temp.setName(String.valueOf(source.get("name")));
         temp.setIndices(String.valueOf(source.get("indices")));
         temp.setQuery(String.valueOf(source.get("query")));
         temp.setTitle(String.valueOf(source.get("title")));
+        temp.setClickUrl(String.valueOf(source.get("clickUrl")));
         temp.setThumbnails(String.valueOf(source.get("thumbnails")));
         temp.setOrder(String.valueOf(source.get("order")));
         temp.setFields((List<ReferenceTemp.Field>) source.get("fields"));
@@ -125,17 +128,40 @@ public class ReferenceService {
     }
 
     private XContentBuilder build(ReferenceTemp entity) throws IOException {
-        return jsonBuilder()
+        XContentBuilder builder = jsonBuilder()
                 .startObject()
-                .field("name", entity.getName())
-                .field("indices", entity.getIndices())
-                .field("query", entity.getQuery())
-                .field("title", entity.getTitle())
-                .field("thumbnails", entity.getThumbnails())
-                .field("order", entity.getOrder())
-                .field("fields", entity.getFields())
-                .field("aggs", entity.getAggs())
-                .endObject();
+                .field("name", entity.getName() == null ? "" : entity.getName())
+                .field("indices", entity.getIndices() == null ? "" : entity.getIndices())
+                .field("query", entity.getQuery() == null ? "" : entity.getQuery())
+                .field("title", entity.getTitle() == null ? "" : entity.getTitle())
+                .field("clickUrl", entity.getClickUrl() == null ? "" : entity.getClickUrl())
+                .field("thumbnails", entity.getThumbnails() == null ? "" : entity.getThumbnails())
+                .field("order", entity.getOrder() == null ? 999 : entity.getOrder());
+
+        builder.startArray("fields");
+        if (entity.getFields() != null) {
+            for (int i = 0; i < entity.getFields().size(); i++) {
+                ReferenceTemp.Field field = entity.getFields().get(i);
+                builder.startObject()
+                        .field("label", field.getLabel())
+                        .field("value", field.getValue())
+                        .endObject();
+            }
+        }
+
+        builder.endArray();
+
+        builder.startArray("aggs");
+        if (entity.getAggs() != null) {
+            for (int i = 0; i < entity.getAggs().size(); i++) {
+                ReferenceTemp.Field aggs = entity.getAggs().get(i);
+                builder.startObject()
+                        .field("label", aggs.getLabel())
+                        .field("value", aggs.getValue())
+                        .endObject();
+            }
+        }
+        return builder.endArray().endObject();
     }
 
     public void delete(String id) throws IOException {
@@ -179,4 +205,18 @@ public class ReferenceService {
         return result;
     }
 
+    public void updateOrders(ReferenceOrdersRequest request) throws IOException {
+        int size = request.getOrders().size();
+        for (int i = 0; i < size; i++) {
+            ReferenceOrdersRequest.Order order = request.getOrders().get(i);
+            client.update(new UpdateRequest()
+                    .index(referenceIndex)
+                    .id(order.getId())
+                    .doc(jsonBuilder()
+                            .startObject()
+                            .field("order", order.getOrder())
+                            .endObject()), RequestOptions.DEFAULT);
+
+        }
+    }
 }

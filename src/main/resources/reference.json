@@ -17,6 +17,9 @@
       "title": {
         "type": "keyword"
       },
+      "clickUrl": {
+        "type": "keyword"
+      },
       "thumbnails": {
         "type": "keyword"
       },
