@@ -2,6 +2,7 @@ package com.danawa.fastcatx.server.controller;
 
 import com.danawa.fastcatx.server.entity.DocumentPagination;
 import com.danawa.fastcatx.server.entity.ReferenceOrdersRequest;
+import com.danawa.fastcatx.server.entity.ReferenceResult;
 import com.danawa.fastcatx.server.entity.ReferenceTemp;
 import com.danawa.fastcatx.server.services.ReferenceService;
 import org.slf4j.Logger;
@@ -69,17 +70,17 @@ public class ReferenceController {
     }
 
     @GetMapping("/_search")
-    public ResponseEntity<?> searchResponseAll(@RequestParam(defaultValue = "") String keyword) throws IOException {
-        Map<ReferenceTemp, DocumentPagination> result = referenceService.searchResponseAll(keyword);
+    public ResponseEntity<?> searchResponseAll(@RequestParam String keyword) throws IOException {
+        List<ReferenceResult> result = referenceService.searchResponseAll(keyword);
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
     @GetMapping("/{id}/_search")
     public ResponseEntity<?> searchResponse(@PathVariable String id,
-                                            @RequestParam(defaultValue = "") String keyword,
+                                            @RequestParam String keyword,
                                             @RequestParam(defaultValue = "0") long pageNum,
                                             @RequestParam(defaultValue = "100") long rowSize) throws IOException {
-        Map<ReferenceTemp, DocumentPagination> result = referenceService.searchResponse(id, keyword, pageNum, rowSize);
+        ReferenceResult result = referenceService.searchResponse(id, keyword, pageNum, rowSize);
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 

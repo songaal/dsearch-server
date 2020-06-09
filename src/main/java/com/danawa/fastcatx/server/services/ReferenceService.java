@@ -2,7 +2,9 @@ package com.danawa.fastcatx.server.services;
 
 import com.danawa.fastcatx.server.entity.DocumentPagination;
 import com.danawa.fastcatx.server.entity.ReferenceOrdersRequest;
+import com.danawa.fastcatx.server.entity.ReferenceResult;
 import com.danawa.fastcatx.server.entity.ReferenceTemp;
+import com.danawa.fastcatx.server.utils.JsonUtils;
 import com.google.gson.Gson;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.get.GetRequest;
@@ -44,6 +46,7 @@ public class ReferenceService {
     private static Logger logger = LoggerFactory.getLogger(DictionaryService.class);
 
     private IndicesService indicesService;
+    private JsonUtils jsonUtils;
 
     private RestHighLevelClient client;
     private String referenceIndex;
@@ -52,10 +55,12 @@ public class ReferenceService {
 
     public ReferenceService(@Qualifier("getRestHighLevelClient") RestHighLevelClient restHighLevelClient,
                             @Value("${fastcatx.reference.index}") String referenceIndex,
-                            IndicesService indicesService) {
+                            IndicesService indicesService,
+                            JsonUtils jsonUtils) {
         this.indicesService = indicesService;
         this.client = restHighLevelClient;
         this.referenceIndex = referenceIndex;
+        this.jsonUtils = jsonUtils;
     }
 
     @PostConstruct
@@ -169,30 +174,42 @@ public class ReferenceService {
                 , RequestOptions.DEFAULT);
     }
 
-    public Map<ReferenceTemp, DocumentPagination> searchResponseAll(String keyword) throws IOException {
-        Map<ReferenceTemp, DocumentPagination> result = new HashMap<>();
+    public List<ReferenceResult> searchResponseAll(String keyword) throws IOException {
+        List<ReferenceResult> result = new ArrayList<>();
+
         List<ReferenceTemp> tempList = findAll();
         int size = tempList.size();
         for (int i = 0; i < size; i++) {
             ReferenceTemp temp = tempList.get(i);
-            String query = temp.getQuery().replace("${keyword}", keyword);
+            String query = temp.getQuery()
+                    .replace("\"${keyword}\"", "\"" + keyword + "\"")
+                    .replace("${keyword}", "\"" + keyword + "\"");
             SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
             SearchModule searchModule = new SearchModule(Settings.EMPTY, false, Collections.emptyList());
+
+            if (!jsonUtils.validate(query)) {
+                continue;
+            }
+
             try (XContentParser parser = XContentFactory
                     .xContent(XContentType.JSON)
                     .createParser(new NamedXContentRegistry(searchModule.getNamedXContents()), DeprecationHandler.THROW_UNSUPPORTED_OPERATION, query)) {
                 searchSourceBuilder.parseXContent(parser);
                 DocumentPagination documentPagination = indicesService.findAllDocumentPagination(temp.getIndices(), 0, 100, searchSourceBuilder);
-                result.put(temp, documentPagination);
+                result.add(new ReferenceResult(temp, documentPagination, query));
+            } catch (Exception e) {
+                result.add(new ReferenceResult(temp, new DocumentPagination(), query));
             }
         }
         return result;
     }
 
-    public Map<ReferenceTemp, DocumentPagination> searchResponse(String id, String keyword, long pageNum, long rowSize) throws IOException {
-        Map<ReferenceTemp, DocumentPagination> result = new HashMap<>();
+    public ReferenceResult searchResponse(String id, String keyword, long pageNum, long rowSize) throws IOException {
+        ReferenceResult result = new ReferenceResult();
         ReferenceTemp temp = find(id);
-        String query = temp.getQuery().replace("${keyword}", keyword);
+        String query = temp.getQuery()
+                .replace("\"${keyword}\"", "\"" + keyword + "\"")
+                .replace("${keyword}", "\"" + keyword + "\"");
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
         SearchModule searchModule = new SearchModule(Settings.EMPTY, false, Collections.emptyList());
         try (XContentParser parser = XContentFactory
@@ -200,7 +217,8 @@ public class ReferenceService {
                 .createParser(new NamedXContentRegistry(searchModule.getNamedXContents()), DeprecationHandler.THROW_UNSUPPORTED_OPERATION, query)) {
             searchSourceBuilder.parseXContent(parser);
             DocumentPagination documentPagination = indicesService.findAllDocumentPagination(temp.getIndices(), pageNum, rowSize, searchSourceBuilder);
-            result.put(temp, documentPagination);
+            result.setTemplate(temp);
+            result.setDocuments(documentPagination);
         }
         return result;
     }
