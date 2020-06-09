@@ -10,4 +10,6 @@ public class FastcatxServerApplication {
         SpringApplication.run(FastcatxServerApplication.class, args);
     }
 
+
+    
 }
