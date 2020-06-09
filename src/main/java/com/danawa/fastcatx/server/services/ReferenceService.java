@@ -195,7 +195,7 @@ public class ReferenceService {
                     .xContent(XContentType.JSON)
                     .createParser(new NamedXContentRegistry(searchModule.getNamedXContents()), DeprecationHandler.THROW_UNSUPPORTED_OPERATION, query)) {
                 searchSourceBuilder.parseXContent(parser);
-                DocumentPagination documentPagination = indicesService.findAllDocumentPagination(temp.getIndices(), 0, 100, searchSourceBuilder);
+                DocumentPagination documentPagination = indicesService.findAllDocumentPagination(temp.getIndices(), 0, 30, searchSourceBuilder);
                 result.add(new ReferenceResult(temp, documentPagination, query));
             } catch (Exception e) {
                 result.add(new ReferenceResult(temp, new DocumentPagination(), query));
@@ -210,6 +210,11 @@ public class ReferenceService {
         String query = temp.getQuery()
                 .replace("\"${keyword}\"", "\"" + keyword + "\"")
                 .replace("${keyword}", "\"" + keyword + "\"");
+
+        if (!jsonUtils.validate(query)) {
+            return result;
+        }
+
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
         SearchModule searchModule = new SearchModule(Settings.EMPTY, false, Collections.emptyList());
         try (XContentParser parser = XContentFactory
@@ -217,6 +222,8 @@ public class ReferenceService {
                 .createParser(new NamedXContentRegistry(searchModule.getNamedXContents()), DeprecationHandler.THROW_UNSUPPORTED_OPERATION, query)) {
             searchSourceBuilder.parseXContent(parser);
             DocumentPagination documentPagination = indicesService.findAllDocumentPagination(temp.getIndices(), pageNum, rowSize, searchSourceBuilder);
+
+            result.setQuery(query);
             result.setTemplate(temp);
             result.setDocuments(documentPagination);
         }

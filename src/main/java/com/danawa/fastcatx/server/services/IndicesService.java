@@ -58,6 +58,9 @@ public class IndicesService {
 //        documentPagination.setTotalCount(getDocumentCount(index));
         documentPagination.setTotalCount(searchResponse.getHits().getTotalHits().value);
         documentPagination.setHits(searchResponse.getHits().getHits());
+        if (searchResponse.getAggregations() != null) {
+            documentPagination.setAggregations(searchResponse.getAggregations().asMap());
+        }
         documentPagination.setPageNum(pageNum);
         documentPagination.setRowSize(rowSize);
 

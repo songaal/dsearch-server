@@ -78,8 +78,8 @@ public class ReferenceController {
     @GetMapping("/{id}/_search")
     public ResponseEntity<?> searchResponse(@PathVariable String id,
                                             @RequestParam String keyword,
-                                            @RequestParam(defaultValue = "0") long pageNum,
-                                            @RequestParam(defaultValue = "100") long rowSize) throws IOException {
+                                            @RequestParam long pageNum,
+                                            @RequestParam long rowSize) throws IOException {
         ReferenceResult result = referenceService.searchResponse(id, keyword, pageNum, rowSize);
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
