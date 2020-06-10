@@ -8,11 +8,9 @@ import java.util.*;
 
 public class DictParsingTest {
 
-    private enum TYPE { USER, SYNONYM, STOP, SPACE, COMPOUND, UNIT, UNIT_SYNONYM, MAKER, BRAND, CATEGORY, ENGLISH }
-
     public static void main(String[] args) {
 
-
+//        curl -s -H "Content-Type: application/x-ndjson" -XPOST http://es1.danawa.io/.fastcatx_dict/_bulk --data-binary @user.json
         UserDict();
 
 
@@ -24,8 +22,8 @@ public class DictParsingTest {
         BufferedWriter writer = null;
 
         try {
-            String dictFile = "D:\\다나와 검색엔진\\테스트 서버 마이그레이션 파일\\user.txt";
-            String outputFile = "D:\\다나와 검색엔진\\테스트 서버 마이그레이션 파일\\user.json";
+            String dictFile = "C:\\Users\\admin\\Downloads\\user.txt";
+            String outputFile = "C:\\Users\\admin\\Downloads\\user.json";
 
             Map<String, Object> metaLine = new HashMap<>();
             metaLine.put("index", new HashMap<>());
@@ -41,7 +39,7 @@ public class DictParsingTest {
                 String[] column = line.split("\t");
                 DictEntityTest dict = new DictEntityTest();
                 dict.setKeyword(column[0]);
-                dict.setType(TYPE.USER.toString());
+                dict.setType("USER");
                 writer.append(new Gson().toJson(metaLine) + "\r\n");
                 writer.append(new Gson().toJson(dict) + "\r\n");
             }

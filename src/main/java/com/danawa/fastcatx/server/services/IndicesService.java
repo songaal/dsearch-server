@@ -48,9 +48,10 @@ public class IndicesService {
                 builder.query(QueryBuilders.matchAllQuery());
             }
         }
-        builder.from((int) ((int) pageNum * rowSize)).size((int) rowSize);
 
-        searchRequest.indices(index).source(builder);
+        searchRequest.indices(index).source(builder
+                .from((int) ((int) pageNum * rowSize))
+                .size((int) rowSize));
         SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
 
         DocumentPagination documentPagination = new DocumentPagination();
