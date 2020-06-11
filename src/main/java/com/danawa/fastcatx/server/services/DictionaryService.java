@@ -53,6 +53,20 @@ public class DictionaryService {
     private final String DICTIONARY_INDEX_JSON = "dictionary.json";
     private final String suffix = ".raw";
 
+    //* 사전 구분 : type
+    //사용자 사전: keyword
+    //동의어 사전: keyword, synonym
+    //불용어 사전: keyword
+    //분리어 사전: keyword
+    //복합명사 사전: keyword, synonym
+    //단위명 사전: keyword
+    //단위명 동의어 사전: synonym
+    //제조사 사전: id, keyword, synonym
+    //브랜드 사전: id, keyword, synonym
+    //카테고리 사전: id, keyword, synonym
+    //영단어 사전: keyword
+
+
     public DictionaryService(@Qualifier("getRestHighLevelClient") RestHighLevelClient restHighLevelClient,
                              @Value("${fastcatx.dictionary.index}") String dictionaryIndex,
                              IndicesService indicesService) {
