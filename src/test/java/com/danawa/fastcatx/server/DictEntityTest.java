@@ -1,10 +1,18 @@
 package com.danawa.fastcatx.server;
 
 public class DictEntityTest {
-
+    private String id;
     private String keyword;
     private String synonym;
     private String type;
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
 
     public String getKeyword() {
         return keyword;
