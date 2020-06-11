@@ -27,12 +27,12 @@ public class ElasticSearchConfig {
 
     @Bean(destroyMethod = "close")
     public RestHighLevelClient getRestHighLevelClient() {
-        HttpHost[] HttpHostList = new HttpHost[nodes.size()];
+        HttpHost[] httpHostList = new HttpHost[nodes.size()];
         for (int i = 0; i < nodes.size(); i++) {
-            HttpHostList[i] = new HttpHost(nodes.get(i).getHost(), nodes.get(i).getPort(), nodes.get(i).getScheme());
+            httpHostList[i] = new HttpHost(nodes.get(i).getHost(), nodes.get(i).getPort(), nodes.get(i).getScheme());
         }
 
-        RestClientBuilder builder = RestClient.builder(HttpHostList)
+        RestClientBuilder builder = RestClient.builder(httpHostList)
                 .setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder
                         .setDefaultIOReactorConfig(IOReactorConfig
                                 .custom()
