@@ -3,7 +3,7 @@ package com.danawa.fastcatx.server;
 public class DictEntityTest {
 
     private String keyword;
-    private String synonyms;
+    private String synonym;
     private String type;
 
     public String getKeyword() {
@@ -14,12 +14,12 @@ public class DictEntityTest {
         this.keyword = keyword;
     }
 
-    public String getSynonyms() {
-        return synonyms;
+    public String getSynonym() {
+        return synonym;
     }
 
-    public void setSynonyms(String synonyms) {
-        this.synonyms = synonyms;
+    public void setSynonym(String synonym) {
+        this.synonym = synonym;
     }
 
     public String getType() {

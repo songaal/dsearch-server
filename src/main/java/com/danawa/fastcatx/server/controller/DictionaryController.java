@@ -35,12 +35,49 @@ public class DictionaryController {
         int size = documentList.size();
         for (int i=0; i < size; i++) {
             Map<String, Object> source = documentList.get(i).getSourceAsMap();
+
             if ("USER".equalsIgnoreCase(dictionary)) {
+                sb.append(source.get("keyword"));
+            } else if ("SYNONYM".equalsIgnoreCase(dictionary)) {
+                sb.append(source.get("keyword"));
+                sb.append("\t");
+                sb.append(source.get("synonym"));
+            } else if ("STOP".equalsIgnoreCase(dictionary)) {
+                sb.append(source.get("keyword"));
+            } else if ("SPACE".equalsIgnoreCase(dictionary)) {
+                sb.append(source.get("keyword"));
+            } else if ("COMPOUND".equalsIgnoreCase(dictionary)) {
+                sb.append(source.get("keyword"));
+                sb.append("\t");
+                sb.append(source.get("synonym"));
+            } else if ("UNIT".equalsIgnoreCase(dictionary)) {
+                sb.append(source.get("keyword"));
+            } else if ("UNIT_SYNONYM".equalsIgnoreCase(dictionary)) {
+                sb.append(source.get("synonym"));
+            } else if ("MAKER".equalsIgnoreCase(dictionary)) {
+                sb.append(source.get("id"));
+                sb.append("\t");
+                sb.append(source.get("keyword"));
+                sb.append("\t");
+                sb.append(source.get("synonym"));
+            } else if ("BRAND".equalsIgnoreCase(dictionary)) {
+                sb.append(source.get("id"));
+                sb.append("\t");
+                sb.append(source.get("keyword"));
+                sb.append("\t");
+                sb.append(source.get("synonym"));
+            } else if ("CATEGORY".equalsIgnoreCase(dictionary)) {
+                sb.append(source.get("id"));
+                sb.append("\t");
+                sb.append(source.get("keyword"));
+                sb.append("\t");
+                sb.append(source.get("synonym"));
+            } else if ("ENGLISH".equalsIgnoreCase(dictionary)) {
                 sb.append(source.get("keyword"));
             }
             sb.append("\r\n");
         }
-        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + "text.txt");
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + dictionary +  ".txt");
         return new ResponseEntity<>(sb.toString(), headers, HttpStatus.OK);
     }
 

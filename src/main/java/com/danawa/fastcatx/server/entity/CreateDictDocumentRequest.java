@@ -5,7 +5,7 @@ import java.io.Serializable;
 
 public class CreateDictDocumentRequest implements Serializable {
     private String keyword;
-    private String synonyms;
+    private String synonym;
     private String id; //es id X
     private String type;
 
@@ -17,12 +17,12 @@ public class CreateDictDocumentRequest implements Serializable {
         this.keyword = keyword;
     }
 
-    public String getSynonyms() {
-        return synonyms;
+    public String getSynonym() {
+        return synonym;
     }
 
-    public void setSynonyms(String synonyms) {
-        this.synonyms = synonyms;
+    public void setSynonym(String synonym) {
+        this.synonym = synonym;
     }
 
     public String getId() {
