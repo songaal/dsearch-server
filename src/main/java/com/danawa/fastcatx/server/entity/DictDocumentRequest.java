@@ -3,10 +3,10 @@ package com.danawa.fastcatx.server.entity;
 
 import java.io.Serializable;
 
-public class CreateDictDocumentRequest implements Serializable {
+public class DictDocumentRequest implements Serializable {
     private String keyword;
     private String synonym;
-    private String id; //es id X
+    private String id; // 사전의 데이터 아이디
     private String type;
 
     public String getKeyword() {

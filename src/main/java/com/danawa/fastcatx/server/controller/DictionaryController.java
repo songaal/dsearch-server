@@ -1,6 +1,6 @@
 package com.danawa.fastcatx.server.controller;
 
-import com.danawa.fastcatx.server.entity.CreateDictDocumentRequest;
+import com.danawa.fastcatx.server.entity.DictDocumentRequest;
 import com.danawa.fastcatx.server.entity.DocumentPagination;
 import com.danawa.fastcatx.server.services.DictionaryService;
 import org.elasticsearch.search.SearchHit;
@@ -86,7 +86,7 @@ public class DictionaryController {
                                                   @RequestParam(defaultValue = "0") long pageNum,
                                                   @RequestParam(defaultValue = "40") long rowSize,
                                                   @RequestParam(defaultValue = "false") boolean isMatch,
-                                                  @RequestParam(required = false, defaultValue = "keyword.raw") String field,
+                                                  @RequestParam(required = false, defaultValue = "keyword") String field,
                                                   @RequestParam(required = false) String value) throws IOException {
 
         DocumentPagination documentPagination = dictionaryService.documentPagination(dictionary.toUpperCase(), pageNum, rowSize, isMatch, field, value);
@@ -95,10 +95,9 @@ public class DictionaryController {
 
     @PostMapping("/{dictionary}")
     public ResponseEntity<?> createDocument(@PathVariable String dictionary,
-                                            @RequestBody CreateDictDocumentRequest request) throws IOException {
+                                            @RequestBody DictDocumentRequest request) throws IOException {
         request.setType(dictionary.toUpperCase());
-        dictionaryService.createDocument(request);
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<>(dictionaryService.createDocument(request), HttpStatus.OK);
     }
 
 
@@ -109,4 +108,11 @@ public class DictionaryController {
         return new ResponseEntity<>(dictionaryService.deleteDocument(id), HttpStatus.OK);
     }
 
+    @PutMapping("/{dictionary}/{id}")
+    public ResponseEntity<?> updateDocument(@PathVariable String dictionary,
+                                            @PathVariable String id,
+                                            @RequestBody DictDocumentRequest request) throws IOException {
+        request.setType(dictionary.toUpperCase());
+        return new ResponseEntity<>(dictionaryService.updateDocument(id, request), HttpStatus.OK);
+    }
 }
