@@ -48,9 +48,10 @@ public class IndicesService {
                 builder.query(QueryBuilders.matchAllQuery());
             }
         }
-        builder.from((int) ((int) pageNum * rowSize)).size((int) rowSize);
 
-        searchRequest.indices(index).source(builder);
+        searchRequest.indices(index).source(builder
+                .from((int) ((int) pageNum * rowSize))
+                .size((int) rowSize));
         SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
 
         DocumentPagination documentPagination = new DocumentPagination();
@@ -58,6 +59,9 @@ public class IndicesService {
 //        documentPagination.setTotalCount(getDocumentCount(index));
         documentPagination.setTotalCount(searchResponse.getHits().getTotalHits().value);
         documentPagination.setHits(searchResponse.getHits().getHits());
+        if (searchResponse.getAggregations() != null) {
+            documentPagination.setAggregations(searchResponse.getAggregations().asMap());
+        }
         documentPagination.setPageNum(pageNum);
         documentPagination.setRowSize(rowSize);
 

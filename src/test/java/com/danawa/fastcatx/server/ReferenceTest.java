@@ -1,6 +1,7 @@
 package com.danawa.fastcatx.server;
 
 import com.danawa.fastcatx.server.entity.DocumentPagination;
+import com.danawa.fastcatx.server.entity.ReferenceResult;
 import com.danawa.fastcatx.server.entity.ReferenceTemp;
 import com.danawa.fastcatx.server.services.ReferenceService;
 import org.elasticsearch.client.RestHighLevelClient;
@@ -33,7 +34,7 @@ public class ReferenceTest {
 
         try {
 //            List<ReferenceTemp> entityList = referenceService.findAll();
-            Map<ReferenceTemp, DocumentPagination> result = referenceService.searchResponseAll("노트북");
+            List<ReferenceResult> result = referenceService.searchResponseAll("노트북");
             logger.debug("{}", result);
         } catch (IOException e) {
             e.printStackTrace();

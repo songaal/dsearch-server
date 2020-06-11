@@ -14,14 +14,11 @@ elasticsearch:
     - host: es1.danawa.io
       port: 80
       scheme: http
-    - host: es1.danawa.io
-      port: 80
-      scheme: http
 
 
 
 fastcatx:
   dictionary:
-    index: .fastcatx_dict_test-1
+    index: .fastcatx_dict
   reference:
     index: .fastcatx_reference

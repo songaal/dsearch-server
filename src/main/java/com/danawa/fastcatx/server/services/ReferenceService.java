@@ -1,18 +1,22 @@
 package com.danawa.fastcatx.server.services;
 
 import com.danawa.fastcatx.server.entity.DocumentPagination;
+import com.danawa.fastcatx.server.entity.ReferenceOrdersRequest;
+import com.danawa.fastcatx.server.entity.ReferenceResult;
 import com.danawa.fastcatx.server.entity.ReferenceTemp;
+import com.danawa.fastcatx.server.utils.JsonUtils;
+import com.google.gson.Gson;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.client.indices.GetIndexRequest;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.*;
@@ -21,7 +25,6 @@ import org.elasticsearch.search.Scroll;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
-import org.elasticsearch.search.fetch.subphase.FetchSourceContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -43,6 +46,7 @@ public class ReferenceService {
     private static Logger logger = LoggerFactory.getLogger(DictionaryService.class);
 
     private IndicesService indicesService;
+    private JsonUtils jsonUtils;
 
     private RestHighLevelClient client;
     private String referenceIndex;
@@ -51,10 +55,12 @@ public class ReferenceService {
 
     public ReferenceService(@Qualifier("getRestHighLevelClient") RestHighLevelClient restHighLevelClient,
                             @Value("${fastcatx.reference.index}") String referenceIndex,
-                            IndicesService indicesService) {
+                            IndicesService indicesService,
+                            JsonUtils jsonUtils) {
         this.indicesService = indicesService;
         this.client = restHighLevelClient;
         this.referenceIndex = referenceIndex;
+        this.jsonUtils = jsonUtils;
     }
 
     @PostConstruct
@@ -83,25 +89,27 @@ public class ReferenceService {
         int hitsSize = SearchHitArr.length;
         for (int i = 0; i < hitsSize; i++) {
             Map<String, Object> source = SearchHitArr[i].getSourceAsMap();
-            referenceTempList.add(convertMapToObject(source));
+            referenceTempList.add(convertMapToObject(SearchHitArr[i].getId(), source));
         }
         return referenceTempList;
     }
 
     public ReferenceTemp find(String id) throws IOException {
         GetResponse response = client.get(new GetRequest().index(referenceIndex).id(id), RequestOptions.DEFAULT);
-        return convertMapToObject(response.getSourceAsMap());
+        return convertMapToObject(id, response.getSourceAsMap());
     }
 
-    private ReferenceTemp convertMapToObject(Map<String, Object> source) {
+    private ReferenceTemp convertMapToObject(String id, Map<String, Object> source) {
         if (source == null) {
             return null;
         }
         ReferenceTemp temp = new ReferenceTemp();
+        temp.setId(id);
         temp.setName(String.valueOf(source.get("name")));
         temp.setIndices(String.valueOf(source.get("indices")));
         temp.setQuery(String.valueOf(source.get("query")));
         temp.setTitle(String.valueOf(source.get("title")));
+        temp.setClickUrl(String.valueOf(source.get("clickUrl")));
         temp.setThumbnails(String.valueOf(source.get("thumbnails")));
         temp.setOrder(String.valueOf(source.get("order")));
         temp.setFields((List<ReferenceTemp.Field>) source.get("fields"));
@@ -125,17 +133,40 @@ public class ReferenceService {
     }
 
     private XContentBuilder build(ReferenceTemp entity) throws IOException {
-        return jsonBuilder()
+        XContentBuilder builder = jsonBuilder()
                 .startObject()
-                .field("name", entity.getName())
-                .field("indices", entity.getIndices())
-                .field("query", entity.getQuery())
-                .field("title", entity.getTitle())
-                .field("thumbnails", entity.getThumbnails())
-                .field("order", entity.getOrder())
-                .field("fields", entity.getFields())
-                .field("aggs", entity.getAggs())
-                .endObject();
+                .field("name", entity.getName() == null ? "" : entity.getName())
+                .field("indices", entity.getIndices() == null ? "" : entity.getIndices())
+                .field("query", entity.getQuery() == null ? "" : entity.getQuery())
+                .field("title", entity.getTitle() == null ? "" : entity.getTitle())
+                .field("clickUrl", entity.getClickUrl() == null ? "" : entity.getClickUrl())
+                .field("thumbnails", entity.getThumbnails() == null ? "" : entity.getThumbnails())
+                .field("order", entity.getOrder() == null ? 999 : entity.getOrder());
+
+        builder.startArray("fields");
+        if (entity.getFields() != null) {
+            for (int i = 0; i < entity.getFields().size(); i++) {
+                ReferenceTemp.Field field = entity.getFields().get(i);
+                builder.startObject()
+                        .field("label", field.getLabel())
+                        .field("value", field.getValue())
+                        .endObject();
+            }
+        }
+
+        builder.endArray();
+
+        builder.startArray("aggs");
+        if (entity.getAggs() != null) {
+            for (int i = 0; i < entity.getAggs().size(); i++) {
+                ReferenceTemp.Field aggs = entity.getAggs().get(i);
+                builder.startObject()
+                        .field("label", aggs.getLabel())
+                        .field("value", aggs.getValue())
+                        .endObject();
+            }
+        }
+        return builder.endArray().endObject();
     }
 
     public void delete(String id) throws IOException {
@@ -143,30 +174,47 @@ public class ReferenceService {
                 , RequestOptions.DEFAULT);
     }
 
-    public Map<ReferenceTemp, DocumentPagination> searchResponseAll(String keyword) throws IOException {
-        Map<ReferenceTemp, DocumentPagination> result = new HashMap<>();
+    public List<ReferenceResult> searchResponseAll(String keyword) throws IOException {
+        List<ReferenceResult> result = new ArrayList<>();
+
         List<ReferenceTemp> tempList = findAll();
         int size = tempList.size();
         for (int i = 0; i < size; i++) {
             ReferenceTemp temp = tempList.get(i);
-            String query = temp.getQuery().replace("${keyword}", keyword);
+            String query = temp.getQuery()
+                    .replace("\"${keyword}\"", "\"" + keyword + "\"")
+                    .replace("${keyword}", "\"" + keyword + "\"");
             SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
             SearchModule searchModule = new SearchModule(Settings.EMPTY, false, Collections.emptyList());
+
+            if (!jsonUtils.validate(query)) {
+                continue;
+            }
+
             try (XContentParser parser = XContentFactory
                     .xContent(XContentType.JSON)
                     .createParser(new NamedXContentRegistry(searchModule.getNamedXContents()), DeprecationHandler.THROW_UNSUPPORTED_OPERATION, query)) {
                 searchSourceBuilder.parseXContent(parser);
-                DocumentPagination documentPagination = indicesService.findAllDocumentPagination(temp.getIndices(), 0, 100, searchSourceBuilder);
-                result.put(temp, documentPagination);
+                DocumentPagination documentPagination = indicesService.findAllDocumentPagination(temp.getIndices(), 0, 30, searchSourceBuilder);
+                result.add(new ReferenceResult(temp, documentPagination, query));
+            } catch (Exception e) {
+                result.add(new ReferenceResult(temp, new DocumentPagination(), query));
             }
         }
         return result;
     }
 
-    public Map<ReferenceTemp, DocumentPagination> searchResponse(String id, String keyword, long pageNum, long rowSize) throws IOException {
-        Map<ReferenceTemp, DocumentPagination> result = new HashMap<>();
+    public ReferenceResult searchResponse(String id, String keyword, long pageNum, long rowSize) throws IOException {
+        ReferenceResult result = new ReferenceResult();
         ReferenceTemp temp = find(id);
-        String query = temp.getQuery().replace("${keyword}", keyword);
+        String query = temp.getQuery()
+                .replace("\"${keyword}\"", "\"" + keyword + "\"")
+                .replace("${keyword}", "\"" + keyword + "\"");
+
+        if (!jsonUtils.validate(query)) {
+            return result;
+        }
+
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
         SearchModule searchModule = new SearchModule(Settings.EMPTY, false, Collections.emptyList());
         try (XContentParser parser = XContentFactory
@@ -174,9 +222,26 @@ public class ReferenceService {
                 .createParser(new NamedXContentRegistry(searchModule.getNamedXContents()), DeprecationHandler.THROW_UNSUPPORTED_OPERATION, query)) {
             searchSourceBuilder.parseXContent(parser);
             DocumentPagination documentPagination = indicesService.findAllDocumentPagination(temp.getIndices(), pageNum, rowSize, searchSourceBuilder);
-            result.put(temp, documentPagination);
+
+            result.setQuery(query);
+            result.setTemplate(temp);
+            result.setDocuments(documentPagination);
         }
         return result;
     }
 
+    public void updateOrders(ReferenceOrdersRequest request) throws IOException {
+        int size = request.getOrders().size();
+        for (int i = 0; i < size; i++) {
+            ReferenceOrdersRequest.Order order = request.getOrders().get(i);
+            client.update(new UpdateRequest()
+                    .index(referenceIndex)
+                    .id(order.getId())
+                    .doc(jsonBuilder()
+                            .startObject()
+                            .field("order", order.getOrder())
+                            .endObject()), RequestOptions.DEFAULT);
+
+        }
+    }
 }

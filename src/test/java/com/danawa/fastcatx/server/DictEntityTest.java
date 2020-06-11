@@ -1,10 +1,18 @@
 package com.danawa.fastcatx.server;
 
 public class DictEntityTest {
-
+    private String id;
     private String keyword;
-    private String synonyms;
+    private String synonym;
     private String type;
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
 
     public String getKeyword() {
         return keyword;
@@ -14,12 +22,12 @@ public class DictEntityTest {
         this.keyword = keyword;
     }
 
-    public String getSynonyms() {
-        return synonyms;
+    public String getSynonym() {
+        return synonym;
     }
 
-    public void setSynonyms(String synonyms) {
-        this.synonyms = synonyms;
+    public void setSynonym(String synonym) {
+        this.synonym = synonym;
     }
 
     public String getType() {

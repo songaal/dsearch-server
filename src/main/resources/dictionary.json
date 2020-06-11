@@ -13,7 +13,7 @@
           }
         }
       },
-      "synonyms": {
+      "synonym": {
         "type": "text",
         "fields": {
           "raw": {

@@ -1,10 +1,13 @@
 package com.danawa.fastcatx.server.controller;
 
 import com.danawa.fastcatx.server.entity.DocumentPagination;
+import com.danawa.fastcatx.server.entity.ReferenceOrdersRequest;
+import com.danawa.fastcatx.server.entity.ReferenceResult;
 import com.danawa.fastcatx.server.entity.ReferenceTemp;
 import com.danawa.fastcatx.server.services.ReferenceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -43,6 +46,16 @@ public class ReferenceController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @PutMapping("/actions")
+    public ResponseEntity<?> actions(@RequestParam String action,
+                                     @RequestBody(required = false) ReferenceOrdersRequest request) throws IOException {
+        if ("orders".equalsIgnoreCase(action)) {
+            referenceService.updateOrders(request);
+        }
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<?> update(@PathVariable String id,
                                     @RequestBody ReferenceTemp entity) throws IOException {
@@ -57,17 +70,17 @@ public class ReferenceController {
     }
 
     @GetMapping("/_search")
-    public ResponseEntity<?> searchResponseAll(@RequestParam(defaultValue = "") String keyword) throws IOException {
-        Map<ReferenceTemp, DocumentPagination> result = referenceService.searchResponseAll(keyword);
+    public ResponseEntity<?> searchResponseAll(@RequestParam String keyword) throws IOException {
+        List<ReferenceResult> result = referenceService.searchResponseAll(keyword);
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
     @GetMapping("/{id}/_search")
     public ResponseEntity<?> searchResponse(@PathVariable String id,
-                                            @RequestParam(defaultValue = "") String keyword,
-                                            @RequestParam(defaultValue = "0") long pageNum,
-                                            @RequestParam(defaultValue = "100") long rowSize) throws IOException {
-        Map<ReferenceTemp, DocumentPagination> result = referenceService.searchResponse(id, keyword, pageNum, rowSize);
+                                            @RequestParam String keyword,
+                                            @RequestParam long pageNum,
+                                            @RequestParam long rowSize) throws IOException {
+        ReferenceResult result = referenceService.searchResponse(id, keyword, pageNum, rowSize);
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 

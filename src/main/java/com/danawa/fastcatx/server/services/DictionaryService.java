@@ -72,12 +72,14 @@ public class DictionaryService {
     public List<SearchHit> findAll(String type) throws IOException {
         List<SearchHit> documentList = new ArrayList<>();
 
-        Scroll scroll = new Scroll(new TimeValue(1000, TimeUnit.MILLISECONDS));
+        Scroll scroll = new Scroll(new TimeValue(5, TimeUnit.SECONDS));
         SearchResponse response = client.search(new SearchRequest()
                 .indices(dictionaryIndex)
                 .scroll(scroll)
                 .source(new SearchSourceBuilder()
                         .query(new TermQueryBuilder("type", type))
+                        .from(0)
+                        .size(10000)
                 ), RequestOptions.DEFAULT);
 
         while (response.getScrollId() != null && response.getHits().getHits().length > 0) {
@@ -114,18 +116,23 @@ public class DictionaryService {
 
     public void createDocument(CreateDictDocumentRequest document) throws IOException {
 
-        SearchSourceBuilder searchSourceBuilder = null;
-        if ("USER".equalsIgnoreCase(document.getType())) {
-            searchSourceBuilder = new SearchSourceBuilder()
-                    .query(new BoolQueryBuilder()
-                            .must(new MatchQueryBuilder("type", "USER"))
-                            .must(new MatchQueryBuilder("keyword.raw", document.getKeyword()))
-                    );
-        } else {
-            searchSourceBuilder.query(new MatchAllQueryBuilder());
+        BoolQueryBuilder queryBuilder = new BoolQueryBuilder()
+                .filter(new MatchQueryBuilder("type", document.getType().toUpperCase()));
+
+        if (document.getId() != null && !"".equals(document.getId())) {
+            queryBuilder.must(new MatchQueryBuilder("id.raw", document.getId()));
+        }
+        if (document.getKeyword() != null && !"".equals(document.getKeyword())) {
+            queryBuilder.must(new MatchQueryBuilder("keyword.raw", document.getKeyword()));
+        }
+        if (document.getSynonym() != null && !"".equals(document.getSynonym())) {
+            queryBuilder.must(new MatchQueryBuilder("synonym.raw", document.getSynonym()));
         }
 
-        SearchResponse response = client.search(new SearchRequest().indices(dictionaryIndex).source(searchSourceBuilder), RequestOptions.DEFAULT);
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(queryBuilder);
+        SearchResponse response = client.search(new SearchRequest()
+                .indices(dictionaryIndex)
+                .source(searchSourceBuilder), RequestOptions.DEFAULT);
 
         if (response.getHits().getTotalHits().value > 0) {
             return;
@@ -134,7 +141,7 @@ public class DictionaryService {
         XContentBuilder builder = jsonBuilder()
                 .startObject()
                 .field("keyword", document.getKeyword())
-                .field("synonyms", document.getSynonyms())
+                .field("synonym", document.getSynonym())
                 .field("type", document.getType())
                 .field("id", document.getId())
                 .endObject();

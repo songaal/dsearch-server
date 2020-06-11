@@ -4,10 +4,12 @@ import java.io.Serializable;
 import java.util.List;
 
 public class ReferenceTemp implements Serializable {
+    private String id;
     private String name;
     private String indices;
     private String query;
     private String title;
+    private String clickUrl;
     private String thumbnails;
     private Integer order;
     private List<Field> fields;
@@ -15,11 +17,13 @@ public class ReferenceTemp implements Serializable {
 
     public ReferenceTemp() {}
 
-    public ReferenceTemp(String name, String indices, String query, String title, String thumbnails, Integer order, List<Field> fields, List<Field> aggs) {
+    public ReferenceTemp(String id, String name, String indices, String query, String title, String clickUrl, String thumbnails, Integer order, List<Field> fields, List<Field> aggs) {
+        this.id = id;
         this.name = name;
         this.indices = indices;
         this.query = query;
         this.title = title;
+        this.clickUrl = clickUrl;
         this.thumbnails = thumbnails;
         this.order = order;
         this.fields = fields;
@@ -45,6 +49,14 @@ public class ReferenceTemp implements Serializable {
         public void setValue(String value) {
             this.value = value;
         }
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 
     public String getName() {
@@ -112,5 +124,13 @@ public class ReferenceTemp implements Serializable {
 
     public void setAggs(List<Field> aggs) {
         this.aggs = aggs;
+    }
+
+    public String getClickUrl() {
+        return clickUrl;
+    }
+
+    public void setClickUrl(String clickUrl) {
+        this.clickUrl = clickUrl;
     }
 }

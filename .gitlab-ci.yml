@@ -7,7 +7,7 @@ stages:
 cache:
   key: ${CI_COMMIT_REF_SLUG}
   paths:
-    - .m2/repository
+    - /root/.m2/repository
 
 before_script:
   - mkdir -p /root/.m2/repository
@@ -17,8 +17,10 @@ before_script:
 
 build:
   stage: build
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
   script:
-    - sh mvnw package
+    - sh mvnw package -DskipTests
     - docker build -t ${IMAGE} .
     - docker push ${IMAGE}
 
