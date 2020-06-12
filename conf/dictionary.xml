@@ -1,0 +1,55 @@
+<plugin id="Product" namespace="Analysis" class="org.fastcatsearch.plugin.analysis.product.ProductAnalysisPlugin">
+    <dictionary-list>
+        <dictionary id="product" name="기초사전" type="SYSTEM" ignoreCase="true"></dictionary>
+        <dictionary id="user" name="사▒~Z▒▒~^~P사전" type="SET" tokenType="MAX"  ignoreCase="true">
+            <!--<column name="keyword" type="varchar(100) not null unique" searchable="true" key="true" compilable="true"/>-->
+            <column name="keyword" type="varchar(100) not null" searchable="true" key="true" compilable="true"/>
+        </dictionary>
+        <dictionary id="synonym" name="유▒~B▒▒~V▒▒~B▒전" type="SYNONYM" tokenType="NONE" ignoreCase="true">
+            <!--<column name="keyword" type="varchar(100)" searchable="true" key="true" nullableUnique="true" compilable="true"/>-->
+            <column name="keyword" type="varchar(100)" searchable="true" key="true" nullableUnique="false" compilable="true"/>
+            <column name="synonym" type="varchar(3000)" searchable="true" compilable="true"/>
+        </dictionary>
+        <dictionary id="stop" name="▒~H용▒~V▒▒~B▒전" type="SET" tokenType="MAX" ignoreCase="true">
+            <!--<column name="keyword" type="varchar(100) not null unique" searchable="true" key="true" compilable="true"/>-->
+            <column name="keyword" type="varchar(100) not null" searchable="true" key="true" compilable="true"/>
+        </dictionary>
+
+        <dictionary id="space" name="▒~D리▒~V▒▒~B▒전" type="SPACE" tokenType="MIN" ignoreCase="true">
+            <!--<column name="keyword" type="varchar(100) not null unique" searchable="true" key="true" compilable="true"/>-->
+            <column name="keyword" type="varchar(100) not null" searchable="true" key="true" compilable="true"/>
+        </dictionary>
+        <dictionary id="compound" name="복▒~U▒명사▒~B▒전" type="COMPOUND" tokenType="MID" ignoreCase="true">
+            <column name="keyword" type="varchar(100) not null unique" searchable="true" key="true" compilable="true"/>
+            <column name="value" type="varchar(3000)" searchable="true" compilable="true"/>
+        </dictionary>
+        <dictionary id="unit" name="단▒~\~D▒~E사전" type="SET" tokenType="HIGH" ignoreCase="true">
+            <!--<column name="keyword" type="varchar(100) not null unique" searchable="true" key="true" compilable="true"/>-->
+            <column name="keyword" type="varchar(100) not null" searchable="true" key="true" compilable="true"/>
+        </dictionary>
+        <dictionary id="unit_synonym" name="단▒~\~D▒~E▒~Y▒~X어▒~B▒전" type="SYNONYM_2WAY"  tokenType="HIGH" ignoreCase="true">
+            <column name="synonym" type="varchar(3000)" searchable="true" compilable="true"/>
+        </dictionary>
+        <dictionary id="maker" name="▒~\조▒~B▒명사전" type="CUSTOM" tokenType="NONE" ignoreCase="true">
+            <column name="makerid" type="int not null unique" compilable="true"/>
+            <!--<column name="keyword" type="varchar(100) not null unique" searchable="true" key="true" compilable="true"/>-->
+            <column name="keyword" type="varchar(100) not null" searchable="true" key="true" compilable="true"/>
+            <column name="value" type="varchar(3000)" searchable="true" compilable="true" separator="," />
+        </dictionary>
+        <dictionary id="brand" name="▒~L▒~\▒~\▒~E사전" type="CUSTOM" tokenType="NONE" ignoreCase="true">
+            <column name="brandid" type="int not null unique" compilable="true"/>
+            <!--<column name="keyword" type="varchar(100) not null unique" searchable="true" key="true" compilable="true"/>-->
+            <column name="keyword" type="varchar(100) not null" searchable="true" key="true" compilable="true"/>
+            <column name="value" type="varchar(3000)" searchable="true" compilable="true" separator="," />
+        </dictionary>
+        <dictionary id="category" name="카▒~E~L고리키▒~[~L▒~\사전" type="CUSTOM" tokenType="NONE" ignoreCase="true">
+            <column name="categoryid" type="int not null unique" compilable="true"/>
+            <!--<column name="name" type="varchar(100) not null unique" searchable="true" key="true" compilable="true"/>-->
+            <column name="name" type="varchar(100) not null" searchable="true" key="true" compilable="true"/>
+            <column name="keyword" type="varchar(3000)" searchable="true" compilable="true" separator="," />
+        </dictionary>
+        <dictionary id="english" name="▒~A단▒~V▒▒~B▒전" type="SET" tokenType="MAX" ignoreCase="true">
+            <column name="keyword" type="varchar(100) not null" searchable="true" key="true" compilable="true"/>
+        </dictionary>
+    </dictionary-list>
+</plugin>
