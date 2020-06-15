@@ -3,11 +3,13 @@ package com.danawa.fastcatx.server.entity;
 
 import java.io.Serializable;
 
-public class DictDocumentRequest implements Serializable {
-    private String keyword;
-    private String synonym;
-    private String id; // 사전의 데이터 아이디
+public class DictionaryDocumentRequest implements Serializable {
+
     private String type;
+
+    private String id;
+    private String keyword;
+    private String value;
 
     public String getKeyword() {
         return keyword;
@@ -17,12 +19,12 @@ public class DictDocumentRequest implements Serializable {
         this.keyword = keyword;
     }
 
-    public String getSynonym() {
-        return synonym;
+    public String getValue() {
+        return value;
     }
 
-    public void setSynonym(String synonym) {
-        this.synonym = synonym;
+    public void setValue(String value) {
+        this.value = value;
     }
 
     public String getId() {

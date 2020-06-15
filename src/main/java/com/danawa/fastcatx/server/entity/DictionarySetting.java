@@ -1,0 +1,88 @@
+package com.danawa.fastcatx.server.entity;
+import java.io.Serializable;
+import java.util.List;
+
+public class DictionarySetting implements Serializable {
+    private String id;
+    private String name;
+    private String type;
+    private String tokenType;
+    private String ignoreCase;
+    private List<Column> columns;
+
+    public static class Column {
+        private String type;
+        private String name;
+
+        public Column() { }
+
+        public Column(String type, String name) {
+            this.type = type;
+            this.name = name;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public String getTokenType() {
+        return tokenType;
+    }
+
+    public void setTokenType(String tokenType) {
+        this.tokenType = tokenType;
+    }
+
+    public String getIgnoreCase() {
+        return ignoreCase;
+    }
+
+    public void setIgnoreCase(String ignoreCase) {
+        this.ignoreCase = ignoreCase;
+    }
+
+    public List<Column> getColumns() {
+        return columns;
+    }
+
+    public void setColumns(List<Column> columns) {
+        this.columns = columns;
+    }
+}

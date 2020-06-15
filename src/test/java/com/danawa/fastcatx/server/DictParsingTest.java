@@ -14,17 +14,17 @@ public class DictParsingTest {
 //        데이터 확인후..
 //        curl -s -H "Content-Type: application/x-ndjson" -XPOST http://es1.danawa.io/.fastcatx_dict/_bulk --data-binary @user.json
 
-        UserDict("C:\\Users\\admin\\Downloads\\user.txt", "C:\\Users\\admin\\Downloads\\user.json");
-        synonym("C:\\Users\\admin\\Downloads\\synonym.txt", "C:\\Users\\admin\\Downloads\\synonym.json");
-        stop("C:\\Users\\admin\\Downloads\\stop.txt", "C:\\Users\\admin\\Downloads\\stop.json");
-        space("C:\\Users\\admin\\Downloads\\space.txt", "C:\\Users\\admin\\Downloads\\space.json");
-        compound("C:\\Users\\admin\\Downloads\\compound.txt", "C:\\Users\\admin\\Downloads\\compound.json");
-        unit("C:\\Users\\admin\\Downloads\\unit.txt", "C:\\Users\\admin\\Downloads\\unit.json");
-        unitSynonym("C:\\Users\\admin\\Downloads\\unit_synonym.txt", "C:\\Users\\admin\\Downloads\\unit_synonym.json");
-        maker("C:\\Users\\admin\\Downloads\\maker.txt", "C:\\Users\\admin\\Downloads\\maker.json");
-        brand("C:\\Users\\admin\\Downloads\\brand.txt", "C:\\Users\\admin\\Downloads\\brand.json");
-        category("C:\\Users\\admin\\Downloads\\category.txt", "C:\\Users\\admin\\Downloads\\category.json");
-        english("C:\\Users\\admin\\Downloads\\english.txt", "C:\\Users\\admin\\Downloads\\english.json");
+        UserDict("C:\\Users\\devel\\Downloads\\user.txt", "C:\\Users\\devel\\Downloads\\user.json");
+        synonym("C:\\Users\\devel\\Downloads\\synonym.txt", "C:\\Users\\devel\\Downloads\\synonym.json");
+        stop("C:\\Users\\devel\\Downloads\\stop.txt", "C:\\Users\\devel\\Downloads\\stop.json");
+        space("C:\\Users\\devel\\Downloads\\space.txt", "C:\\Users\\devel\\Downloads\\space.json");
+        compound("C:\\Users\\devel\\Downloads\\compound.txt", "C:\\Users\\devel\\Downloads\\compound.json");
+        unit("C:\\Users\\devel\\Downloads\\unit.txt", "C:\\Users\\devel\\Downloads\\unit.json");
+        unitSynonym("C:\\Users\\devel\\Downloads\\unit_synonym.txt", "C:\\Users\\devel\\Downloads\\unit_synonym.json");
+        maker("C:\\Users\\devel\\Downloads\\maker.txt", "C:\\Users\\devel\\Downloads\\maker.json");
+        brand("C:\\Users\\devel\\Downloads\\brand.txt", "C:\\Users\\devel\\Downloads\\brand.json");
+        category("C:\\Users\\devel\\Downloads\\category.txt", "C:\\Users\\devel\\Downloads\\category.json");
+        english("C:\\Users\\devel\\Downloads\\english.txt", "C:\\Users\\devel\\Downloads\\english.json");
 
 
     }
@@ -85,7 +85,7 @@ public class DictParsingTest {
                 dict.setType(TYPE.CATEGORY.name());
                 dict.setId(column[0]);
                 dict.setKeyword(column[1]);
-                dict.setSynonym(column[2]);
+                dict.setValue(column[2]);
                 writer.append(new Gson().toJson(metaLine) + "\r\n");
                 writer.append(new Gson().toJson(dict) + "\r\n");
             }
@@ -125,7 +125,7 @@ public class DictParsingTest {
                 dict.setType(TYPE.BRAND.name());
                 dict.setId(column[0]);
                 dict.setKeyword(column[1]);
-                dict.setSynonym(column[2]);
+                dict.setValue(column[2]);
                 writer.append(new Gson().toJson(metaLine) + "\r\n");
                 writer.append(new Gson().toJson(dict) + "\r\n");
             }
@@ -166,7 +166,7 @@ public class DictParsingTest {
                 dict.setType(TYPE.MAKER.name());
                 dict.setId(column[0]);
                 dict.setKeyword(column[1]);
-                dict.setSynonym(column[2]);
+                dict.setValue(column[2]);
                 writer.append(new Gson().toJson(metaLine) + "\r\n");
                 writer.append(new Gson().toJson(dict) + "\r\n");
             }
@@ -205,7 +205,7 @@ public class DictParsingTest {
                 String[] column = line.split("\t");
                 DictEntityTest dict = new DictEntityTest();
                 dict.setType(TYPE.UNIT_SYNONYM.name());
-                dict.setSynonym(column[0]);
+                dict.setValue(column[0]);
                 writer.append(new Gson().toJson(metaLine) + "\r\n");
                 writer.append(new Gson().toJson(dict) + "\r\n");
             }
@@ -284,7 +284,7 @@ public class DictParsingTest {
                 DictEntityTest dict = new DictEntityTest();
                 dict.setType(TYPE.COMPOUND.name());
                 dict.setKeyword(column[0]);
-                dict.setSynonym(column[1]);
+                dict.setValue(column[1]);
                 writer.append(new Gson().toJson(metaLine) + "\r\n");
                 writer.append(new Gson().toJson(dict) + "\r\n");
             }
@@ -402,7 +402,7 @@ public class DictParsingTest {
                 DictEntityTest dict = new DictEntityTest();
                 dict.setType(TYPE.SYNONYM.name());
                 dict.setKeyword(column[0]);
-                dict.setSynonym(column[1]);
+                dict.setValue(column[1]);
                 writer.append(new Gson().toJson(metaLine) + "\r\n");
                 writer.append(new Gson().toJson(dict) + "\r\n");
             }

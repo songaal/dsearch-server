@@ -1,28 +1,32 @@
 {
   "settings": {
-    "number_of_shards": 5,
-    "number_of_replicas": 1
+    "number_of_shards": 1,
+    "number_of_replicas": 1,
+    "analysis": {
+      "analyzer": {
+        "comma_analyzer": {
+          "tokenizer": "comma_analyzer"
+        }
+      },
+      "tokenizer": {
+        "comma_analyzer": {
+          "type": "pattern",
+          "pattern": ","
+        }
+      }
+    }
   },
   "mappings": {
     "properties": {
-      "keyword": {
-        "type": "text",
-        "fields": {
-          "raw": {
-            "type": "keyword"
-          }
-        }
-      },
-      "synonym": {
-        "type": "text",
-        "fields": {
-          "raw": {
-            "type": "keyword"
-          }
-        }
-      },
       "id": {
+        "type": "keyword"
+      },
+      "keyword": {
+        "type": "keyword"
+      },
+      "value": {
         "type": "text",
+        "analyzer": "comma_analyzer",
         "fields": {
           "raw": {
             "type": "keyword"
