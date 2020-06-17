@@ -38,10 +38,7 @@ import org.springframework.util.StreamUtils;
 import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
@@ -110,14 +107,12 @@ public class DictionaryService {
                         .indices(settingIndex)
                         .source(new SearchSourceBuilder()
                                 .from(0)
-                                .query(new MatchQueryBuilder("type", dictionary.toUpperCase()))),
+                                .size(1)
+                                .query(new MatchQueryBuilder("id", dictionary))),
                 RequestOptions.DEFAULT);
+        
         SearchHit searchHit = response.getHits().getHits()[0];
-        DictionarySetting setting = new DictionarySetting();
-        if (searchHit != null) {
-            setting = fillSettingValue(searchHit);
-        }
-        return setting;
+        return fillSettingValue(searchHit);
     }
 
     public List<DictionarySetting> getSettings() throws IOException {
@@ -125,7 +120,7 @@ public class DictionaryService {
         List<DictionarySetting> settings = new ArrayList<>();
         SearchResponse response = client.search(new SearchRequest()
                 .indices(settingIndex)
-                .source(new SearchSourceBuilder().from(0)), RequestOptions.DEFAULT);
+                .source(new SearchSourceBuilder().size(10000)), RequestOptions.DEFAULT);
         SearchHit[] searchHits = response.getHits().getHits();
         int hitsSize = searchHits.length;
         for (int i = 0; i < hitsSize; i++) {
@@ -142,7 +137,20 @@ public class DictionaryService {
         setting.setType((String) source.get("type"));
         setting.setIgnoreCase((String) source.get("ignoreCase"));
         setting.setTokenType((String) source.get("tokenType"));
-        setting.setColumns((List<DictionarySetting.Column>) source.get("columns"));
+        List<Map> columnList = (List<Map>) source.get("columns");
+        List<DictionarySetting.Column> columns = new ArrayList<>();
+        for (int i = 0; i < columnList.size(); i++) {
+            Map<String, Object> columnMap = (Map<String, Object>) columnList.get(i);
+            DictionarySetting.Column column = new DictionarySetting.Column();
+            if (columnMap.get("label") != null) {
+                column.setLabel(String.valueOf(columnMap.get("label")));
+            }
+            if (columnMap.get("type") != null) {
+                column.setType(String.valueOf(columnMap.get("type")));
+            }
+            columns.add(column);
+        }
+        setting.setColumns(columns);
         return setting;
     }
 
@@ -178,10 +186,10 @@ public class DictionaryService {
 //            검색이 있을 경우.
             String[] columns = searchColumns.split(",");
             for (int i = 0; i < columns.length; i++) {
-                if (!isMatch) {
-                    boolQueryBuilder.should().add(new WildcardQueryBuilder(columns[i], "*" + value + "*"));
-                } else {
+                if (isMatch) {
                     boolQueryBuilder.should().add(new MatchQueryBuilder(columns[i], value));
+                } else {
+                    boolQueryBuilder.should().add(new WildcardQueryBuilder(columns[i], "*" + value + "*"));
                 }
             }
             boolQueryBuilder.minimumShouldMatch(1);

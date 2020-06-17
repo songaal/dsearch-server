@@ -12,13 +12,13 @@ public class DictionarySetting implements Serializable {
 
     public static class Column {
         private String type;
-        private String name;
+        private String label;
 
         public Column() { }
 
         public Column(String type, String name) {
             this.type = type;
-            this.name = name;
+            this.label = name;
         }
 
         public String getType() {
@@ -29,12 +29,12 @@ public class DictionarySetting implements Serializable {
             this.type = type;
         }
 
-        public String getName() {
-            return name;
+        public String getLabel() {
+            return label;
         }
 
-        public void setName(String name) {
-            this.name = name;
+        public void setLabel(String label) {
+            this.label = label;
         }
     }
 

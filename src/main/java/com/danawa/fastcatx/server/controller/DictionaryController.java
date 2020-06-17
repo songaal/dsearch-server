@@ -46,14 +46,14 @@ public class DictionaryController {
                                                   @RequestParam(required = false) String searchColumns,
                                                   @RequestParam(required = false) String value) throws IOException {
 
-        DocumentPagination documentPagination = dictionaryService.documentPagination(dictionary.toUpperCase(), pageNum, rowSize, isMatch, searchColumns, value);
+        DocumentPagination documentPagination = dictionaryService.documentPagination(dictionary, pageNum, rowSize, isMatch, searchColumns, value);
         return new ResponseEntity<>(documentPagination, HttpStatus.OK);
     }
 
     @PostMapping("/{dictionary}")
     public ResponseEntity<?> createDocument(@PathVariable String dictionary,
                                             @RequestBody DictionaryDocumentRequest request) throws IOException, ServiceException {
-        request.setType(dictionary.toUpperCase());
+        request.setType(dictionary);
         return new ResponseEntity<>(dictionaryService.createDocument(request), HttpStatus.OK);
     }
 
@@ -61,14 +61,14 @@ public class DictionaryController {
     @DeleteMapping("/{dictionary}/{id}")
     public ResponseEntity<?> deleteDocument(@PathVariable String dictionary,
                                             @PathVariable String id) throws IOException, ServiceException {
-        return new ResponseEntity<>(dictionaryService.deleteDocument(dictionary.toUpperCase(), id), HttpStatus.OK);
+        return new ResponseEntity<>(dictionaryService.deleteDocument(dictionary, id), HttpStatus.OK);
     }
 
     @PutMapping("/{dictionary}/{id}")
     public ResponseEntity<?> updateDocument(@PathVariable String dictionary,
                                             @PathVariable String id,
                                             @RequestBody DictionaryDocumentRequest request) throws IOException {
-        request.setType(dictionary.toUpperCase());
+        request.setType(dictionary);
         return new ResponseEntity<>(dictionaryService.updateDocument(id, request), HttpStatus.OK);
     }
 }
