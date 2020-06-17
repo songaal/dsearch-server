@@ -15,8 +15,6 @@ before_script:
 
 build:
   stage: build
-  cache:
-    key: ${CI_COMMIT_REF_SLUG}
   script:
     - sh mvnw package -DskipTests
     - docker build -t ${IMAGE} .
