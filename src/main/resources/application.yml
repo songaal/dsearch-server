@@ -19,6 +19,7 @@ elasticsearch:
 
 fastcatx:
   dictionary:
-    index: .fastcatx_dict
+    setting: .fastcatx_dict_setting
+    index: .fastcatx_dictionary
   reference:
     index: .fastcatx_reference
