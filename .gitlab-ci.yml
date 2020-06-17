@@ -18,13 +18,9 @@ build:
   cache:
     key: ${CI_COMMIT_REF_SLUG}
   script:
-    - ls -al 
-    - ls -al /root/
     - sh mvnw package -DskipTests
-    - ls -al /root/.m2
-    - ls -al 
-    # - docker build -t ${IMAGE} .
-    # - docker push ${IMAGE}
+    - docker build -t ${IMAGE} .
+    - docker push ${IMAGE}
 
 deploy:
   stage: deploy
