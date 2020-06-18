@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
 
 @RestController
-@CrossOrigin("*")
 @RequestMapping("/indices")
 public class IndicesController {
     private static Logger logger = LoggerFactory.getLogger(IndicesController.class);

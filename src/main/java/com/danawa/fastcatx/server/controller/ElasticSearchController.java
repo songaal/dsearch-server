@@ -2,9 +2,6 @@ package com.danawa.fastcatx.server.controller;
 
 import com.danawa.fastcatx.server.excpetions.ServiceException;
 import com.danawa.fastcatx.server.services.ElasticsearchProxyService;
-import org.apache.http.Header;
-import org.apache.http.HttpHost;
-import org.apache.http.RequestLine;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.client.Response;
 import org.slf4j.Logger;
@@ -18,7 +15,6 @@ import java.io.IOException;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/elasticsearch")
 public class ElasticSearchController {
     private static Logger logger = LoggerFactory.getLogger(ElasticSearchController.class);
 
@@ -28,8 +24,7 @@ public class ElasticSearchController {
         this.proxyService = proxyService;
     }
 
-    @RequestMapping({"/**/*", "*"})
-    @CrossOrigin("*")
+    @RequestMapping({"/elasticsearch/*", "/elasticsearch/**/*"})
     public ResponseEntity<?> proxy(HttpServletRequest request,
                                    @RequestParam Map<String,String> queryStringMap,
                                    @RequestBody(required = false) byte[] body) throws ServiceException, IOException {

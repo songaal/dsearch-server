@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@CrossOrigin("*")
 @RequestMapping("/reference")
 public class ReferenceController {
     private static Logger logger = LoggerFactory.getLogger(ReferenceController.class);
