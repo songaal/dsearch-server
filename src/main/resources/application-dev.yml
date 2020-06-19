@@ -1,0 +1,41 @@
+spring:
+  h2:
+    console:
+      enabled: true
+  datasource:
+    url: jdbc:h2:file:~/fileDB
+    driver-class-name: org.h2.Driver
+    username: admin
+    password: admin
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+logging:
+  level:
+    level:
+      root: info
+    com:
+      danawa:
+        fastcatx: debug
+  file:
+    path: /var/log/fastcatx-server
+    name: /var/log/fastcatx-server/application.log
+    max-history: 30
+    max-size: 500MB
+elasticsearch:
+  thread: 50
+  username: fastcatx
+  password: fastcatx
+  nodes:
+    - host: es1.danawa.io
+      port: 80
+      scheme: http
+fastcatx:
+  admin:
+    username: admin
+    password: admin
+    email: admin@example.com
+  dictionary:
+    setting: .fastcatx_dict_setting
+    index: .fastcatx_dictionary
+  reference:
+    index: .fastcatx_reference
