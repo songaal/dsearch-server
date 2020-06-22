@@ -3,26 +3,42 @@ package com.danawa.fastcatx.server.entity;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
 
 import javax.persistence.*;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "ROLE")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Role {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @Column(nullable = false, unique = true)
     private String name;
     @Column(nullable = false)
-    private int permission;
+    private boolean analysis;
+    @Column(nullable = false)
+    private boolean index;
+    @Column(nullable = false)
+    private boolean search;
+    @Column(nullable = false)
+    private boolean manage;
+    @CreationTimestamp
+    @Column(name = "create_date", nullable = false, updatable = false)
+    private LocalDateTime createDate;
+    @CreationTimestamp
+    @Column(name = "update_date", nullable = false)
+    private LocalDateTime updateDate;
 
     @Builder
-    public Role(String name, int permission) {
+    public Role(String name, boolean analysis, boolean index, boolean search, boolean manage) {
         this.name = name;
-        this.permission = permission;
+        this.analysis = analysis;
+        this.index = index;
+        this.search = search;
+        this.manage = manage;
     }
 
     public Long getId() {
@@ -41,11 +57,51 @@ public class Role {
         this.name = name;
     }
 
-    public int getPermission() {
-        return permission;
+    public boolean isAnalysis() {
+        return analysis;
     }
 
-    public void setPermission(int permission) {
-        this.permission = permission;
+    public void setAnalysis(boolean analysis) {
+        this.analysis = analysis;
+    }
+
+    public boolean isIndex() {
+        return index;
+    }
+
+    public void setIndex(boolean index) {
+        this.index = index;
+    }
+
+    public boolean isSearch() {
+        return search;
+    }
+
+    public void setSearch(boolean search) {
+        this.search = search;
+    }
+
+    public boolean isManage() {
+        return manage;
+    }
+
+    public void setManage(boolean manage) {
+        this.manage = manage;
+    }
+
+    public LocalDateTime getCreateDate() {
+        return createDate;
+    }
+
+    public void setCreateDate(LocalDateTime createDate) {
+        this.createDate = createDate;
+    }
+
+    public LocalDateTime getUpdateDate() {
+        return updateDate;
+    }
+
+    public void setUpdateDate(LocalDateTime updateDate) {
+        this.updateDate = updateDate;
     }
 }

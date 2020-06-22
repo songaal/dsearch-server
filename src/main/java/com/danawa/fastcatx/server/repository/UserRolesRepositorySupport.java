@@ -5,6 +5,8 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.springframework.data.jpa.repository.support.QuerydslRepositorySupport;
 import org.springframework.stereotype.Repository;
 
+import static com.danawa.fastcatx.server.entity.QUserRoles.userRoles;
+
 @Repository
 public class UserRolesRepositorySupport extends QuerydslRepositorySupport {
 
@@ -15,5 +17,9 @@ public class UserRolesRepositorySupport extends QuerydslRepositorySupport {
         this.queryFactory = queryFactory;
     }
 
-
+    public UserRoles findByUserId(Long id) {
+        return queryFactory.selectFrom(userRoles)
+                .where(userRoles.userId.eq(id))
+                .fetchOne();
+    }
 }

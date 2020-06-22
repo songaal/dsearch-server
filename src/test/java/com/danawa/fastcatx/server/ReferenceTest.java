@@ -33,7 +33,7 @@ public class ReferenceTest {
     public void findAllTest() {
 
         try {
-//            List<ReferenceTemp> entityList = referenceService.findAll();
+//            List<ReferenceTemp> entityList = referenceService.findAllByUsername();
             List<ReferenceResult> result = referenceService.searchResponseAll("노트북");
             logger.debug("{}", result);
         } catch (IOException e) {

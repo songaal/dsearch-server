@@ -1,5 +1,8 @@
 package com.danawa.fastcatx.server.services;
 
+import com.danawa.fastcatx.server.entity.Role;
+import com.danawa.fastcatx.server.entity.User;
+import com.danawa.fastcatx.server.entity.UserRoles;
 import com.danawa.fastcatx.server.repository.UserRepository;
 import com.danawa.fastcatx.server.repository.UserRepositorySupport;
 import com.danawa.fastcatx.server.repository.UserRolesRepository;
@@ -28,6 +31,11 @@ public class UserRolesService {
         this.userRolesRepositorySupport = userRolesRepositorySupport;
     }
 
+    public UserRoles findByUserId(Long id) {
+        return userRolesRepositorySupport.findByUserId(id);
+    }
 
-
+    public UserRoles add(UserRoles userRoles) {
+        return userRolesRepository.save(userRoles);
+    }
 }

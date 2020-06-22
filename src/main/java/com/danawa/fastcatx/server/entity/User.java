@@ -14,7 +14,6 @@ import java.time.LocalDateTime;
 @Table(name = "USER")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -22,7 +21,7 @@ public class User {
     private String username;
     @Column(nullable = false)
     private String password;
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String email;
     @CreationTimestamp
     @Column(name = "create_date", nullable = false, updatable = false)

@@ -41,3 +41,6 @@ fastcatx:
     index: .fastcatx_dictionary
   reference:
     index: .fastcatx_reference
+  build:
+    name: @project.name@
+    version: @project.version@

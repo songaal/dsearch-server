@@ -20,11 +20,18 @@ public class UserRepositorySupport extends QuerydslRepositorySupport {
         this.queryFactory = queryFactory;
     }
 
-    public List<User> findAll(String username) {
+    public List<User> findAllByUsername(String username) {
         return queryFactory
                 .selectFrom(user)
                 .where(user.username.eq(username))
                 .fetch();
+    }
+
+    public User findByEmail(String email) {
+        return queryFactory
+                .selectFrom(user)
+                .where(user.email.eq(email))
+                .fetchOne();
     }
 
 }

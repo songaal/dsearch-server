@@ -1,17 +1,15 @@
 package com.danawa.fastcatx.server.controller;
 
+import com.danawa.fastcatx.server.entity.AuthUser;
 import com.danawa.fastcatx.server.entity.User;
+import com.danawa.fastcatx.server.excpetions.NotFoundUserException;
 import com.danawa.fastcatx.server.services.AuthService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
 @RestController
@@ -19,31 +17,37 @@ import javax.servlet.http.HttpSession;
 public class AuthController {
     private static Logger logger = LoggerFactory.getLogger(AuthController.class);
 
+    private int maxInactiveInterval = 2 * (60 * 60);
+    public static final String SESSION_KEY = "AUTH_USER";
     private final AuthService authService;
 
     public AuthController(AuthService authService) {
         this.authService = authService;
     }
 
-    //    TODO 로그인 (권한부여)
-    @PostMapping("/login")
-    public ResponseEntity<?> login(HttpSession session,
-                                   @RequestBody User user) {
-
-
-
-        return new ResponseEntity<>(HttpStatus.OK);
+    @GetMapping
+    public ResponseEntity<?> getAuth(HttpSession session) throws NotFoundUserException {
+        AuthUser authuser = (AuthUser) session.getAttribute(SESSION_KEY);
+        if (authuser == null) {
+            throw new NotFoundUserException("Not Found User");
+        }
+        return new ResponseEntity<>(authuser, HttpStatus.OK);
     }
 
-    //    TODO 로그아웃 (권한회수)
-    public ResponseEntity<?> logout() {
-        return new ResponseEntity<>(HttpStatus.OK);
+    @PostMapping("/sign-in")
+    public ResponseEntity<?> signIn(HttpSession session,
+                                   @RequestBody User user) throws NotFoundUserException {
+        AuthUser authUser = authService.signIn(session.getId(), user);
+        session.setAttribute(SESSION_KEY, authUser);
+        session.setMaxInactiveInterval(maxInactiveInterval);
+        return new ResponseEntity<>(authUser, HttpStatus.OK);
     }
 
-    //    TODO 인증 (권한 확인)
-    public ResponseEntity<?> getAuth() {
+    @PostMapping("/sign-out")
+    public ResponseEntity<?> signOut(HttpSession session) {
+        session.setMaxInactiveInterval(0);
+        session.invalidate();
         return new ResponseEntity<>(HttpStatus.OK);
     }
-
 
 }

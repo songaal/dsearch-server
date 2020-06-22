@@ -22,9 +22,19 @@ public class RestAPIExceptionHandler extends ResponseEntityExceptionHandler {
     protected ResponseEntity<Object> handlePermissionException(Exception ex, WebRequest request) {
         logger.error("[SYSTEM ERROR]", ex);
         return handleExceptionInternal(ex,
-                new ErrorResponse(ex.getCause().getMessage()),
+                new ErrorResponse(ex.getMessage()),
                 new HttpHeaders(),
                 HttpStatus.UNAUTHORIZED,
+                request);
+    }
+
+    @ExceptionHandler(value = {NotFoundUserException.class})
+    protected ResponseEntity<Object> handleNotFoundUserException(Exception ex, WebRequest request) {
+        logger.error("[AUTH ERROR]", ex);
+        return handleExceptionInternal(ex,
+                new ErrorResponse(ex.getMessage()),
+                new HttpHeaders(),
+                HttpStatus.BAD_REQUEST,
                 request);
     }
 

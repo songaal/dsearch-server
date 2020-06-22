@@ -19,6 +19,11 @@ public class RoleController {
         this.roleService = roleService;
     }
 
+    @GetMapping
+    public ResponseEntity<?> findAll() {
+        return new ResponseEntity<>(roleService.findAll(), HttpStatus.OK);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<?> find(@PathVariable long id) {
         return new ResponseEntity<>(roleService.find(id), HttpStatus.OK);
