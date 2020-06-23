@@ -1,12 +1,18 @@
 package com.danawa.fastcatx.server.controller;
 
 import com.danawa.fastcatx.server.entity.Role;
+import com.danawa.fastcatx.server.excpetions.NotFoundException;
 import com.danawa.fastcatx.server.services.RoleService;
+import com.danawa.fastcatx.server.services.UserRolesService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/roles")
@@ -14,14 +20,19 @@ public class RoleController {
     private static Logger logger = LoggerFactory.getLogger(RoleController.class);
 
     private final RoleService roleService;
+    private final UserRolesService userRolesService;
 
-    public RoleController(RoleService roleService) {
+    public RoleController(RoleService roleService, UserRolesService userRolesService) {
         this.roleService = roleService;
+        this.userRolesService = userRolesService;
     }
 
     @GetMapping
     public ResponseEntity<?> findAll() {
-        return new ResponseEntity<>(roleService.findAll(), HttpStatus.OK);
+        Map<String, Object> response = new HashMap<>();
+        response.put("roles", roleService.findAll());
+        response.put("userRoles", userRolesService.findAll());
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
@@ -36,7 +47,7 @@ public class RoleController {
 
     @PutMapping("/{id}")
     public ResponseEntity<?> edit(@PathVariable long id,
-                                  @RequestBody Role role) {
+                                  @RequestBody Role role) throws NotFoundException {
         return new ResponseEntity<>(roleService.edit(id, role), HttpStatus.OK);
     }
 

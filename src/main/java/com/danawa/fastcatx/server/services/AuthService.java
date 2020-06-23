@@ -4,7 +4,8 @@ import com.danawa.fastcatx.server.entity.AuthUser;
 import com.danawa.fastcatx.server.entity.Role;
 import com.danawa.fastcatx.server.entity.User;
 import com.danawa.fastcatx.server.entity.UserRoles;
-import com.danawa.fastcatx.server.excpetions.NotFoundUserException;
+import com.danawa.fastcatx.server.excpetions.NotFoundException;
+import com.danawa.fastcatx.server.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -49,7 +50,7 @@ public class AuthService {
         User systemManager = userService.findByEmail(email);
         if (systemManager == null) {
             User systemManagerUser = new User(username, encoder.encode(password), email);
-            systemManagerUser = userService.add(systemManagerUser);
+            systemManagerUser = userService.set(systemManagerUser);
             Role systemManagerRole = roleService.add(Role.builder()
                     .name(SYSTEM_MANAGER_ROLE)
                     .analysis(true)
@@ -65,14 +66,13 @@ public class AuthService {
 
     }
 
-    public AuthUser signIn(String sessionId, User loginUser) throws NotFoundUserException {
+    public AuthUser signIn(String sessionId, User loginUser) throws NotFoundException {
         User registerUser = userService.findByEmail(loginUser.getEmail());
         if (registerUser == null) {
-            throw new NotFoundUserException("Not Found User");
+            throw new NotFoundException("Not Found User");
         }
-        boolean check = encoder.matches(loginUser.getPassword(), registerUser.getPassword());
-        if (!check) {
-            throw new NotFoundUserException("Not Found User");
+        if (!encoder.matches(loginUser.getPassword(), registerUser.getPassword())) {
+            throw new NotFoundException("Not Found User");
         }
         UserRoles userRoles = userRolesService.findByUserId(registerUser.getId());
         Role role = roleService.find(userRoles.getRoleId());

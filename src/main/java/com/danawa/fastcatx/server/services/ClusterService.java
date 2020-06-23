@@ -1,6 +1,7 @@
 package com.danawa.fastcatx.server.services;
 
 import com.danawa.fastcatx.server.entity.Cluster;
+import com.danawa.fastcatx.server.excpetions.NotFoundException;
 import com.danawa.fastcatx.server.repository.ClusterRepository;
 import com.danawa.fastcatx.server.repository.ClusterRepositorySupport;
 import org.slf4j.Logger;
@@ -40,8 +41,13 @@ public class ClusterService {
         return registerCluster;
     }
 
-    public Cluster edit(Long id, Cluster cluster) {
-        cluster.setId(id);
-        return clusterRepository.save(cluster);
+    public Cluster edit(Long id, Cluster cluster) throws NotFoundException {
+        Cluster registerCluster = clusterRepository.findById(id).get();
+        if (registerCluster == null) {
+            throw new NotFoundException("Not Found Cluster");
+        }
+        registerCluster.setName(cluster.getName());
+        registerCluster.setNodes(cluster.getNodes());
+        return clusterRepository.save(registerCluster);
     }
 }

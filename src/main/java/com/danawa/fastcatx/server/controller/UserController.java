@@ -2,7 +2,7 @@ package com.danawa.fastcatx.server.controller;
 
 import com.danawa.fastcatx.server.entity.UpdateUserRequest;
 import com.danawa.fastcatx.server.entity.User;
-import com.danawa.fastcatx.server.excpetions.NotFoundUserException;
+import com.danawa.fastcatx.server.excpetions.NotFoundException;
 import com.danawa.fastcatx.server.services.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,7 +44,7 @@ public class UserController {
     @PutMapping("/{id}")
     public ResponseEntity<?> edit(@PathVariable Long id,
                                   @RequestParam String action,
-                                  @RequestBody UpdateUserRequest updateUser) throws NotFoundUserException {
+                                  @RequestBody UpdateUserRequest updateUser) throws NotFoundException {
         User registerUser = null;
         if ("UPDATE_PASSWORD".equalsIgnoreCase(action)) {
             registerUser = userService.editPassword(id, updateUser);

@@ -2,7 +2,7 @@ package com.danawa.fastcatx.server.services;
 
 import com.danawa.fastcatx.server.entity.UpdateUserRequest;
 import com.danawa.fastcatx.server.entity.User;
-import com.danawa.fastcatx.server.excpetions.NotFoundUserException;
+import com.danawa.fastcatx.server.excpetions.NotFoundException;
 import com.danawa.fastcatx.server.repository.UserRepository;
 import com.danawa.fastcatx.server.repository.UserRepositorySupport;
 import org.slf4j.Logger;
@@ -12,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 
 
 @Service
@@ -37,17 +38,25 @@ public class UserService {
     }
 
     public User add(User user) {
+        String tempPassword = UUID.randomUUID().toString().substring(0, 5);
+        user.setPassword(encoder.encode(tempPassword));
         user.setId(null);
+        User registerUser = userRepository.save(user);
+        registerUser.setPassword(tempPassword);
+        return registerUser;
+    }
+
+    public User set(User user) {
         return userRepository.save(user);
     }
 
-    public User editPassword(Long id, UpdateUserRequest updateUser) throws NotFoundUserException {
+    public User editPassword(Long id, UpdateUserRequest updateUser) throws NotFoundException {
         User registerUser = find(id);
         if (registerUser == null) {
-            throw new NotFoundUserException("Not Found User");
+            throw new NotFoundException("Not Found User");
         }
         if(!encoder.matches(updateUser.getPassword(), registerUser.getPassword())) {
-            throw new NotFoundUserException("Invalid password");
+            throw new NotFoundException("Invalid password");
         }
         registerUser.setPassword(encoder.encode(updateUser.getUpdatePassword()));
         registerUser = userRepository.save(registerUser);

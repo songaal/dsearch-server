@@ -1,6 +1,7 @@
 package com.danawa.fastcatx.server.controller;
 
 import com.danawa.fastcatx.server.entity.Cluster;
+import com.danawa.fastcatx.server.excpetions.NotFoundException;
 import com.danawa.fastcatx.server.services.ClusterService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,7 +48,7 @@ public class ClusterController {
 
     @PutMapping("/{id}")
     public ResponseEntity<?> edit(@PathVariable Long id,
-                                  @RequestBody Cluster cluster) {
+                                  @RequestBody Cluster cluster) throws NotFoundException {
         Cluster editCluster = clusterService.edit(id, cluster);
         return new ResponseEntity<>(editCluster, HttpStatus.OK);
     }

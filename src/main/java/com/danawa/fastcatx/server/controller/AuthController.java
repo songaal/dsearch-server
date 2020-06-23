@@ -2,7 +2,7 @@ package com.danawa.fastcatx.server.controller;
 
 import com.danawa.fastcatx.server.entity.AuthUser;
 import com.danawa.fastcatx.server.entity.User;
-import com.danawa.fastcatx.server.excpetions.NotFoundUserException;
+import com.danawa.fastcatx.server.excpetions.NotFoundException;
 import com.danawa.fastcatx.server.services.AuthService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,17 +26,17 @@ public class AuthController {
     }
 
     @GetMapping
-    public ResponseEntity<?> getAuth(HttpSession session) throws NotFoundUserException {
+    public ResponseEntity<?> getAuth(HttpSession session) throws NotFoundException {
         AuthUser authuser = (AuthUser) session.getAttribute(SESSION_KEY);
         if (authuser == null) {
-            throw new NotFoundUserException("Not Found User");
+            throw new NotFoundException("Not Found User");
         }
         return new ResponseEntity<>(authuser, HttpStatus.OK);
     }
 
     @PostMapping("/sign-in")
     public ResponseEntity<?> signIn(HttpSession session,
-                                   @RequestBody User user) throws NotFoundUserException {
+                                   @RequestBody User user) throws NotFoundException {
         AuthUser authUser = authService.signIn(session.getId(), user);
         session.setAttribute(SESSION_KEY, authUser);
         session.setMaxInactiveInterval(maxInactiveInterval);
