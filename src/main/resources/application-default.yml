@@ -3,7 +3,7 @@ spring:
     console:
       enabled: true
   datasource:
-    url: jdbc:h2:file:C:\TEST_HOME\danawa\fastcatx-server\fileDB
+    url: jdbc:h2:file:~\fastcatx-server\fileDB
     driver-class-name: org.h2.Driver
     username: sa
     password:
