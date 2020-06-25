@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -61,6 +62,14 @@ public class ClusterService {
             throw new NotFoundException("Not Found Cluster");
         }
         registerCluster.setName(cluster.getName());
+        registerCluster.setScheme(cluster.getScheme());
+        registerCluster.setHost(cluster.getHost());
+        registerCluster.setPort(cluster.getPort());
+        registerCluster.setUsername(cluster.getUsername());
+        registerCluster.setPassword(cluster.getPassword());
+        registerCluster.setTheme(cluster.getTheme());
+        registerCluster.setUpdateDate(LocalDateTime.now());
+        registerCluster.setKibana(cluster.getKibana());
         return clusterRepository.save(registerCluster);
     }
 
