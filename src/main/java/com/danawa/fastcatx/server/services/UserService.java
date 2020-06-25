@@ -2,6 +2,7 @@ package com.danawa.fastcatx.server.services;
 
 import com.danawa.fastcatx.server.entity.UpdateUserRequest;
 import com.danawa.fastcatx.server.entity.User;
+import com.danawa.fastcatx.server.entity.UserRoles;
 import com.danawa.fastcatx.server.excpetions.NotFoundException;
 import com.danawa.fastcatx.server.repository.UserRepository;
 import com.danawa.fastcatx.server.repository.UserRepositorySupport;
@@ -22,11 +23,13 @@ public class UserService {
     PasswordEncoder encoder = PasswordEncoderFactories.createDelegatingPasswordEncoder();
     private final UserRepositorySupport userRepositorySupport;
     private final UserRepository userRepository;
+    private final UserRolesService userRolesService;
 
     public UserService(UserRepositorySupport userRepositorySupport,
-                       UserRepository userRepository) {
+                       UserRepository userRepository, UserRolesService userRolesService) {
         this.userRepositorySupport = userRepositorySupport;
         this.userRepository = userRepository;
+        this.userRolesService = userRolesService;
     }
 
     public List<User> findAll() {
@@ -38,11 +41,13 @@ public class UserService {
     }
 
     public User add(User user) {
-        String tempPassword = UUID.randomUUID().toString().substring(0, 5);
-        user.setPassword(encoder.encode(tempPassword));
+        String uuid = UUID.randomUUID().toString().substring(0, 5);
         user.setId(null);
-        User registerUser = userRepository.save(user);
-        registerUser.setPassword(tempPassword);
+        user.setPassword(encoder.encode(uuid));
+        userRepository.save(user);
+
+        User registerUser = new User(user.getUsername(), uuid, user.getEmail());
+        registerUser.setId(user.getId());
         return registerUser;
     }
 
@@ -64,13 +69,46 @@ public class UserService {
         return registerUser;
     }
 
-    public User remove(Long id) {
+    public User remove(Long id) throws NotFoundException {
         User user = userRepository.findById(id).get();
+        if (user == null) {
+            throw new NotFoundException("Not Found User");
+        }
+        userRolesService.deleteByUserId(id);
         userRepository.delete(user);
         return user;
     }
 
     public User findByEmail(String email) {
         return userRepositorySupport.findByEmail(email);
+    }
+
+    public User resetPassword(Long id) {
+        String uuid = UUID.randomUUID().toString().substring(0, 5);
+        User registerUser = userRepository.findById(id).get();
+        registerUser.setPassword(encoder.encode(uuid));
+        userRepository.save(registerUser);
+        return User.builder()
+                .email(registerUser.getEmail())
+                .username(registerUser.getUsername())
+                .password(uuid)
+                .build();
+    }
+
+    public User editProfile(Long id, UpdateUserRequest updateUser) throws NotFoundException {
+        User registerUser = userRepository.findById(id).get();
+        if (registerUser == null) {
+            throw new NotFoundException("Not Found User");
+        }
+        registerUser.setEmail(updateUser.getEmail());
+        registerUser.setUsername(updateUser.getUsername());
+        userRepository.save(registerUser);
+        UserRoles userRoles = userRolesService.findByUserId(registerUser.getId());
+        userRoles.setRoleId(updateUser.getRoleId());
+        userRolesService.set(userRoles);
+        return User.builder()
+                .username(registerUser.getUsername())
+                .email(registerUser.getEmail())
+                .build();
     }
 }

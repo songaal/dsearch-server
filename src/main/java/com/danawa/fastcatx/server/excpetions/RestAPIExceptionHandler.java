@@ -28,7 +28,10 @@ public class RestAPIExceptionHandler extends ResponseEntityExceptionHandler {
                 request);
     }
 
-    @ExceptionHandler(value = {NotFoundException.class})
+    @ExceptionHandler(value = {
+            NotFoundException.class,
+            DuplicateException.class
+    })
     protected ResponseEntity<Object> handleNotFoundUserException(Exception ex, WebRequest request) {
         logger.error("[AUTH ERROR]", ex);
         return handleExceptionInternal(ex,

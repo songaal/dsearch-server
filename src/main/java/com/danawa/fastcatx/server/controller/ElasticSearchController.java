@@ -1,6 +1,8 @@
 package com.danawa.fastcatx.server.controller;
 
-import com.danawa.fastcatx.server.excpetions.ServiceException;
+import com.danawa.fastcatx.server.entity.ClusterStatusResponse;
+import com.danawa.fastcatx.server.entity.ClusterStatusRequest;
+import com.danawa.fastcatx.server.services.ClusterService;
 import com.danawa.fastcatx.server.services.ElasticsearchProxyService;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.client.Response;
@@ -15,19 +17,28 @@ import java.io.IOException;
 import java.util.Map;
 
 @RestController
+@RequestMapping("/elasticsearch")
 public class ElasticSearchController {
     private static Logger logger = LoggerFactory.getLogger(ElasticSearchController.class);
 
     private ElasticsearchProxyService proxyService;
+    private final ClusterService clusterService;
 
-    public ElasticSearchController(ElasticsearchProxyService proxyService) {
+    public ElasticSearchController(ElasticsearchProxyService proxyService, ClusterService clusterService) {
         this.proxyService = proxyService;
+        this.clusterService = clusterService;
     }
 
-    @RequestMapping({"/elasticsearch/*", "/elasticsearch/**/*"})
+    @PostMapping("/status")
+    public ResponseEntity<?> status(@RequestBody ClusterStatusRequest clusterStatusRequest) {
+        ClusterStatusResponse clusterStatus = clusterService.scanClusterStatus(clusterStatusRequest);
+        return new ResponseEntity<>(clusterStatus, HttpStatus.OK);
+    }
+
+    @RequestMapping({"/*", "/**/*"})
     public ResponseEntity<?> proxy(HttpServletRequest request,
                                    @RequestParam Map<String,String> queryStringMap,
-                                   @RequestBody(required = false) byte[] body) throws ServiceException, IOException {
+                                   @RequestBody(required = false) byte[] body) throws IOException {
         Response response = proxyService.proxy(request, queryStringMap, body);
         String responseBody = EntityUtils.toString(response.getEntity());
         return new ResponseEntity<>(responseBody, HttpStatus.OK);

@@ -4,31 +4,42 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "CLUSTER")
 public class Cluster {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue
+    private UUID id;
     @Column(nullable = false)
     private String name;
     @Column(nullable = false)
-    @ElementCollection(targetClass=String.class)
-    private List<String> nodes;
+    private String scheme;
+    @Column(nullable = false)
+    private String host;
+    @Column(nullable = false)
+    private int port;
+    @Column
+    private String kibana;
+    @Column
+    private String theme;
     @CreationTimestamp
     @Column(name = "create_date", nullable = false, updatable = false)
     private LocalDateTime createDate;
     @CreationTimestamp
     @Column(name = "update_date", nullable = false)
     private LocalDateTime updateDate;
+    @Column
+    private String username;
+    @Column
+    private String password;
 
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 
@@ -40,12 +51,44 @@ public class Cluster {
         this.name = name;
     }
 
-    public List<String> getNodes() {
-        return nodes;
+    public String getScheme() {
+        return scheme;
     }
 
-    public void setNodes(List<String> nodes) {
-        this.nodes = nodes;
+    public void setScheme(String scheme) {
+        this.scheme = scheme;
+    }
+
+    public String getHost() {
+        return host;
+    }
+
+    public void setHost(String host) {
+        this.host = host;
+    }
+
+    public int getPort() {
+        return port;
+    }
+
+    public void setPort(int port) {
+        this.port = port;
+    }
+
+    public String getKibana() {
+        return kibana;
+    }
+
+    public void setKibana(String kibana) {
+        this.kibana = kibana;
+    }
+
+    public String getTheme() {
+        return theme;
+    }
+
+    public void setTheme(String theme) {
+        this.theme = theme;
     }
 
     public LocalDateTime getCreateDate() {
@@ -62,5 +105,21 @@ public class Cluster {
 
     public void setUpdateDate(LocalDateTime updateDate) {
         this.updateDate = updateDate;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 }

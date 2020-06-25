@@ -3,6 +3,7 @@ package com.danawa.fastcatx.server.services;
 import com.danawa.fastcatx.server.entity.Role;
 import com.danawa.fastcatx.server.entity.User;
 import com.danawa.fastcatx.server.entity.UserRoles;
+import com.danawa.fastcatx.server.excpetions.NotFoundException;
 import com.danawa.fastcatx.server.repository.UserRepository;
 import com.danawa.fastcatx.server.repository.UserRepositorySupport;
 import com.danawa.fastcatx.server.repository.UserRolesRepository;
@@ -36,6 +37,9 @@ public class UserRolesService {
     public UserRoles findByUserId(Long id) {
         return userRolesRepositorySupport.findByUserId(id);
     }
+    public UserRoles set(UserRoles userRoles) {
+        return userRolesRepository.save(userRoles);
+    }
 
     public UserRoles add(UserRoles userRoles) {
         return userRolesRepository.save(userRoles);
@@ -43,5 +47,14 @@ public class UserRolesService {
 
     public List<UserRoles> findAll() {
         return userRolesRepository.findAll();
+    }
+
+    public UserRoles deleteByUserId(Long id) throws NotFoundException {
+        UserRoles userRoles = userRolesRepositorySupport.findByUserId(id);
+        if (userRoles == null) {
+            throw new NotFoundException("UserRoles Not Found");
+        }
+        userRolesRepository.delete(userRoles);
+        return userRoles;
     }
 }
