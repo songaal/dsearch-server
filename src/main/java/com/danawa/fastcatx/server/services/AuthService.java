@@ -4,8 +4,7 @@ import com.danawa.fastcatx.server.entity.AuthUser;
 import com.danawa.fastcatx.server.entity.Role;
 import com.danawa.fastcatx.server.entity.User;
 import com.danawa.fastcatx.server.entity.UserRoles;
-import com.danawa.fastcatx.server.excpetions.NotFoundException;
-import com.danawa.fastcatx.server.repository.UserRepository;
+import com.danawa.fastcatx.server.excpetions.NotFoundUserException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -66,13 +65,13 @@ public class AuthService {
 
     }
 
-    public AuthUser signIn(String sessionId, User loginUser) throws NotFoundException {
+    public AuthUser signIn(String sessionId, User loginUser) throws NotFoundUserException {
         User registerUser = userService.findByEmail(loginUser.getEmail());
         if (registerUser == null) {
-            throw new NotFoundException("Not Found User");
+            throw new NotFoundUserException("Not Found User");
         }
         if (!encoder.matches(loginUser.getPassword(), registerUser.getPassword())) {
-            throw new NotFoundException("Not Found User");
+            throw new NotFoundUserException("Not Found User");
         }
         UserRoles userRoles = userRolesService.findByUserId(registerUser.getId());
         Role role = roleService.find(userRoles.getRoleId());

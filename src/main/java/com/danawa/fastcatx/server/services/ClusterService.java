@@ -3,8 +3,8 @@ package com.danawa.fastcatx.server.services;
 import com.danawa.fastcatx.server.entity.Cluster;
 import com.danawa.fastcatx.server.entity.ClusterStatusResponse;
 import com.danawa.fastcatx.server.entity.ClusterStatusRequest;
-import com.danawa.fastcatx.server.entity.ElasticsearchNode;
 import com.danawa.fastcatx.server.excpetions.NotFoundException;
+import com.danawa.fastcatx.server.excpetions.NotFoundUserException;
 import com.danawa.fastcatx.server.repository.ClusterRepository;
 import com.danawa.fastcatx.server.repository.ClusterRepositorySupport;
 import com.google.gson.Gson;
@@ -47,7 +47,9 @@ public class ClusterService {
 
     public Cluster add(Cluster cluster) {
         cluster.setId(null);
-        return clusterRepository.save(cluster);
+        Cluster registerCluster = clusterRepository.save(cluster);
+        clusterRepository.flush();
+        return registerCluster;
     }
 
     public Cluster remove(UUID id) {
@@ -83,21 +85,17 @@ public class ClusterService {
         HttpHost[0] = new HttpHost(clusterStatusRequest.getHost(), clusterStatusRequest.getPort(), clusterStatusRequest.getScheme());
         return scanClusterStatus(HttpHost, clusterStatusRequest.getUsername(), clusterStatusRequest.getPassword());
     }
-    public ClusterStatusResponse scanClusterStatus(HttpHost[] HttpHost, String username, String password) {
+    public ClusterStatusResponse scanClusterStatus(HttpHost[] httpHost, String username, String password) {
         ClusterStatusResponse status;
-
-        RestClientBuilder builder;
         RestHighLevelClient client = null;
         RestClient restClient = null;
         try {
-            if (HttpHost.length > 0 && "https".equalsIgnoreCase(HttpHost[0].getSchemeName())) {
+            RestClientBuilder builder = RestClient.builder(httpHost);
+            if (username != null && !"".equals(username)
+                    && password != null && !"".equals(password)) {
                 final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
                 credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username, password));
-                builder = RestClient.builder(HttpHost).
-                        setHttpClientConfigCallback(httpClientBuilder ->
-                                httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
-            } else {
-                builder = RestClient.builder(HttpHost);
+                builder.setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
             }
             client = new RestHighLevelClient(builder);
             restClient = client.getLowLevelClient();

@@ -1,9 +1,8 @@
 package com.danawa.fastcatx.server.services;
 
-import org.elasticsearch.client.RestHighLevelClient;
+import com.danawa.fastcatx.server.config.ElasticsearchFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
@@ -17,10 +16,10 @@ import java.util.Map;
 public class IndexingJobService {
 
     private static Logger logger = LoggerFactory.getLogger(IndexingJobService.class);
-    private RestHighLevelClient client;
+    private final ElasticsearchFactory elasticsearchFactory;
 
-    public IndexingJobService(@Qualifier("getRestHighLevelClient") RestHighLevelClient restHighLevelClient) {
-        this.client = restHighLevelClient;
+    public IndexingJobService(ElasticsearchFactory elasticsearchFactory) {
+        this.elasticsearchFactory = elasticsearchFactory;
     }
 
     /**

@@ -1,41 +1,53 @@
 package com.danawa.fastcatx.server.services;
 
+import com.danawa.fastcatx.server.config.ElasticsearchFactory;
 import com.danawa.fastcatx.server.entity.DocumentPagination;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.client.core.CountRequest;
-import org.elasticsearch.client.indices.AnalyzeRequest;
-import org.elasticsearch.client.indices.AnalyzeResponse;
-import org.elasticsearch.client.indices.GetMappingsRequest;
-import org.elasticsearch.client.indices.GetMappingsResponse;
+import org.elasticsearch.client.indices.*;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.TermQueryBuilder;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StreamUtils;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.*;
 
 @Service
 public class IndicesService {
     private static Logger logger = LoggerFactory.getLogger(IndicesService.class);
-    private RestHighLevelClient client;
-
-    public IndicesService(@Qualifier("getRestHighLevelClient") RestHighLevelClient restHighLevelClient) {
-        this.client = restHighLevelClient;
+    private final ElasticsearchFactory elasticsearchFactory;
+    public IndicesService(ElasticsearchFactory elasticsearchFactory) {
+        this.elasticsearchFactory = elasticsearchFactory;
     }
 
-    public DocumentPagination findAllDocumentPagination(String index, long pageNum, long rowSize, SearchSourceBuilder builder) throws IOException {
-        return findAllDocumentPagination(index, pageNum, rowSize, null, false, builder);
+    public void createSystemIndex(UUID clusterId, String index, String source) throws IOException {
+        RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
+        if (!client.indices().exists(new GetIndexRequest(index), RequestOptions.DEFAULT)) {
+            client.indices().create(new CreateIndexRequest(index)
+                            .source(StreamUtils.copyToString(new ClassPathResource(source).getInputStream(),
+                                    Charset.defaultCharset()), XContentType.JSON),
+                    RequestOptions.DEFAULT);
+        }
+        elasticsearchFactory.close(client);
     }
-    public DocumentPagination findAllDocumentPagination(String index, long pageNum, long rowSize, String id, boolean analysis, SearchSourceBuilder builder) throws IOException {
+
+    public DocumentPagination findAllDocumentPagination(UUID clusterId, String index, long pageNum, long rowSize, SearchSourceBuilder builder) throws IOException {
+        return findAllDocumentPagination(clusterId, index, pageNum, rowSize, null, false, builder);
+    }
+
+    public DocumentPagination findAllDocumentPagination(UUID clusterId, String index, long pageNum, long rowSize, String id, boolean analysis, SearchSourceBuilder builder) throws IOException {
+        RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
         SearchRequest searchRequest = new SearchRequest();
         if (builder == null) {
             builder = new SearchSourceBuilder();
@@ -55,8 +67,6 @@ public class IndicesService {
         SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
 
         DocumentPagination documentPagination = new DocumentPagination();
-//        기본값: 최대 1만건.
-//        documentPagination.setTotalCount(getDocumentCount(index));
         documentPagination.setTotalCount(searchResponse.getHits().getTotalHits().value);
         documentPagination.setHits(searchResponse.getHits().getHits());
         if (searchResponse.getAggregations() != null) {
@@ -65,7 +75,7 @@ public class IndicesService {
         documentPagination.setPageNum(pageNum);
         documentPagination.setRowSize(rowSize);
 
-        Map<String, Object> fieldMap = getFields(index);
+        Map<String, Object> fieldMap = getFields(client, index);
         documentPagination.setFields(fieldMap.keySet());
 
         long totalPageNum = documentPagination.getTotalCount() % documentPagination.getRowSize() == 0 ?
@@ -91,7 +101,7 @@ public class IndicesService {
                     String analyzer = options.get("analyzer") == null ? "standard" : options.get("analyzer");
                     List<AnalyzeResponse.AnalyzeToken> analyzeTokens = new ArrayList<>();
                     if (source.get(field) != null && !"".equals(source.get(field))) {
-                        analyzeTokens = analyze(index, analyzer, String.valueOf(source.get(field)));
+                        analyzeTokens = analyze(client, index, analyzer, String.valueOf(source.get(field)));
                     }
                     analyzerTextTerms.put(field, analyzeTokens);
                 }
@@ -100,26 +110,24 @@ public class IndicesService {
         }
         documentPagination.setAnalyzeDocumentTermMap(analyzeDocumentTermMap);
 
+        elasticsearchFactory.close(client);
         return documentPagination;
     }
 
-    public long getDocumentCount(String indices) throws IOException {
-        return client.count(new CountRequest().indices(indices), RequestOptions.DEFAULT).getCount();
-    }
-
-    public Map<String, Object> getFields(String index) throws IOException {
+    public Map<String, Object> getFields(RestHighLevelClient client, String index) throws IOException {
         GetMappingsRequest getMappingsRequest = new GetMappingsRequest().indices(index);
         GetMappingsResponse response = client.indices().getMapping(getMappingsRequest, RequestOptions.DEFAULT);
         Map<String, MappingMetaData> mappings = response.mappings();
         Map<String, Object> properties = (Map<String, Object>) mappings.get(index).getSourceAsMap().get("properties");
-        return mappings.get(index).getSourceAsMap().get("properties") == null ?
-                new HashMap<>() : properties;
+        Map<String, Object> result =  mappings.get(index).getSourceAsMap().get("properties") == null ? new HashMap<>() : properties;
+        return result;
     }
 
-    public List<AnalyzeResponse.AnalyzeToken> analyze(String index, String analyzer, String text) throws IOException {
+    public List<AnalyzeResponse.AnalyzeToken> analyze(RestHighLevelClient client, String index, String analyzer, String text) throws IOException {
         AnalyzeResponse response = client.indices()
                 .analyze(AnalyzeRequest.withIndexAnalyzer(index, analyzer, text), RequestOptions.DEFAULT);
-        return response.getTokens();
+        List<AnalyzeResponse.AnalyzeToken> result = response.getTokens();
+        return result;
     }
 
 }

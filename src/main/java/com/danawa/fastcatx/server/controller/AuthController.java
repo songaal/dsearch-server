@@ -2,8 +2,9 @@ package com.danawa.fastcatx.server.controller;
 
 import com.danawa.fastcatx.server.entity.AuthUser;
 import com.danawa.fastcatx.server.entity.User;
-import com.danawa.fastcatx.server.excpetions.NotFoundException;
+import com.danawa.fastcatx.server.excpetions.NotFoundUserException;
 import com.danawa.fastcatx.server.services.AuthService;
+import com.danawa.fastcatx.server.services.ClusterService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -11,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpSession;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/auth")
@@ -19,24 +21,31 @@ public class AuthController {
 
     private int maxInactiveInterval = 2 * (60 * 60);
     public static final String SESSION_KEY = "AUTH_USER";
-    private final AuthService authService;
 
-    public AuthController(AuthService authService) {
+    private final AuthService authService;
+    private final ClusterService clusterService;
+
+    public AuthController(AuthService authService, ClusterService clusterService) {
         this.authService = authService;
+        this.clusterService = clusterService;
     }
 
     @GetMapping
-    public ResponseEntity<?> getAuth(HttpSession session) throws NotFoundException {
+    public ResponseEntity<?> getAuth(@RequestHeader(required = false, value = "cluster-id") String clusterId,
+                                     HttpSession session) throws NotFoundUserException {
         AuthUser authuser = (AuthUser) session.getAttribute(SESSION_KEY);
         if (authuser == null) {
-            throw new NotFoundException("Not Found User");
+            throw new NotFoundUserException("Not Found User");
+        }
+        if (clusterId != null && !"".equalsIgnoreCase(clusterId)) {
+            authuser.setCluster(clusterService.find(UUID.fromString(clusterId)));
         }
         return new ResponseEntity<>(authuser, HttpStatus.OK);
     }
 
     @PostMapping("/sign-in")
     public ResponseEntity<?> signIn(HttpSession session,
-                                   @RequestBody User user) throws NotFoundException {
+                                   @RequestBody User user) throws NotFoundUserException {
         AuthUser authUser = authService.signIn(session.getId(), user);
         session.setAttribute(SESSION_KEY, authUser);
         session.setMaxInactiveInterval(maxInactiveInterval);

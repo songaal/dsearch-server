@@ -3,13 +3,17 @@ package com.danawa.fastcatx.server.controller;
 import com.danawa.fastcatx.server.entity.Cluster;
 import com.danawa.fastcatx.server.entity.ClusterStatusResponse;
 import com.danawa.fastcatx.server.excpetions.NotFoundException;
+import com.danawa.fastcatx.server.excpetions.NotFoundUserException;
 import com.danawa.fastcatx.server.services.ClusterService;
+import com.danawa.fastcatx.server.services.DictionaryService;
+import com.danawa.fastcatx.server.services.ReferenceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.*;
 
 @RestController
@@ -18,9 +22,13 @@ public class ClusterController {
     private static Logger logger = LoggerFactory.getLogger(ClusterController.class);
 
     private final ClusterService clusterService;
+    private final DictionaryService dictionaryService;
+    private final ReferenceService referenceService;
 
-    public ClusterController(ClusterService clusterService) {
+    public ClusterController(ClusterService clusterService, DictionaryService dictionaryService, ReferenceService referenceService) {
         this.clusterService = clusterService;
+        this.dictionaryService = dictionaryService;
+        this.referenceService = referenceService;
     }
 
     @GetMapping
@@ -58,8 +66,10 @@ public class ClusterController {
     }
 
     @PostMapping
-    public ResponseEntity<?> add(@RequestBody Cluster cluster) {
+    public ResponseEntity<?> add(@RequestBody Cluster cluster) throws IOException {
         Cluster registerCluster = clusterService.add(cluster);
+        dictionaryService.fetchSystemIndex(registerCluster.getId());
+        referenceService.fetchSystemIndex(registerCluster.getId());
         return new ResponseEntity<>(registerCluster, HttpStatus.OK);
     }
 

@@ -13,19 +13,18 @@ import org.elasticsearch.client.RestHighLevelClient;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.List;
 
-@Configuration
-@ConfigurationProperties(prefix = "elasticsearch")
 public class ElasticSearchConfig {
 
-    private int thread;
-    private String username;
-    private String password;
-    private List<ElasticsearchNode> nodes;
 
-    @Bean(destroyMethod = "close")
+
+
+
     public RestHighLevelClient getRestHighLevelClient() {
         HttpHost[] httpHostList = new HttpHost[nodes.size()];
         for (int i = 0; i < nodes.size(); i++) {
@@ -80,5 +79,12 @@ public class ElasticSearchConfig {
 
     public void setNodes(List<ElasticsearchNode> nodes) {
         this.nodes = nodes;
+    }
+
+
+
+    @Override
+    public void close() throws IOException {
+
     }
 }

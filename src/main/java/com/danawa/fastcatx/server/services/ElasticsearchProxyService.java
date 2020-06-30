@@ -1,5 +1,7 @@
 package com.danawa.fastcatx.server.services;
 
+import com.danawa.fastcatx.server.config.ElasticsearchFactory;
+import com.danawa.fastcatx.server.excpetions.ServiceException;
 import org.apache.http.entity.ContentType;
 import org.apache.http.nio.entity.NStringEntity;
 import org.elasticsearch.client.Request;
@@ -14,21 +16,21 @@ import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class ElasticsearchProxyService {
     private static Logger logger = LoggerFactory.getLogger(ElasticsearchProxyService.class);
 
-    private RestHighLevelClient client;
+    private ElasticsearchFactory elasticsearchFactory;
 
-    public ElasticsearchProxyService(@Qualifier("getRestHighLevelClient") RestHighLevelClient client) {
-        this.client = client;
+    public ElasticsearchProxyService(ElasticsearchFactory elasticsearchFactory) {
+        this.elasticsearchFactory = elasticsearchFactory;
     }
 
-    public Response proxy(HttpServletRequest request, Map<String, String> queryStringMap, byte[] body) throws IOException {
+    public Response proxy(UUID clusterId, HttpServletRequest request, Map<String, String> queryStringMap, byte[] body) throws IOException {
 //        /elasticsearch  substring 14
         Request req = new Request(request.getMethod(), request.getRequestURI().substring(14));
-
         if (queryStringMap != null) {
             Iterator<String> keys = queryStringMap.keySet().iterator();
             while (keys.hasNext()) {
@@ -41,7 +43,20 @@ public class ElasticsearchProxyService {
             req.setEntity(new NStringEntity(new String(body), ContentType.APPLICATION_JSON));
         }
 
-        return client.getLowLevelClient().performRequest(req);
+        Response response;
+        RestHighLevelClient client = null;
+        try {
+            client = elasticsearchFactory.getClient(clusterId);
+            response = client.getLowLevelClient().performRequest(req);
+        } catch (Exception e) {
+            logger.error("", e);
+            throw e;
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+        return response;
     }
 
 
@@ -109,7 +124,6 @@ public class ElasticsearchProxyService {
 //    public void setNodes(List<String> nodes) {
 //        this.nodes = nodes;
 //    }
-
 
 
 }

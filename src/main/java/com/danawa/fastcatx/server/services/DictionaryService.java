@@ -1,5 +1,6 @@
 package com.danawa.fastcatx.server.services;
 
+import com.danawa.fastcatx.server.config.ElasticsearchFactory;
 import com.danawa.fastcatx.server.entity.DictionaryDocumentRequest;
 import com.danawa.fastcatx.server.entity.DictionarySetting;
 import com.danawa.fastcatx.server.entity.DocumentPagination;
@@ -29,7 +30,6 @@ import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
@@ -49,60 +49,30 @@ public class DictionaryService {
 
     private IndicesService indicesService;
 
-    private RestHighLevelClient client;
     private String settingIndex;
     private String dictionaryIndex;
 
     private final String SETTING_JSON = "dictionary_setting.json";
     private final String INDEX_JSON = "dictionary.json";
+    private final ElasticsearchFactory elasticsearchFactory;
 
-    //* 사전 구분 : type
-    //사용자 사전: keyword
-    //동의어 사전: keyword, value
-    //불용어 사전: keyword
-    //분리어 사전: keyword
-    //복합명사 사전: keyword, value
-    //단위명 사전: keyword
-    //단위명 동의어 사전: value
-    //제조사 사전: id, keyword, value
-    //브랜드 사전: id, keyword, value
-    //카테고리 사전: id, keyword, value
-    //영단어 사전: keyword
-
-
-    public DictionaryService(@Qualifier("getRestHighLevelClient") RestHighLevelClient restHighLevelClient,
-                             @Value("${fastcatx.dictionary.setting}") String settingIndex,
+    public DictionaryService(@Value("${fastcatx.dictionary.setting}") String settingIndex,
                              @Value("${fastcatx.dictionary.index}") String dictionaryIndex,
-                             IndicesService indicesService) {
-
+                             IndicesService indicesService,
+                             ElasticsearchFactory elasticsearchFactory) {
         this.indicesService = indicesService;
-        this.client = restHighLevelClient;
         this.settingIndex = settingIndex;
         this.dictionaryIndex = dictionaryIndex;
+        this.elasticsearchFactory = elasticsearchFactory;
     }
 
-    @PostConstruct
-    public void init() throws IOException {
-        /* 프로그램 실행시 인덱스 없으면 자동 생성. */
-//        SETTING
-        if (!client.indices().exists(new GetIndexRequest(settingIndex), RequestOptions.DEFAULT)) {
-            String source = StreamUtils.copyToString(new ClassPathResource(SETTING_JSON).getInputStream(),
-                    Charset.defaultCharset());
-            client.indices().create(new CreateIndexRequest(settingIndex)
-                            .source(source, XContentType.JSON),
-                    RequestOptions.DEFAULT);
-        }
-//        INDEX
-        if (!client.indices().exists(new GetIndexRequest(dictionaryIndex), RequestOptions.DEFAULT)) {
-            String source = StreamUtils.copyToString(new ClassPathResource(INDEX_JSON).getInputStream(),
-                    Charset.defaultCharset());
-            client.indices().create(new CreateIndexRequest(dictionaryIndex)
-                            .source(source, XContentType.JSON),
-                    RequestOptions.DEFAULT);
-        }
+    public void fetchSystemIndex(UUID clusterId) throws IOException {
+        indicesService.createSystemIndex(clusterId, settingIndex, SETTING_JSON);
+        indicesService.createSystemIndex(clusterId, dictionaryIndex, INDEX_JSON);
     }
 
-    public DictionarySetting getSetting(String dictionary) throws IOException {
+    public DictionarySetting getSetting(UUID clusterId, String dictionary) throws IOException {
+        RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
         SearchResponse response = client.search(new SearchRequest()
                         .indices(settingIndex)
                         .source(new SearchSourceBuilder()
@@ -110,12 +80,14 @@ public class DictionaryService {
                                 .size(1)
                                 .query(new MatchQueryBuilder("id", dictionary))),
                 RequestOptions.DEFAULT);
-        
         SearchHit searchHit = response.getHits().getHits()[0];
+
+        elasticsearchFactory.close(client);
         return fillSettingValue(searchHit);
     }
 
-    public List<DictionarySetting> getSettings() throws IOException {
+    public List<DictionarySetting> getSettings(UUID clusterId) throws IOException {
+        RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
         logger.debug("dictionary setting index: {}", settingIndex);
         List<DictionarySetting> settings = new ArrayList<>();
         SearchResponse response = client.search(new SearchRequest()
@@ -126,6 +98,7 @@ public class DictionaryService {
         for (int i = 0; i < hitsSize; i++) {
             settings.add(fillSettingValue(searchHits[i]));
         }
+        elasticsearchFactory.close(client);
         return settings;
     }
 
@@ -154,8 +127,9 @@ public class DictionaryService {
         return setting;
     }
 
-    public List<SearchHit> findAll(String type) throws IOException {
+    public List<SearchHit> findAll(UUID clusterId, String type) throws IOException {
         List<SearchHit> documentList = new ArrayList<>();
+        RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
 
         Scroll scroll = new Scroll(new TimeValue(5, TimeUnit.SECONDS));
         SearchResponse response = client.search(new SearchRequest()
@@ -176,10 +150,11 @@ public class DictionaryService {
         }
 
         logger.debug("hits Size: {}", documentList.size());
+        elasticsearchFactory.close(client);
         return documentList;
     }
 
-    public DocumentPagination documentPagination(String type, long pageNum, long rowSize, boolean isMatch, String searchColumns, String value) throws IOException {
+    public DocumentPagination documentPagination(UUID clusterId, String type, long pageNum, long rowSize, boolean isMatch, String searchColumns, String value) throws IOException {
         BoolQueryBuilder boolQueryBuilder = new BoolQueryBuilder().filter(new TermQueryBuilder("type", type));
 
         if (value != null && !"".equals(value)) {
@@ -199,10 +174,11 @@ public class DictionaryService {
                 .query(boolQueryBuilder)
                 .sort(SortBuilders.fieldSort("_id"));
 
-        return indicesService.findAllDocumentPagination(dictionaryIndex, pageNum, rowSize, builder);
+        return indicesService.findAllDocumentPagination(clusterId, dictionaryIndex, pageNum, rowSize, builder);
     }
 
-    public IndexResponse createDocument(DictionaryDocumentRequest document) throws IOException, ServiceException {
+    public IndexResponse createDocument(UUID clusterId, DictionaryDocumentRequest document) throws IOException, ServiceException {
+        RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
         BoolQueryBuilder queryBuilder = new BoolQueryBuilder()
                 .filter(new MatchQueryBuilder("type", document.getType()));
 
@@ -230,26 +206,33 @@ public class DictionaryService {
                 .field("value", document.getValue())
                 .endObject();
 
-        return client.index(new IndexRequest()
+        IndexResponse indexResponse = client.index(new IndexRequest()
                         .index(dictionaryIndex)
                         .source(builder)
                 , RequestOptions.DEFAULT);
+        elasticsearchFactory.close(client);
+        return indexResponse;
     }
 
-    public DeleteResponse deleteDocument(String dictionary, String id) throws IOException, ServiceException {
+    public DeleteResponse deleteDocument(UUID clusterId, String dictionary, String id) throws IOException, ServiceException {
+        RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
         GetResponse response = client.get(new GetRequest().index(dictionaryIndex).id(id), RequestOptions.DEFAULT);
         String type = String.valueOf(response.getSourceAsMap().get("type"));
         if (!type .equalsIgnoreCase(dictionary)) {
             throw new ServiceException("Document NotFound Exception");
         }
 
-        return client.delete(new DeleteRequest()
+        DeleteResponse deleteResponse = client.delete(new DeleteRequest()
                         .index(dictionaryIndex)
                         .id(id)
                 , RequestOptions.DEFAULT);
+
+        elasticsearchFactory.close(client);
+        return deleteResponse;
     }
 
-    public UpdateResponse updateDocument(String id, DictionaryDocumentRequest document) throws IOException {
+    public UpdateResponse updateDocument(UUID clusterId, String id, DictionaryDocumentRequest document) throws IOException {
+        RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
         XContentBuilder builder = jsonBuilder()
                 .startObject()
                 .field("keyword", document.getKeyword())
@@ -257,16 +240,18 @@ public class DictionaryService {
                 .field("id", document.getId())
                 .endObject();
 
-        return client.update(new UpdateRequest()
+        UpdateResponse updateResponse = client.update(new UpdateRequest()
                         .index(dictionaryIndex)
                         .id(id)
                         .doc(builder)
                 , RequestOptions.DEFAULT);
+        elasticsearchFactory.close(client);
+        return updateResponse;
     }
 
-    public StringBuffer download(String dictionary) throws IOException {
-        List<SearchHit> documentList = findAll(dictionary);
-        DictionarySetting setting = getSetting(dictionary);
+    public StringBuffer download(UUID clusterId, String dictionary) throws IOException {
+        List<SearchHit> documentList = findAll(clusterId, dictionary);
+        DictionarySetting setting = getSetting(clusterId, dictionary);
 
         StringBuffer sb = new StringBuffer();
         int size = documentList.size();

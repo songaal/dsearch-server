@@ -3,7 +3,7 @@ package com.danawa.fastcatx.server.services;
 import com.danawa.fastcatx.server.entity.UpdateUserRequest;
 import com.danawa.fastcatx.server.entity.User;
 import com.danawa.fastcatx.server.entity.UserRoles;
-import com.danawa.fastcatx.server.excpetions.NotFoundException;
+import com.danawa.fastcatx.server.excpetions.NotFoundUserException;
 import com.danawa.fastcatx.server.repository.UserRepository;
 import com.danawa.fastcatx.server.repository.UserRepositorySupport;
 import org.slf4j.Logger;
@@ -55,13 +55,13 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    public User editPassword(Long id, UpdateUserRequest updateUser) throws NotFoundException {
+    public User editPassword(Long id, UpdateUserRequest updateUser) throws NotFoundUserException {
         User registerUser = find(id);
         if (registerUser == null) {
-            throw new NotFoundException("Not Found User");
+            throw new NotFoundUserException("Not Found User");
         }
         if(!encoder.matches(updateUser.getPassword(), registerUser.getPassword())) {
-            throw new NotFoundException("Invalid password");
+            throw new NotFoundUserException("Invalid password");
         }
         registerUser.setPassword(encoder.encode(updateUser.getUpdatePassword()));
         registerUser = userRepository.save(registerUser);
@@ -69,10 +69,10 @@ public class UserService {
         return registerUser;
     }
 
-    public User remove(Long id) throws NotFoundException {
+    public User remove(Long id) throws NotFoundUserException {
         User user = userRepository.findById(id).get();
         if (user == null) {
-            throw new NotFoundException("Not Found User");
+            throw new NotFoundUserException("Not Found User");
         }
         userRolesService.deleteByUserId(id);
         userRepository.delete(user);
@@ -95,10 +95,10 @@ public class UserService {
                 .build();
     }
 
-    public User editProfile(Long id, UpdateUserRequest updateUser) throws NotFoundException {
+    public User editProfile(Long id, UpdateUserRequest updateUser) throws NotFoundUserException {
         User registerUser = userRepository.findById(id).get();
         if (registerUser == null) {
-            throw new NotFoundException("Not Found User");
+            throw new NotFoundUserException("Not Found User");
         }
         registerUser.setEmail(updateUser.getEmail());
         registerUser.setUsername(updateUser.getUsername());

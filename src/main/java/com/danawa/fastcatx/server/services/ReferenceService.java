@@ -1,11 +1,11 @@
 package com.danawa.fastcatx.server.services;
 
+import com.danawa.fastcatx.server.config.ElasticsearchFactory;
 import com.danawa.fastcatx.server.entity.DocumentPagination;
 import com.danawa.fastcatx.server.entity.ReferenceOrdersRequest;
 import com.danawa.fastcatx.server.entity.ReferenceResult;
 import com.danawa.fastcatx.server.entity.ReferenceTemp;
 import com.danawa.fastcatx.server.utils.JsonUtils;
-import com.google.gson.Gson;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
@@ -15,8 +15,6 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.client.indices.CreateIndexRequest;
-import org.elasticsearch.client.indices.GetIndexRequest;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.*;
@@ -27,15 +25,10 @@ import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StreamUtils;
 
-import javax.annotation.PostConstruct;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -48,34 +41,27 @@ public class ReferenceService {
     private IndicesService indicesService;
     private JsonUtils jsonUtils;
 
-    private RestHighLevelClient client;
     private String referenceIndex;
 
     private final String REFERENCE_INDEX_JSON = "reference.json";
+    private final ElasticsearchFactory elasticsearchFactory;
 
-    public ReferenceService(@Qualifier("getRestHighLevelClient") RestHighLevelClient restHighLevelClient,
-                            @Value("${fastcatx.reference.index}") String referenceIndex,
+    public ReferenceService(@Value("${fastcatx.reference.index}") String referenceIndex,
                             IndicesService indicesService,
-                            JsonUtils jsonUtils) {
+                            JsonUtils jsonUtils,
+                            ElasticsearchFactory elasticsearchFactory) {
         this.indicesService = indicesService;
-        this.client = restHighLevelClient;
         this.referenceIndex = referenceIndex;
         this.jsonUtils = jsonUtils;
+        this.elasticsearchFactory = elasticsearchFactory;
     }
 
-    @PostConstruct
-    public void init() throws IOException {
-        /* 프로그램 실행시 인덱스 없으면 자동 생성. */
-        if (!client.indices().exists(new GetIndexRequest(referenceIndex), RequestOptions.DEFAULT)) {
-            String source = StreamUtils.copyToString(new ClassPathResource(REFERENCE_INDEX_JSON).getInputStream(),
-                    Charset.defaultCharset());
-            client.indices().create(new CreateIndexRequest(referenceIndex)
-                            .source(source, XContentType.JSON),
-                    RequestOptions.DEFAULT);
-        }
+    public void fetchSystemIndex(UUID clusterId) throws IOException {
+        indicesService.createSystemIndex(clusterId, referenceIndex, REFERENCE_INDEX_JSON);
     }
 
-    public List<ReferenceTemp> findAll() throws IOException {
+    public List<ReferenceTemp> findAll(UUID clusterId) throws IOException {
+        RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
         List<ReferenceTemp> referenceTempList = new ArrayList<>();
         Scroll scroll = new Scroll(new TimeValue(1000, TimeUnit.MILLISECONDS));
         SearchResponse response = client.search(new SearchRequest()
@@ -91,11 +77,14 @@ public class ReferenceService {
             Map<String, Object> source = SearchHitArr[i].getSourceAsMap();
             referenceTempList.add(convertMapToObject(SearchHitArr[i].getId(), source));
         }
+        elasticsearchFactory.close(client);
         return referenceTempList;
     }
 
-    public ReferenceTemp find(String id) throws IOException {
+    public ReferenceTemp find(UUID clusterId, String id) throws IOException {
+        RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
         GetResponse response = client.get(new GetRequest().index(referenceIndex).id(id), RequestOptions.DEFAULT);
+        elasticsearchFactory.close(client);
         return convertMapToObject(id, response.getSourceAsMap());
     }
 
@@ -117,19 +106,23 @@ public class ReferenceService {
         return temp;
     }
 
-    public void add(ReferenceTemp entity) throws IOException {
+    public void add(UUID clusterId, ReferenceTemp entity) throws IOException {
+        RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
         client.index(new IndexRequest()
                         .index(referenceIndex)
                         .source(build(entity))
                 , RequestOptions.DEFAULT);
+        elasticsearchFactory.close(client);
     }
 
-    public void update(String id, ReferenceTemp entity) throws IOException {
+    public void update(UUID clusterId, String id, ReferenceTemp entity) throws IOException {
+        RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
         client.index(new IndexRequest()
                         .index(referenceIndex)
                         .id(id)
                         .source(build(entity))
                 , RequestOptions.DEFAULT);
+        elasticsearchFactory.close(client);
     }
 
     private XContentBuilder build(ReferenceTemp entity) throws IOException {
@@ -169,15 +162,17 @@ public class ReferenceService {
         return builder.endArray().endObject();
     }
 
-    public void delete(String id) throws IOException {
+    public void delete(UUID clusterId, String id) throws IOException {
+        RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
         client.delete(new DeleteRequest().index(referenceIndex).id(id)
                 , RequestOptions.DEFAULT);
+        elasticsearchFactory.close(client);
     }
 
-    public List<ReferenceResult> searchResponseAll(String keyword) throws IOException {
+    public List<ReferenceResult> searchResponseAll(UUID clusterId, String keyword) throws IOException {
         List<ReferenceResult> result = new ArrayList<>();
 
-        List<ReferenceTemp> tempList = findAll();
+        List<ReferenceTemp> tempList = findAll(clusterId);
         int size = tempList.size();
         for (int i = 0; i < size; i++) {
             ReferenceTemp temp = tempList.get(i);
@@ -195,7 +190,7 @@ public class ReferenceService {
                     .xContent(XContentType.JSON)
                     .createParser(new NamedXContentRegistry(searchModule.getNamedXContents()), DeprecationHandler.THROW_UNSUPPORTED_OPERATION, query)) {
                 searchSourceBuilder.parseXContent(parser);
-                DocumentPagination documentPagination = indicesService.findAllDocumentPagination(temp.getIndices(), 0, 30, searchSourceBuilder);
+                DocumentPagination documentPagination = indicesService.findAllDocumentPagination(clusterId, temp.getIndices(), 0, 30, searchSourceBuilder);
                 result.add(new ReferenceResult(temp, documentPagination, query));
             } catch (Exception e) {
                 result.add(new ReferenceResult(temp, new DocumentPagination(), query));
@@ -204,9 +199,9 @@ public class ReferenceService {
         return result;
     }
 
-    public ReferenceResult searchResponse(String id, String keyword, long pageNum, long rowSize) throws IOException {
+    public ReferenceResult searchResponse(UUID clusterId, String id, String keyword, long pageNum, long rowSize) throws IOException {
         ReferenceResult result = new ReferenceResult();
-        ReferenceTemp temp = find(id);
+        ReferenceTemp temp = find(clusterId, id);
         String query = temp.getQuery()
                 .replace("\"${keyword}\"", "\"" + keyword + "\"")
                 .replace("${keyword}", "\"" + keyword + "\"");
@@ -221,7 +216,7 @@ public class ReferenceService {
                 .xContent(XContentType.JSON)
                 .createParser(new NamedXContentRegistry(searchModule.getNamedXContents()), DeprecationHandler.THROW_UNSUPPORTED_OPERATION, query)) {
             searchSourceBuilder.parseXContent(parser);
-            DocumentPagination documentPagination = indicesService.findAllDocumentPagination(temp.getIndices(), pageNum, rowSize, searchSourceBuilder);
+            DocumentPagination documentPagination = indicesService.findAllDocumentPagination(clusterId, temp.getIndices(), pageNum, rowSize, searchSourceBuilder);
 
             result.setQuery(query);
             result.setTemplate(temp);
@@ -230,7 +225,8 @@ public class ReferenceService {
         return result;
     }
 
-    public void updateOrders(ReferenceOrdersRequest request) throws IOException {
+    public void updateOrders(UUID clusterId, ReferenceOrdersRequest request) throws IOException {
+        RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
         int size = request.getOrders().size();
         for (int i = 0; i < size; i++) {
             ReferenceOrdersRequest.Order order = request.getOrders().get(i);
@@ -243,5 +239,6 @@ public class ReferenceService {
                             .endObject()), RequestOptions.DEFAULT);
 
         }
+        elasticsearchFactory.close(client);
     }
 }

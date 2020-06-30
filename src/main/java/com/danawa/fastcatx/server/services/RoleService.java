@@ -1,10 +1,8 @@
 package com.danawa.fastcatx.server.services;
 
 import com.danawa.fastcatx.server.entity.Role;
-import com.danawa.fastcatx.server.entity.UserRoles;
-import com.danawa.fastcatx.server.excpetions.NotFoundException;
+import com.danawa.fastcatx.server.excpetions.NotFoundUserException;
 import com.danawa.fastcatx.server.repository.RoleRepository;
-import com.danawa.fastcatx.server.repository.UserRolesRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -34,10 +32,10 @@ public class RoleService {
         return roleRepository.save(role);
     }
 
-    public Role edit(long id, Role role) throws NotFoundException {
+    public Role edit(long id, Role role) throws NotFoundUserException {
         Role registerRole = roleRepository.findById(id).get();
         if (registerRole == null) {
-            throw new NotFoundException("Not Found Role");
+            throw new NotFoundUserException("Not Found Role");
         }
         registerRole.setName(role.getName());
         registerRole.setAnalysis(role.isAnalysis());

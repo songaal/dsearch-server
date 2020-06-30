@@ -1,7 +1,7 @@
 package com.danawa.fastcatx.server.controller;
 
 import com.danawa.fastcatx.server.entity.Role;
-import com.danawa.fastcatx.server.excpetions.NotFoundException;
+import com.danawa.fastcatx.server.excpetions.NotFoundUserException;
 import com.danawa.fastcatx.server.services.RoleService;
 import com.danawa.fastcatx.server.services.UserRolesService;
 import org.slf4j.Logger;
@@ -11,7 +11,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -47,7 +46,7 @@ public class RoleController {
 
     @PutMapping("/{id}")
     public ResponseEntity<?> edit(@PathVariable long id,
-                                  @RequestBody Role role) throws NotFoundException {
+                                  @RequestBody Role role) throws NotFoundUserException {
         return new ResponseEntity<>(roleService.edit(id, role), HttpStatus.OK);
     }
 
