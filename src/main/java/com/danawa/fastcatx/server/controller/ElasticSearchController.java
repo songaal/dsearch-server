@@ -38,10 +38,10 @@ public class ElasticSearchController {
 
     @RequestMapping({"/*", "/**/*"})
     public ResponseEntity<?> proxy(HttpServletRequest request,
-                                   @RequestHeader(value = "cluster-id") String clusterId,
+                                   @RequestHeader(value = "cluster-id") UUID clusterId,
                                    @RequestParam Map<String,String> queryStringMap,
                                    @RequestBody(required = false) byte[] body) throws IOException {
-        Response response = proxyService.proxy(UUID.fromString(clusterId), request, queryStringMap, body);
+        Response response = proxyService.proxy(clusterId, request, queryStringMap, body);
         String responseBody = EntityUtils.toString(response.getEntity());
         return new ResponseEntity<>(responseBody, HttpStatus.OK);
     }

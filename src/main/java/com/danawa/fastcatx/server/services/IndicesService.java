@@ -8,9 +8,12 @@ import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.indices.*;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.query.MatchAllQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.TermQueryBuilder;
+import org.elasticsearch.search.Scroll;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.slf4j.Logger;
@@ -22,11 +25,13 @@ import org.springframework.util.StreamUtils;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class IndicesService {
     private static Logger logger = LoggerFactory.getLogger(IndicesService.class);
     private final ElasticsearchFactory elasticsearchFactory;
+
     public IndicesService(ElasticsearchFactory elasticsearchFactory) {
         this.elasticsearchFactory = elasticsearchFactory;
     }
@@ -119,7 +124,7 @@ public class IndicesService {
         GetMappingsResponse response = client.indices().getMapping(getMappingsRequest, RequestOptions.DEFAULT);
         Map<String, MappingMetaData> mappings = response.mappings();
         Map<String, Object> properties = (Map<String, Object>) mappings.get(index).getSourceAsMap().get("properties");
-        Map<String, Object> result =  mappings.get(index).getSourceAsMap().get("properties") == null ? new HashMap<>() : properties;
+        Map<String, Object> result = mappings.get(index).getSourceAsMap().get("properties") == null ? new HashMap<>() : properties;
         return result;
     }
 
@@ -128,6 +133,18 @@ public class IndicesService {
                 .analyze(AnalyzeRequest.withIndexAnalyzer(index, analyzer, text), RequestOptions.DEFAULT);
         List<AnalyzeResponse.AnalyzeToken> result = response.getTokens();
         return result;
+    }
+
+    public SearchResponse findAll(UUID clusterId, String index) throws IOException {
+        RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
+        Scroll scroll = new Scroll(new TimeValue(1000, TimeUnit.MILLISECONDS));
+        SearchResponse response = client.search(new SearchRequest()
+                        .indices(index)
+                        .scroll(scroll)
+                        .source(new SearchSourceBuilder().query(new MatchAllQueryBuilder())),
+                RequestOptions.DEFAULT);
+        elasticsearchFactory.close(client);
+        return response;
     }
 
 }

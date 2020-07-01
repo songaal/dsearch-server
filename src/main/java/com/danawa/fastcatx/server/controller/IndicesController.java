@@ -24,13 +24,13 @@ public class IndicesController {
 
     @GetMapping("/{index}/_docs")
     public ResponseEntity<?> findAllDocument(@PathVariable String index,
-                                             @RequestHeader(value = "cluster-id") String clusterId,
+                                             @RequestHeader(value = "cluster-id") UUID clusterId,
                                              @RequestParam int pageNum,
                                              @RequestParam int rowSize,
                                              @RequestParam(required = false, defaultValue = "false") boolean analysis,
                                              @RequestParam(required = false) String id) throws IOException {
 
-        DocumentPagination documentPagination = indicesService.findAllDocumentPagination(UUID.fromString(clusterId), index, pageNum, rowSize, id, analysis, null);
+        DocumentPagination documentPagination = indicesService.findAllDocumentPagination(clusterId, index, pageNum, rowSize, id, analysis, null);
 
         return new ResponseEntity<>(documentPagination, HttpStatus.OK);
     }

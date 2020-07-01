@@ -38,22 +38,21 @@ import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 public class ReferenceService {
     private static Logger logger = LoggerFactory.getLogger(DictionaryService.class);
 
-    private IndicesService indicesService;
-    private JsonUtils jsonUtils;
-
     private String referenceIndex;
-
     private final String REFERENCE_INDEX_JSON = "reference.json";
+
     private final ElasticsearchFactory elasticsearchFactory;
+    private final IndicesService indicesService;
+    private final JsonUtils jsonUtils;
 
     public ReferenceService(@Value("${fastcatx.reference.index}") String referenceIndex,
                             IndicesService indicesService,
                             JsonUtils jsonUtils,
                             ElasticsearchFactory elasticsearchFactory) {
+        this.elasticsearchFactory = elasticsearchFactory;
         this.indicesService = indicesService;
         this.referenceIndex = referenceIndex;
         this.jsonUtils = jsonUtils;
-        this.elasticsearchFactory = elasticsearchFactory;
     }
 
     public void fetchSystemIndex(UUID clusterId) throws IOException {
@@ -63,14 +62,7 @@ public class ReferenceService {
     public List<ReferenceTemp> findAll(UUID clusterId) throws IOException {
         RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
         List<ReferenceTemp> referenceTempList = new ArrayList<>();
-        Scroll scroll = new Scroll(new TimeValue(1000, TimeUnit.MILLISECONDS));
-        SearchResponse response = client.search(new SearchRequest()
-                .indices(referenceIndex)
-                .scroll(scroll)
-                .source(new SearchSourceBuilder()
-                        .query(new MatchAllQueryBuilder())
-                ), RequestOptions.DEFAULT);
-
+        SearchResponse response = indicesService.findAll(clusterId, referenceIndex);
         SearchHit[] SearchHitArr = response.getHits().getHits();
         int hitsSize = SearchHitArr.length;
         for (int i = 0; i < hitsSize; i++) {

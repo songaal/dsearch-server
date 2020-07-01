@@ -3,8 +3,8 @@ package com.danawa.fastcatx.server.controller;
 import com.danawa.fastcatx.server.entity.Cluster;
 import com.danawa.fastcatx.server.entity.ClusterStatusResponse;
 import com.danawa.fastcatx.server.excpetions.NotFoundException;
-import com.danawa.fastcatx.server.excpetions.NotFoundUserException;
 import com.danawa.fastcatx.server.services.ClusterService;
+import com.danawa.fastcatx.server.services.CollectionService;
 import com.danawa.fastcatx.server.services.DictionaryService;
 import com.danawa.fastcatx.server.services.ReferenceService;
 import org.slf4j.Logger;
@@ -24,11 +24,13 @@ public class ClusterController {
     private final ClusterService clusterService;
     private final DictionaryService dictionaryService;
     private final ReferenceService referenceService;
+    private final CollectionService collectionService;
 
-    public ClusterController(ClusterService clusterService, DictionaryService dictionaryService, ReferenceService referenceService) {
+    public ClusterController(ClusterService clusterService, DictionaryService dictionaryService, ReferenceService referenceService, CollectionService collectionService) {
         this.clusterService = clusterService;
         this.dictionaryService = dictionaryService;
         this.referenceService = referenceService;
+        this.collectionService = collectionService;
     }
 
     @GetMapping
@@ -70,6 +72,7 @@ public class ClusterController {
         Cluster registerCluster = clusterService.add(cluster);
         dictionaryService.fetchSystemIndex(registerCluster.getId());
         referenceService.fetchSystemIndex(registerCluster.getId());
+        collectionService.fetchSystemIndex(registerCluster.getId());
         return new ResponseEntity<>(registerCluster, HttpStatus.OK);
     }
 

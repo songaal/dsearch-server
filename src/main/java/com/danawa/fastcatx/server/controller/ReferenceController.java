@@ -26,65 +26,65 @@ public class ReferenceController {
     }
 
     @GetMapping
-    public ResponseEntity<?> findAll(@RequestHeader(value = "cluster-id") String clusterId) throws IOException {
-        List<ReferenceTemp> tempList = referenceService.findAll(UUID.fromString(clusterId));
+    public ResponseEntity<?> findAll(@RequestHeader(value = "cluster-id") UUID clusterId) throws IOException {
+        List<ReferenceTemp> tempList = referenceService.findAll(clusterId);
         return new ResponseEntity<>(tempList, HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<?> find(@PathVariable String id,
-                                  @RequestHeader(value = "cluster-id") String clusterId) throws IOException {
-        ReferenceTemp temp = referenceService.find(UUID.fromString(clusterId), id);
+                                  @RequestHeader(value = "cluster-id") UUID clusterId) throws IOException {
+        ReferenceTemp temp = referenceService.find(clusterId, id);
         return new ResponseEntity<>(temp, HttpStatus.OK);
     }
 
     @PostMapping
-    public ResponseEntity<?> add(@RequestHeader(value = "cluster-id") String clusterId,
+    public ResponseEntity<?> add(@RequestHeader(value = "cluster-id") UUID clusterId,
                                  @RequestBody ReferenceTemp entity) throws IOException {
-        referenceService.add(UUID.fromString(clusterId), entity);
+        referenceService.add(clusterId, entity);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @PutMapping("/actions")
-    public ResponseEntity<?> actions(@RequestHeader(value = "cluster-id") String clusterId,
+    public ResponseEntity<?> actions(@RequestHeader(value = "cluster-id") UUID clusterId,
                                      @RequestParam String action,
                                      @RequestBody(required = false) ReferenceOrdersRequest request) throws IOException {
         if ("orders".equalsIgnoreCase(action)) {
-            referenceService.updateOrders(UUID.fromString(clusterId), request);
+            referenceService.updateOrders(clusterId, request);
         }
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> update(@RequestHeader(value = "cluster-id") String clusterId,
+    public ResponseEntity<?> update(@RequestHeader(value = "cluster-id") UUID clusterId,
                                     @PathVariable String id,
                                     @RequestBody ReferenceTemp entity) throws IOException {
-        referenceService.update(UUID.fromString(clusterId), id, entity);
+        referenceService.update(clusterId, id, entity);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> delete(@RequestHeader(value = "cluster-id") String clusterId,
+    public ResponseEntity<?> delete(@RequestHeader(value = "cluster-id") UUID clusterId,
                                     @PathVariable String id) throws IOException {
-        referenceService.delete(UUID.fromString(clusterId), id);
+        referenceService.delete(clusterId, id);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @GetMapping("/_search")
-    public ResponseEntity<?> searchResponseAll(@RequestHeader(value = "cluster-id") String clusterId,
+    public ResponseEntity<?> searchResponseAll(@RequestHeader(value = "cluster-id") UUID clusterId,
                                                @RequestParam String keyword) throws IOException {
-        List<ReferenceResult> result = referenceService.searchResponseAll(UUID.fromString(clusterId), keyword);
+        List<ReferenceResult> result = referenceService.searchResponseAll(clusterId, keyword);
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
     @GetMapping("/{id}/_search")
     public ResponseEntity<?> searchResponse(@PathVariable String id,
-                                            @RequestHeader(value = "cluster-id") String clusterId,
+                                            @RequestHeader(value = "cluster-id") UUID clusterId,
                                             @RequestParam String keyword,
                                             @RequestParam long pageNum,
                                             @RequestParam long rowSize) throws IOException {
-        ReferenceResult result = referenceService.searchResponse(UUID.fromString(clusterId), id, keyword, pageNum, rowSize);
+        ReferenceResult result = referenceService.searchResponse(clusterId, id, keyword, pageNum, rowSize);
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
