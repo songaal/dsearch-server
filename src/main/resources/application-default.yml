@@ -24,14 +24,6 @@ logging:
     max-history: 7
     clean-history-on-start: true
     max-size: 100MB
-elasticsearch:
-  thread: 50
-  username: fastcatx
-  password: fastcatx
-  nodes:
-    - host: 127.0.0.1
-      port: 9200
-      scheme: http
 fastcatx:
   admin:
     username: admin

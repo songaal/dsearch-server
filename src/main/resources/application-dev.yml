@@ -11,6 +11,8 @@ spring:
     password: admin
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
 logging:
   level:
     level:
@@ -23,14 +25,6 @@ logging:
     name: /var/log/fastcatx-server/application.log
     max-history: 30
     max-size: 500MB
-elasticsearch:
-  thread: 50
-  username: fastcatx
-  password: fastcatx
-  nodes:
-    - host: es1.danawa.io
-      port: 80
-      scheme: http
 fastcatx:
   admin:
     username: admin
