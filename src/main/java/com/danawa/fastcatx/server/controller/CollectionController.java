@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.UUID;
 
 @RestController
@@ -25,13 +26,13 @@ public class CollectionController {
 
     @PostMapping
     public ResponseEntity<?> addCollection(@RequestHeader(value = "cluster-id") UUID clusterId,
-                                           @RequestBody Collection collection) {
-        Collection registerCollection = collectionService.addCollection(clusterId, collection);
-        return new ResponseEntity<>(registerCollection, HttpStatus.OK);
+                                           @RequestBody Collection collection) throws IOException {
+        collectionService.add(clusterId, collection);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @GetMapping
-    public ResponseEntity<?> findAll(@RequestHeader(value = "cluster-id") UUID clusterId) {
+    public ResponseEntity<?> findAll(@RequestHeader(value = "cluster-id") UUID clusterId) throws IOException {
         collectionService.findAll(clusterId);
         return new ResponseEntity<>(HttpStatus.OK);
     }
