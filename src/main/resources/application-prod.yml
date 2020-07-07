@@ -35,6 +35,8 @@ fastcatx:
     index: .fastcatx_reference
   collection:
     index: .fastcatx_collection
+    index-suffix-a: -a
+    index-suffix-b: -b
   build:
     name: @project.name@
     version: @project.version@

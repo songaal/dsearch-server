@@ -72,34 +72,32 @@ public class DictionaryService {
     }
 
     public DictionarySetting getSetting(UUID clusterId, String dictionary) throws IOException {
-        RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
-        SearchResponse response = client.search(new SearchRequest()
-                        .indices(settingIndex)
-                        .source(new SearchSourceBuilder()
-                                .from(0)
-                                .size(1)
-                                .query(new MatchQueryBuilder("id", dictionary))),
-                RequestOptions.DEFAULT);
-        SearchHit searchHit = response.getHits().getHits()[0];
-
-        elasticsearchFactory.close(client);
-        return fillSettingValue(searchHit);
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            SearchResponse response = client.search(new SearchRequest()
+                            .indices(settingIndex)
+                            .source(new SearchSourceBuilder()
+                                    .from(0)
+                                    .size(1)
+                                    .query(new MatchQueryBuilder("id", dictionary))),
+                    RequestOptions.DEFAULT);
+            return fillSettingValue(response.getHits().getHits()[0]);
+        }
     }
 
     public List<DictionarySetting> getSettings(UUID clusterId) throws IOException {
-        RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
-        logger.debug("dictionary setting index: {}", settingIndex);
-        List<DictionarySetting> settings = new ArrayList<>();
-        SearchResponse response = client.search(new SearchRequest()
-                .indices(settingIndex)
-                .source(new SearchSourceBuilder().size(10000)), RequestOptions.DEFAULT);
-        SearchHit[] searchHits = response.getHits().getHits();
-        int hitsSize = searchHits.length;
-        for (int i = 0; i < hitsSize; i++) {
-            settings.add(fillSettingValue(searchHits[i]));
+        try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            logger.debug("dictionary setting index: {}", settingIndex);
+            List<DictionarySetting> settings = new ArrayList<>();
+            SearchResponse response = client.search(new SearchRequest()
+                    .indices(settingIndex)
+                    .source(new SearchSourceBuilder().size(10000)), RequestOptions.DEFAULT);
+            SearchHit[] searchHits = response.getHits().getHits();
+            int hitsSize = searchHits.length;
+            for (int i = 0; i < hitsSize; i++) {
+                settings.add(fillSettingValue(searchHits[i]));
+            }
+            return settings;
         }
-        elasticsearchFactory.close(client);
-        return settings;
     }
 
     private DictionarySetting fillSettingValue(SearchHit searchHit) {
@@ -128,30 +126,30 @@ public class DictionaryService {
     }
 
     public List<SearchHit> findAll(UUID clusterId, String type) throws IOException {
-        List<SearchHit> documentList = new ArrayList<>();
-        RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            List<SearchHit> documentList = new ArrayList<>();
 
-        Scroll scroll = new Scroll(new TimeValue(5, TimeUnit.SECONDS));
-        SearchResponse response = client.search(new SearchRequest()
-                .indices(dictionaryIndex)
-                .scroll(scroll)
-                .source(new SearchSourceBuilder()
-                        .query(new TermQueryBuilder("type", type))
-                        .from(0)
-                        .size(10000)
-                ), RequestOptions.DEFAULT);
+            Scroll scroll = new Scroll(new TimeValue(5, TimeUnit.SECONDS));
+            SearchResponse response = client.search(new SearchRequest()
+                    .indices(dictionaryIndex)
+                    .scroll(scroll)
+                    .source(new SearchSourceBuilder()
+                            .query(new TermQueryBuilder("type", type))
+                            .from(0)
+                            .size(10000)
+                    ), RequestOptions.DEFAULT);
 
-        while (response.getScrollId() != null && response.getHits().getHits().length > 0) {
-            documentList.addAll(Arrays.asList(response.getHits().getHits()));
-            response = client.scroll(new SearchScrollRequest()
-                            .scroll(scroll)
-                            .scrollId(response.getScrollId())
-                    , RequestOptions.DEFAULT);
+            while (response.getScrollId() != null && response.getHits().getHits().length > 0) {
+                documentList.addAll(Arrays.asList(response.getHits().getHits()));
+                response = client.scroll(new SearchScrollRequest()
+                                .scroll(scroll)
+                                .scrollId(response.getScrollId())
+                        , RequestOptions.DEFAULT);
+            }
+
+            logger.debug("hits Size: {}", documentList.size());
+            return documentList;
         }
-
-        logger.debug("hits Size: {}", documentList.size());
-        elasticsearchFactory.close(client);
-        return documentList;
     }
 
     public DocumentPagination documentPagination(UUID clusterId, String type, long pageNum, long rowSize, boolean isMatch, String searchColumns, String value) throws IOException {
@@ -178,75 +176,75 @@ public class DictionaryService {
     }
 
     public IndexResponse createDocument(UUID clusterId, DictionaryDocumentRequest document) throws IOException, ServiceException {
-        RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
-        BoolQueryBuilder queryBuilder = new BoolQueryBuilder()
-                .filter(new MatchQueryBuilder("type", document.getType()));
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            BoolQueryBuilder queryBuilder = new BoolQueryBuilder()
+                    .filter(new MatchQueryBuilder("type", document.getType()));
 
-        if (document.getId() != null) {
-            queryBuilder.must(new MatchQueryBuilder("id", document.getId()));
+            if (document.getId() != null) {
+                queryBuilder.must(new MatchQueryBuilder("id", document.getId()));
+            }
+            if (document.getKeyword() != null) {
+                queryBuilder.must(new MatchQueryBuilder("keyword", document.getKeyword()));
+            }
+
+            SearchResponse response = client.search(new SearchRequest()
+                            .indices(dictionaryIndex)
+                            .source(new SearchSourceBuilder().query(queryBuilder))
+                    , RequestOptions.DEFAULT);
+
+            if (response.getHits().getTotalHits().value > 0) {
+                throw new ServiceException("Duplicate Exception");
+            }
+
+            XContentBuilder builder = jsonBuilder()
+                    .startObject()
+                    .field("type", document.getType())
+                    .field("id", document.getId())
+                    .field("keyword", document.getKeyword())
+                    .field("value", document.getValue())
+                    .endObject();
+
+            IndexResponse indexResponse = client.index(new IndexRequest()
+                            .index(dictionaryIndex)
+                            .source(builder)
+                    , RequestOptions.DEFAULT);
+            return indexResponse;
         }
-        if (document.getKeyword() != null) {
-            queryBuilder.must(new MatchQueryBuilder("keyword", document.getKeyword()));
-        }
-
-        SearchResponse response = client.search(new SearchRequest()
-                        .indices(dictionaryIndex)
-                        .source(new SearchSourceBuilder().query(queryBuilder))
-                , RequestOptions.DEFAULT);
-
-        if (response.getHits().getTotalHits().value > 0) {
-            throw new ServiceException("Duplicate Exception");
-        }
-
-        XContentBuilder builder = jsonBuilder()
-                .startObject()
-                .field("type", document.getType())
-                .field("id", document.getId())
-                .field("keyword", document.getKeyword())
-                .field("value", document.getValue())
-                .endObject();
-
-        IndexResponse indexResponse = client.index(new IndexRequest()
-                        .index(dictionaryIndex)
-                        .source(builder)
-                , RequestOptions.DEFAULT);
-        elasticsearchFactory.close(client);
-        return indexResponse;
     }
 
     public DeleteResponse deleteDocument(UUID clusterId, String dictionary, String id) throws IOException, ServiceException {
-        RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
-        GetResponse response = client.get(new GetRequest().index(dictionaryIndex).id(id), RequestOptions.DEFAULT);
-        String type = String.valueOf(response.getSourceAsMap().get("type"));
-        if (!type .equalsIgnoreCase(dictionary)) {
-            throw new ServiceException("Document NotFound Exception");
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            GetResponse response = client.get(new GetRequest().index(dictionaryIndex).id(id), RequestOptions.DEFAULT);
+            String type = String.valueOf(response.getSourceAsMap().get("type"));
+            if (!type .equalsIgnoreCase(dictionary)) {
+                throw new ServiceException("Document NotFound Exception");
+            }
+
+            DeleteResponse deleteResponse = client.delete(new DeleteRequest()
+                            .index(dictionaryIndex)
+                            .id(id)
+                    , RequestOptions.DEFAULT);
+
+            return deleteResponse;
         }
-
-        DeleteResponse deleteResponse = client.delete(new DeleteRequest()
-                        .index(dictionaryIndex)
-                        .id(id)
-                , RequestOptions.DEFAULT);
-
-        elasticsearchFactory.close(client);
-        return deleteResponse;
     }
 
     public UpdateResponse updateDocument(UUID clusterId, String id, DictionaryDocumentRequest document) throws IOException {
-        RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
-        XContentBuilder builder = jsonBuilder()
-                .startObject()
-                .field("keyword", document.getKeyword())
-                .field("value", document.getValue())
-                .field("id", document.getId())
-                .endObject();
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            XContentBuilder builder = jsonBuilder()
+                    .startObject()
+                    .field("keyword", document.getKeyword())
+                    .field("value", document.getValue())
+                    .field("id", document.getId())
+                    .endObject();
 
-        UpdateResponse updateResponse = client.update(new UpdateRequest()
-                        .index(dictionaryIndex)
-                        .id(id)
-                        .doc(builder)
-                , RequestOptions.DEFAULT);
-        elasticsearchFactory.close(client);
-        return updateResponse;
+            UpdateResponse updateResponse = client.update(new UpdateRequest()
+                            .index(dictionaryIndex)
+                            .id(id)
+                            .doc(builder)
+                    , RequestOptions.DEFAULT);
+            return updateResponse;
+        }
     }
 
     public StringBuffer download(UUID clusterId, String dictionary) throws IOException {

@@ -1,30 +1,135 @@
 package com.danawa.fastcatx.server.entity;
 
 import java.io.Serializable;
+import java.util.List;
+import java.util.Map;
 
 public class Collection implements Serializable {
-    private String id;
+    private String id; // es index id
     private String name;
     private String baseId;
-    private String indexA;
-    private String indexB;
+
     private boolean scheduled;
     private String jdbcId;
     private String cron;
     private Launcher launcher;
+    private Index indexA;
+    private Index indexB;
 
+    public static class Index {
+        private String index;
+        private String health;
+        private String status;
+        private String uuid;
+        private String pri;
+        private String rep;
+        private String docsCount;
+        private String docsDeleted;
+        private String storeSize;
+        private String priStoreSize;
+        private Map<String, Object> aliases;
+
+        public Map<String, Object> getAliases() {
+            return aliases;
+        }
+
+        public void setAliases(Map<String, Object> aliases) {
+            this.aliases = aliases;
+        }
+
+        public String getIndex() {
+            return index;
+        }
+
+        public void setIndex(String index) {
+            this.index = index;
+        }
+
+        public String getHealth() {
+            return health;
+        }
+
+        public void setHealth(String health) {
+            this.health = health;
+        }
+
+        public String getStatus() {
+            return status;
+        }
+
+        public void setStatus(String status) {
+            this.status = status;
+        }
+
+        public String getUuid() {
+            return uuid;
+        }
+
+        public void setUuid(String uuid) {
+            this.uuid = uuid;
+        }
+
+        public String getPri() {
+            return pri;
+        }
+
+        public void setPri(String pri) {
+            this.pri = pri;
+        }
+
+        public String getRep() {
+            return rep;
+        }
+
+        public void setRep(String rep) {
+            this.rep = rep;
+        }
+
+        public String getDocsCount() {
+            return docsCount;
+        }
+
+        public void setDocsCount(String docsCount) {
+            this.docsCount = docsCount;
+        }
+
+        public String getDocsDeleted() {
+            return docsDeleted;
+        }
+
+        public void setDocsDeleted(String docsDeleted) {
+            this.docsDeleted = docsDeleted;
+        }
+
+        public String getStoreSize() {
+            return storeSize;
+        }
+
+        public void setStoreSize(String storeSize) {
+            this.storeSize = storeSize;
+        }
+
+        public String getPriStoreSize() {
+            return priStoreSize;
+        }
+
+        public void setPriStoreSize(String priStoreSize) {
+            this.priStoreSize = priStoreSize;
+        }
+    }
 
     public static class Launcher {
-        private String param;
+        private String path;
+        private String yaml;
         private String host;
         private int port;
 
-        public String getParam() {
-            return param;
+        public String getPath() {
+            return path;
         }
 
-        public void setParam(String param) {
-            this.param = param;
+        public void setPath(String path) {
+            this.path = path;
         }
 
         public String getHost() {
@@ -41,6 +146,14 @@ public class Collection implements Serializable {
 
         public void setPort(int port) {
             this.port = port;
+        }
+
+        public String getYaml() {
+            return yaml;
+        }
+
+        public void setYaml(String yaml) {
+            this.yaml = yaml;
         }
     }
 
@@ -66,22 +179,6 @@ public class Collection implements Serializable {
 
     public void setBaseId(String baseId) {
         this.baseId = baseId;
-    }
-
-    public String getIndexA() {
-        return indexA;
-    }
-
-    public void setIndexA(String indexA) {
-        this.indexA = indexA;
-    }
-
-    public String getIndexB() {
-        return indexB;
-    }
-
-    public void setIndexB(String indexB) {
-        this.indexB = indexB;
     }
 
     public boolean isScheduled() {
@@ -114,5 +211,21 @@ public class Collection implements Serializable {
 
     public void setLauncher(Launcher launcher) {
         this.launcher = launcher;
+    }
+
+    public Index getIndexA() {
+        return indexA;
+    }
+
+    public void setIndexA(Index indexA) {
+        this.indexA = indexA;
+    }
+
+    public Index getIndexB() {
+        return indexB;
+    }
+
+    public void setIndexB(Index indexB) {
+        this.indexB = indexB;
     }
 }

@@ -60,24 +60,26 @@ public class ReferenceService {
     }
 
     public List<ReferenceTemp> findAll(UUID clusterId) throws IOException {
-        RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
-        List<ReferenceTemp> referenceTempList = new ArrayList<>();
-        SearchResponse response = indicesService.findAll(clusterId, referenceIndex);
-        SearchHit[] SearchHitArr = response.getHits().getHits();
-        int hitsSize = SearchHitArr.length;
-        for (int i = 0; i < hitsSize; i++) {
-            Map<String, Object> source = SearchHitArr[i].getSourceAsMap();
-            referenceTempList.add(convertMapToObject(SearchHitArr[i].getId(), source));
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            List<ReferenceTemp> referenceTempList = new ArrayList<>();
+            SearchResponse response = indicesService.findAll(clusterId, referenceIndex);
+            SearchHit[] SearchHitArr = response.getHits().getHits();
+            int hitsSize = SearchHitArr.length;
+            for (int i = 0; i < hitsSize; i++) {
+                Map<String, Object> source = SearchHitArr[i].getSourceAsMap();
+                referenceTempList.add(convertMapToObject(SearchHitArr[i].getId(), source));
+            }
+            return referenceTempList;
         }
-        elasticsearchFactory.close(client);
-        return referenceTempList;
+
     }
 
     public ReferenceTemp find(UUID clusterId, String id) throws IOException {
-        RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
-        GetResponse response = client.get(new GetRequest().index(referenceIndex).id(id), RequestOptions.DEFAULT);
-        elasticsearchFactory.close(client);
-        return convertMapToObject(id, response.getSourceAsMap());
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            GetResponse response = client.get(new GetRequest().index(referenceIndex).id(id), RequestOptions.DEFAULT);
+            elasticsearchFactory.close(client);
+            return convertMapToObject(id, response.getSourceAsMap());
+        }
     }
 
     private ReferenceTemp convertMapToObject(String id, Map<String, Object> source) {
@@ -99,22 +101,23 @@ public class ReferenceService {
     }
 
     public void add(UUID clusterId, ReferenceTemp entity) throws IOException {
-        RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
-        client.index(new IndexRequest()
-                        .index(referenceIndex)
-                        .source(build(entity))
-                , RequestOptions.DEFAULT);
-        elasticsearchFactory.close(client);
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            client.index(new IndexRequest()
+                            .index(referenceIndex)
+                            .source(build(entity))
+                    , RequestOptions.DEFAULT);
+        }
     }
 
     public void update(UUID clusterId, String id, ReferenceTemp entity) throws IOException {
-        RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
-        client.index(new IndexRequest()
-                        .index(referenceIndex)
-                        .id(id)
-                        .source(build(entity))
-                , RequestOptions.DEFAULT);
-        elasticsearchFactory.close(client);
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            client.index(new IndexRequest()
+                            .index(referenceIndex)
+                            .id(id)
+                            .source(build(entity))
+                    , RequestOptions.DEFAULT);
+            elasticsearchFactory.close(client);
+        }
     }
 
     private XContentBuilder build(ReferenceTemp entity) throws IOException {
@@ -155,10 +158,10 @@ public class ReferenceService {
     }
 
     public void delete(UUID clusterId, String id) throws IOException {
-        RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
-        client.delete(new DeleteRequest().index(referenceIndex).id(id)
-                , RequestOptions.DEFAULT);
-        elasticsearchFactory.close(client);
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            client.delete(new DeleteRequest().index(referenceIndex).id(id)
+                    , RequestOptions.DEFAULT);
+        }
     }
 
     public List<ReferenceResult> searchResponseAll(UUID clusterId, String keyword) throws IOException {
@@ -218,19 +221,19 @@ public class ReferenceService {
     }
 
     public void updateOrders(UUID clusterId, ReferenceOrdersRequest request) throws IOException {
-        RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
-        int size = request.getOrders().size();
-        for (int i = 0; i < size; i++) {
-            ReferenceOrdersRequest.Order order = request.getOrders().get(i);
-            client.update(new UpdateRequest()
-                    .index(referenceIndex)
-                    .id(order.getId())
-                    .doc(jsonBuilder()
-                            .startObject()
-                            .field("order", order.getOrder())
-                            .endObject()), RequestOptions.DEFAULT);
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            int size = request.getOrders().size();
+            for (int i = 0; i < size; i++) {
+                ReferenceOrdersRequest.Order order = request.getOrders().get(i);
+                client.update(new UpdateRequest()
+                        .index(referenceIndex)
+                        .id(order.getId())
+                        .doc(jsonBuilder()
+                                .startObject()
+                                .field("order", order.getOrder())
+                                .endObject()), RequestOptions.DEFAULT);
 
+            }
         }
-        elasticsearchFactory.close(client);
     }
 }

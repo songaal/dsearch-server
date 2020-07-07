@@ -30,7 +30,12 @@ public class ElasticsearchProxyService {
 
     public Response proxy(UUID clusterId, HttpServletRequest request, Map<String, String> queryStringMap, byte[] body) throws IOException {
 //        /elasticsearch  substring 14
-        Request req = new Request(request.getMethod(), request.getRequestURI().substring(14));
+        String uri = request.getRequestURI().substring(14);
+        if(queryStringMap.get("proxyUri") != null) {
+            uri = String.valueOf(queryStringMap.get("proxyUri"));
+            queryStringMap.remove("proxyUri");
+        }
+        Request req = new Request(request.getMethod(), uri);
         if (queryStringMap != null) {
             Iterator<String> keys = queryStringMap.keySet().iterator();
             while (keys.hasNext()) {
@@ -43,20 +48,9 @@ public class ElasticsearchProxyService {
             req.setEntity(new NStringEntity(new String(body), ContentType.APPLICATION_JSON));
         }
 
-        Response response;
-        RestHighLevelClient client = null;
-        try {
-            client = elasticsearchFactory.getClient(clusterId);
-            response = client.getLowLevelClient().performRequest(req);
-        } catch (Exception e) {
-            logger.error("", e);
-            throw e;
-        } finally {
-            if (client != null) {
-                client.close();
-            }
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)){
+            return client.getLowLevelClient().performRequest(req);
         }
-        return response;
     }
 
 

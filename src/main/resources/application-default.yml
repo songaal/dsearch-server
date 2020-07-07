@@ -10,7 +10,8 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
     show-sql: true
-    generate-ddl: true
+    hibernate:
+      ddl-auto: update
 logging:
   level:
     level:
@@ -36,6 +37,8 @@ fastcatx:
     index: .fastcatx_reference
   collection:
     index: .fastcatx_collection
+    index-suffix-a: -a
+    index-suffix-b: -b
   build:
     name: @project.name@
     version: @project.version@

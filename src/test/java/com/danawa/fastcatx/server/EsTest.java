@@ -5,6 +5,7 @@ import com.google.gson.Gson;
 import org.apache.http.HttpHost;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.client.*;
+import org.elasticsearch.common.xcontent.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -13,6 +14,22 @@ import java.util.Map;
 
 @SpringBootTest
 public class EsTest {
+
+    public void stringTest() {
+        try {
+            RestClientBuilder restClientBuilder = RestClient.builder(new HttpHost("127.0.0.1", 9200, "http"));
+            RestHighLevelClient client = new RestHighLevelClient(restClientBuilder);
+
+            Request request = new Request("GET", "/test-index/_nodes");
+            request.addParameter("format", "json");
+            request.addParameter("pretty", "json");
+            request.setJsonEntity("{}");
+            Response response = client.getLowLevelClient().performRequest(request);
+        } catch (IOException e) {
+
+        }
+    }
+
 
     @Test
     public void state() {

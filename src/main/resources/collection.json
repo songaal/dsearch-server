@@ -32,6 +32,9 @@
           "param": {
             "type": "keyword"
           },
+          "yaml": {
+            "type": "keyword"
+          },
           "host":  {
             "type": "keyword"
           },

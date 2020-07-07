@@ -2,23 +2,34 @@ package com.danawa.fastcatx.server.services;
 
 import com.danawa.fastcatx.server.config.ElasticsearchFactory;
 import com.danawa.fastcatx.server.entity.Collection;
-import com.danawa.fastcatx.server.entity.ReferenceTemp;
+import com.danawa.fastcatx.server.excpetions.DuplicateException;
+import com.google.gson.Gson;
+import org.apache.http.util.EntityUtils;
+import org.elasticsearch.action.get.GetRequest;
+import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.client.Request;
 import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.indices.IndexTemplatesExistRequest;
+import org.elasticsearch.client.indices.PutIndexTemplateRequest;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.index.query.MatchAllQueryBuilder;
+import org.elasticsearch.index.query.MatchQueryBuilder;
 import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.sort.SortOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
@@ -30,40 +41,110 @@ public class CollectionService {
     private final String collectionIndex;
     private final ElasticsearchFactory elasticsearchFactory;
     private final IndicesService indicesService;
+    private final String indexSuffixA;
+    private final String indexSuffixB;
 
     public CollectionService(@Value("${fastcatx.collection.index}") String collectionIndex,
+                             @Value("${fastcatx.collection.index-suffix-a}") String indexSuffixA,
+                             @Value("${fastcatx.collection.index-suffix-b}") String indexSuffixB,
                              ElasticsearchFactory elasticsearchFactory,
                              IndicesService indicesService) {
         this.collectionIndex = collectionIndex;
         this.elasticsearchFactory = elasticsearchFactory;
         this.indicesService = indicesService;
+        this.indexSuffixA = indexSuffixA.toLowerCase();
+        this.indexSuffixB = indexSuffixB.toLowerCase();
+
+        if (indexSuffixA.equalsIgnoreCase(indexSuffixB)) {
+            throw new IllegalArgumentException("Error [index-suffix-a, index-suffix-b] duplicate");
+        }
     }
 
     public void fetchSystemIndex(UUID clusterId) throws IOException {
         indicesService.createSystemIndex(clusterId, collectionIndex, COLLECTION_INDEX_JSON);
     }
 
-    public void add(UUID clusterId, Collection collection) throws IOException {
-        RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
-        client.index(new IndexRequest()
-                        .index(collectionIndex)
-                        .source(build(collection))
-                , RequestOptions.DEFAULT);
-        elasticsearchFactory.close(client);
+    public void add(UUID clusterId, Collection collection) throws IOException, DuplicateException {
+        try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            SearchRequest searchRequest = new SearchRequest().indices(collectionIndex);
+            searchRequest.source(new SearchSourceBuilder().query(new MatchQueryBuilder("baseId", collection.getBaseId())));
+            SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
+            if (searchResponse.getHits().getTotalHits().value > 0) {
+                throw new DuplicateException("duplicate baseId");
+            }
+
+            String indexNameA = collection.getBaseId() + indexSuffixA;
+            String indexNameB = collection.getBaseId() + indexSuffixB;
+
+            Collection.Index indexA = new Collection.Index();
+            Collection.Index indexB = new Collection.Index();
+            indexA.setIndex(indexNameA);
+            indexB.setIndex(indexNameB);
+            collection.setIndexA(indexA);
+            collection.setIndexB(indexB);
+            client.index(new IndexRequest()
+                            .index(collectionIndex)
+                            .source(build(collection))
+                    , RequestOptions.DEFAULT);
+
+            client.indices().putTemplate(new PutIndexTemplateRequest(indexNameA).patterns(Arrays.asList(indexNameA)), RequestOptions.DEFAULT);
+            client.indices().putTemplate(new PutIndexTemplateRequest(indexNameB).patterns(Arrays.asList(indexNameB)), RequestOptions.DEFAULT);
+        }
     }
 
     public List<Collection> findAll(UUID clusterId) throws IOException {
-        RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
-        List<Collection> collectionList = new ArrayList<>();
-        SearchResponse response = indicesService.findAll(clusterId, collectionIndex);
-        SearchHit[] SearchHitArr = response.getHits().getHits();
-        int hitsSize = SearchHitArr.length;
-        for (int i = 0; i < hitsSize; i++) {
-            Map<String, Object> source = SearchHitArr[i].getSourceAsMap();
-            collectionList.add(convertMapToObject(SearchHitArr[i].getId(), source));
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            Request indicesRequest = new Request("GET", "/_cat/indices");
+            indicesRequest.addParameter("format", "json");
+            Response indicesResponse = client.getLowLevelClient().performRequest(indicesRequest);
+            List indexEntityList = new Gson().fromJson(EntityUtils.toString(indicesResponse.getEntity()), List.class);
+            Map<String, Collection.Index> entryMap = new HashMap<>();
+            for (int i = 0; i < indexEntityList.size(); i++) {
+                Collection.Index tmpIndex = new Collection.Index();
+                tmpIndex.setIndex(String.valueOf(((Map) indexEntityList.get(i)).get("index")));
+                tmpIndex.setDocsCount(String.valueOf(((Map) indexEntityList.get(i)).get("docs.count")));
+                tmpIndex.setDocsDeleted(String.valueOf(((Map) indexEntityList.get(i)).get("docs.deleted")));
+                tmpIndex.setHealth(String.valueOf(((Map) indexEntityList.get(i)).get("health")));
+                tmpIndex.setPri(String.valueOf(((Map) indexEntityList.get(i)).get("pri")));
+                tmpIndex.setRep(String.valueOf(((Map) indexEntityList.get(i)).get("rep")));
+                tmpIndex.setUuid(String.valueOf(((Map) indexEntityList.get(i)).get("uuid")));
+                tmpIndex.setStoreSize(String.valueOf(((Map) indexEntityList.get(i)).get("store.size")));
+                tmpIndex.setPriStoreSize(String.valueOf(((Map) indexEntityList.get(i)).get("pri.store.size")));
+                entryMap.put(tmpIndex.getIndex(), tmpIndex);
+            }
+
+            Request aliasRequest = new Request("GET", "/_alias");
+            aliasRequest.addParameter("format", "json");
+            Response aliasResponse = client.getLowLevelClient().performRequest(aliasRequest);
+            Map<String, Object> aliasEntity = new Gson().fromJson(EntityUtils.toString(aliasResponse.getEntity()), Map.class);
+
+            List<Collection> collectionList = new ArrayList<>();
+            SearchResponse response = client.search(new SearchRequest()
+                            .indices(collectionIndex)
+                            .source(new SearchSourceBuilder()
+                                    .query(new MatchAllQueryBuilder()).sort("_id", SortOrder.DESC)
+                                    .from(0)
+                                    .size(10000)),
+                    RequestOptions.DEFAULT);
+
+            SearchHit[] SearchHitArr = response.getHits().getHits();
+            int hitsSize = SearchHitArr.length;
+            for (int i = 0; i < hitsSize; i++) {
+                Map<String, Object> source = SearchHitArr[i].getSourceAsMap();
+                Collection collection = convertMapToObject(SearchHitArr[i].getId(), source);
+                Collection.Index indexA = entryMap.get(collection.getIndexA().getIndex());
+                Collection.Index indexB = entryMap.get(collection.getIndexB().getIndex());
+                if (indexA != null) {
+                    indexA.setAliases((Map) ((Map) aliasEntity.get(indexA.getIndex())).get("aliases"));
+                    collection.setIndexA(indexA);
+                } else if (indexB != null) {
+                    indexB.setAliases((Map) ((Map) aliasEntity.get(indexB.getIndex())).get("aliases"));
+                    collection.setIndexB(indexB);
+                }
+                collectionList.add(collection);
+            }
+            return collectionList;
         }
-        elasticsearchFactory.close(client);
-        return collectionList;
     }
 
     private Collection convertMapToObject(String id, Map<String, Object> source) {
@@ -75,14 +156,22 @@ public class CollectionService {
         collection.setName(String.valueOf(source.get("name")));
         collection.setBaseId(String.valueOf(source.get("baseId")));
         collection.setCron(String.valueOf(source.get("cron")));
-        collection.setIndexA(String.valueOf(source.get("indexA")));
-        collection.setIndexB(String.valueOf(source.get("indexB")));
+
+        Collection.Index indexA = new Collection.Index();
+        indexA.setIndex(String.valueOf(source.get("indexA")));
+        collection.setIndexA(indexA);
+
+        Collection.Index indexB = new Collection.Index();
+        indexB.setIndex(String.valueOf(source.get("indexB")));
+        collection.setIndexB(indexB);
+
         collection.setJdbcId(String.valueOf(source.get("jdbcId")));
         collection.setScheduled(Boolean.parseBoolean(String.valueOf(source.get("scheduled"))));
         Map<String, Object> launcherMap = ((Map<String, Object>) source.get("launcher"));
         Collection.Launcher launcher = new Collection.Launcher();
         if (launcherMap != null) {
-            launcher.setParam(String.valueOf(launcherMap.get("param")));
+            launcher.setPath(String.valueOf(launcherMap.get("path")));
+            launcher.setYaml(String.valueOf(launcherMap.get("yaml")));
             launcher.setHost(String.valueOf(launcherMap.get("host")));
             launcher.setPort(Integer.parseInt(String.valueOf(launcherMap.get("port"))));
         }
@@ -93,17 +182,18 @@ public class CollectionService {
     private XContentBuilder build(Collection collection) throws IOException {
         XContentBuilder builder = jsonBuilder()
                 .startObject()
-                .field("name", collection.getName() == null ? "" : collection.getName())
-                .field("baseId", collection.getBaseId() == null ? "" : collection.getBaseId())
-                .field("indexA", collection.getIndexA() == null ? "" : collection.getIndexA())
-                .field("indexB", collection.getIndexB() == null ? "" : collection.getIndexB())
+                .field("name", collection.getName())
+                .field("baseId", collection.getBaseId())
+                .field("indexA", collection.getIndexA().getIndex())
+                .field("indexB", collection.getIndexB().getIndex())
                 .field("scheduled", collection.isScheduled())
                 .field("jdbcId", collection.getJdbcId() == null ? "" : collection.getJdbcId())
                 .field("cron", collection.getCron() == null ? "" : collection.getCron());
         if (collection.getLauncher() != null) {
             Collection.Launcher launcher = collection.getLauncher();
             builder.startObject("launcher")
-                    .field("param", launcher.getParam() == null ? "" : launcher.getParam())
+                    .field("path", launcher.getPath() == null ? "" : launcher.getPath())
+                    .field("yaml", launcher.getYaml() == null ? "" : launcher.getYaml())
                     .field("host", launcher.getHost() == null ? "" : launcher.getHost())
                     .field("port", launcher.getPort() == 0 ? "" : launcher.getPort())
                     .endObject();
@@ -111,137 +201,10 @@ public class CollectionService {
         return builder.endObject();
     }
 
-
-//    public ReferenceTemp find(UUID clusterId, String id) throws IOException {
-//        RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
-//        GetResponse response = client.get(new GetRequest().index(referenceIndex).id(id), RequestOptions.DEFAULT);
-//        elasticsearchFactory.close(client);
-//        return convertMapToObject(id, response.getSourceAsMap());
-//    }
-
-//    public void add(UUID clusterId, ReferenceTemp entity) throws IOException {
-//        RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
-//        client.index(new IndexRequest()
-//                        .index(referenceIndex)
-//                        .source(build(entity))
-//                , RequestOptions.DEFAULT);
-//        elasticsearchFactory.close(client);
-//    }
-//
-//    public void update(UUID clusterId, String id, ReferenceTemp entity) throws IOException {
-//        RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
-//        client.index(new IndexRequest()
-//                        .index(referenceIndex)
-//                        .id(id)
-//                        .source(build(entity))
-//                , RequestOptions.DEFAULT);
-//        elasticsearchFactory.close(client);
-//    }
-//
-//    private XContentBuilder build(ReferenceTemp entity) throws IOException {
-//        XContentBuilder builder = jsonBuilder()
-//                .startObject()
-//                .field("name", entity.getName() == null ? "" : entity.getName())
-//                .field("indices", entity.getIndices() == null ? "" : entity.getIndices())
-//                .field("query", entity.getQuery() == null ? "" : entity.getQuery())
-//                .field("title", entity.getTitle() == null ? "" : entity.getTitle())
-//                .field("clickUrl", entity.getClickUrl() == null ? "" : entity.getClickUrl())
-//                .field("thumbnails", entity.getThumbnails() == null ? "" : entity.getThumbnails())
-//                .field("order", entity.getOrder() == null ? 999 : entity.getOrder());
-//
-//        builder.startArray("fields");
-//        if (entity.getFields() != null) {
-//            for (int i = 0; i < entity.getFields().size(); i++) {
-//                ReferenceTemp.Field field = entity.getFields().get(i);
-//                builder.startObject()
-//                        .field("label", field.getLabel())
-//                        .field("value", field.getValue())
-//                        .endObject();
-//            }
-//        }
-//
-//        builder.endArray();
-//
-//        builder.startArray("aggs");
-//        if (entity.getAggs() != null) {
-//            for (int i = 0; i < entity.getAggs().size(); i++) {
-//                ReferenceTemp.Field aggs = entity.getAggs().get(i);
-//                builder.startObject()
-//                        .field("label", aggs.getLabel())
-//                        .field("value", aggs.getValue())
-//                        .endObject();
-//            }
-//        }
-//        return builder.endArray().endObject();
-//    }
-//
-//    public void delete(UUID clusterId, String id) throws IOException {
-//        RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
-//        client.delete(new DeleteRequest().index(referenceIndex).id(id)
-//                , RequestOptions.DEFAULT);
-//        elasticsearchFactory.close(client);
-//    }
-//
-//    public List<ReferenceResult> searchResponseAll(UUID clusterId, String keyword) throws IOException {
-//        List<ReferenceResult> result = new ArrayList<>();
-//
-//        List<ReferenceTemp> tempList = findAll(clusterId);
-//        int size = tempList.size();
-//        for (int i = 0; i < size; i++) {
-//            ReferenceTemp temp = tempList.get(i);
-//            String query = temp.getQuery()
-//                    .replace("\"${keyword}\"", "\"" + keyword + "\"")
-//                    .replace("${keyword}", "\"" + keyword + "\"");
-//            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-//            SearchModule searchModule = new SearchModule(Settings.EMPTY, false, Collections.emptyList());
-//
-//            if (!jsonUtils.validate(query)) {
-//                continue;
-//            }
-//
-//            try (XContentParser parser = XContentFactory
-//                    .xContent(XContentType.JSON)
-//                    .createParser(new NamedXContentRegistry(searchModule.getNamedXContents()), DeprecationHandler.THROW_UNSUPPORTED_OPERATION, query)) {
-//                searchSourceBuilder.parseXContent(parser);
-//                DocumentPagination documentPagination = indicesService.findAllDocumentPagination(clusterId, temp.getIndices(), 0, 30, searchSourceBuilder);
-//                result.add(new ReferenceResult(temp, documentPagination, query));
-//            } catch (Exception e) {
-//                result.add(new ReferenceResult(temp, new DocumentPagination(), query));
-//            }
-//        }
-//        return result;
-//    }
-//
-//    public ReferenceResult searchResponse(UUID clusterId, String id, String keyword, long pageNum, long rowSize) throws IOException {
-//        ReferenceResult result = new ReferenceResult();
-//        ReferenceTemp temp = find(clusterId, id);
-//        String query = temp.getQuery()
-//                .replace("\"${keyword}\"", "\"" + keyword + "\"")
-//                .replace("${keyword}", "\"" + keyword + "\"");
-//
-//        if (!jsonUtils.validate(query)) {
-//            return result;
-//        }
-//
-//        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-//        SearchModule searchModule = new SearchModule(Settings.EMPTY, false, Collections.emptyList());
-//        try (XContentParser parser = XContentFactory
-//                .xContent(XContentType.JSON)
-//                .createParser(new NamedXContentRegistry(searchModule.getNamedXContents()), DeprecationHandler.THROW_UNSUPPORTED_OPERATION, query)) {
-//            searchSourceBuilder.parseXContent(parser);
-//            DocumentPagination documentPagination = indicesService.findAllDocumentPagination(clusterId, temp.getIndices(), pageNum, rowSize, searchSourceBuilder);
-//
-//            result.setQuery(query);
-//            result.setTemplate(temp);
-//            result.setDocuments(documentPagination);
-//        }
-//        return result;
-//    }
-
-
-
-
-
-
-
+    public Collection findById(UUID clusterId, String id) throws IOException {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);) {
+            GetResponse getResponse = client.get(new GetRequest().index(collectionIndex).id(id), RequestOptions.DEFAULT);
+            return convertMapToObject(getResponse.getId(), getResponse.getSourceAsMap());
+        }
+    }
 }
