@@ -77,7 +77,6 @@ public class ReferenceService {
     public ReferenceTemp find(UUID clusterId, String id) throws IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             GetResponse response = client.get(new GetRequest().index(referenceIndex).id(id), RequestOptions.DEFAULT);
-            elasticsearchFactory.close(client);
             return convertMapToObject(id, response.getSourceAsMap());
         }
     }
