@@ -58,9 +58,9 @@ public class CollectionController {
         return new ResponseEntity<>(collectionService.findById(clusterId, id), HttpStatus.OK);
     }
 
-    @DeleteMapping("{id}")
-    public ResponseEntity<?> deleteById() {
-//        collection['indexA']['uuid']
-    }
+//    @DeleteMapping("{id}")
+//    public ResponseEntity<?> deleteById() {
+////        collection['indexA']['uuid']
+//    }
 
 }
