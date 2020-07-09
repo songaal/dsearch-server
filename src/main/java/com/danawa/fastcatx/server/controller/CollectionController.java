@@ -58,11 +58,18 @@ public class CollectionController {
         return new ResponseEntity<>(collectionService.findById(clusterId, id), HttpStatus.OK);
     }
 
+<<<<<<< HEAD
     @DeleteMapping("{id}")
     public ResponseEntity<?> deleteById(@RequestHeader(value = "cluster-id") UUID clusterId,
                                         @PathVariable String id) throws IOException {
         collectionService.deleteById(clusterId, id);
         return new ResponseEntity<>(HttpStatus.OK);
     }
+=======
+//    @DeleteMapping("{id}")
+//    public ResponseEntity<?> deleteById() {
+////        collection['indexA']['uuid']
+//    }
+>>>>>>> 91ca71379a32876ee9e2d6a816e1c333bf313849
 
 }
