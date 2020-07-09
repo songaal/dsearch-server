@@ -5,6 +5,8 @@ import com.danawa.fastcatx.server.entity.Collection;
 import com.danawa.fastcatx.server.excpetions.DuplicateException;
 import com.google.gson.Gson;
 import org.apache.http.util.EntityUtils;
+import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
+import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
@@ -202,9 +204,76 @@ public class CollectionService {
     }
 
     public Collection findById(UUID clusterId, String id) throws IOException {
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);) {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             GetResponse getResponse = client.get(new GetRequest().index(collectionIndex).id(id), RequestOptions.DEFAULT);
-            return convertMapToObject(getResponse.getId(), getResponse.getSourceAsMap());
+            Collection collection = convertMapToObject(getResponse.getId(), getResponse.getSourceAsMap());
+            collection.setIndexA(getIndex(clusterId, collection.getIndexA().getIndex()));
+            collection.setIndexB(getIndex(clusterId, collection.getIndexB().getIndex()));
+
+            if (collection.getIndexA().getUuid() != null) {
+                collection.getIndexA().setAliases(getAlias(clusterId, collection.getIndexA().getIndex()));
+            }
+            if (collection.getIndexB().getUuid() != null) {
+                collection.getIndexB().setAliases(getAlias(clusterId, collection.getIndexB().getIndex()));
+            }
+
+            return collection;
         }
     }
+    private Map getAlias(UUID clusterId, String index) {
+        Map result = null;
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            Request aliasRequest = new Request("GET", "/" + index +"/_alias");
+            aliasRequest.addParameter("format", "json");
+            Response aliasResponse = client.getLowLevelClient().performRequest(aliasRequest);
+            Map<String, Object> aliasEntity = new Gson().fromJson(EntityUtils.toString(aliasResponse.getEntity()), Map.class);
+            result = (Map) ((Map)aliasEntity.get(index)).get("aliases");
+        } catch (IOException e) {
+            logger.debug("NotFoundAlias: {}", index);
+        }
+        return result;
+    }
+
+    private Collection.Index getIndex(UUID clusterId, String index) {
+        Collection.Index tmpIndex = new Collection.Index();
+        tmpIndex.setIndex(index);
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            Request indicesRequest = new Request("GET", "/_cat/indices/" + index);
+            indicesRequest.addParameter("format", "json");
+            Response indicesResponse = client.getLowLevelClient().performRequest(indicesRequest);
+            List indexEntityList = new Gson().fromJson(EntityUtils.toString(indicesResponse.getEntity()), List.class);
+            if (indexEntityList.size() == 1) {
+                tmpIndex.setDocsCount(String.valueOf(((Map) indexEntityList.get(0)).get("docs.count")));
+                tmpIndex.setDocsDeleted(String.valueOf(((Map) indexEntityList.get(0)).get("docs.deleted")));
+                tmpIndex.setHealth(String.valueOf(((Map) indexEntityList.get(0)).get("health")));
+                tmpIndex.setPri(String.valueOf(((Map) indexEntityList.get(0)).get("pri")));
+                tmpIndex.setRep(String.valueOf(((Map) indexEntityList.get(0)).get("rep")));
+                tmpIndex.setUuid(String.valueOf(((Map) indexEntityList.get(0)).get("uuid")));
+                tmpIndex.setStoreSize(String.valueOf(((Map) indexEntityList.get(0)).get("store.size")));
+                tmpIndex.setPriStoreSize(String.valueOf(((Map) indexEntityList.get(0)).get("pri.store.size")));
+            }
+        } catch (IOException e) {
+            logger.debug("NotFoundIndex: {}", index);
+        }
+        return tmpIndex;
+    }
+
+    public void deleteById(UUID clusterId, String id) throws IOException {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            Collection collection = findById(clusterId, id);
+            Collection.Index indexA = collection.getIndexA();
+            Collection.Index indexB = collection.getIndexB();
+            if (indexA.getUuid() != null) {
+                client.delete(new DeleteRequest().index(indexA.getIndex()), RequestOptions.DEFAULT);
+            }
+            if (indexB.getUuid() != null) {
+                client.delete(new DeleteRequest().index(indexB.getIndex()), RequestOptions.DEFAULT);
+            }
+            client.indices().deleteTemplate(new DeleteIndexTemplateRequest(indexA.getIndex()), RequestOptions.DEFAULT);
+            client.indices().deleteTemplate(new DeleteIndexTemplateRequest(indexB.getIndex()), RequestOptions.DEFAULT);
+            client.delete(new DeleteRequest().index(collectionIndex).id(id), RequestOptions.DEFAULT);
+        }
+    }
+
+
 }
