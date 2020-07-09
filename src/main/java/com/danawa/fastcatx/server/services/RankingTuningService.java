@@ -3,10 +3,6 @@ package com.danawa.fastcatx.server.services;
 import com.danawa.fastcatx.server.config.ElasticsearchFactory;
 import com.danawa.fastcatx.server.entity.RankingTuningRequest;
 
-import org.apache.http.HttpHost;
-import org.apache.http.entity.ContentType;
-import org.apache.http.nio.entity.NStringEntity;
-import org.apache.http.util.EntityUtils;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.*;
@@ -16,35 +12,17 @@ import org.elasticsearch.client.indices.GetMappingsRequest;
 import org.elasticsearch.client.indices.GetMappingsResponse;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 
-import org.elasticsearch.action.explain.ExplainRequest;
-import org.elasticsearch.action.explain.ExplainResponse;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.*;
-import org.elasticsearch.common.xcontent.json.JsonXContentParser;
-import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.index.query.QueryStringQueryBuilder;
-import org.elasticsearch.script.ScriptType;
-import org.elasticsearch.script.mustache.SearchTemplateRequest;
-import org.elasticsearch.script.mustache.SearchTemplateRequestBuilder;
-import org.elasticsearch.script.mustache.SearchTemplateResponse;
-import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
-import org.elasticsearch.search.query.QuerySearchRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import javax.naming.directory.SearchResult;
-import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.*;
 
-import static org.elasticsearch.action.admin.indices.stats.CommonStatsFlags.Flag.Search;
-import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
 @Service
 public class RankingTuningService {

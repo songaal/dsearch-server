@@ -14,20 +14,20 @@ import org.springframework.boot.test.context.SpringBootTest;
 public class JsonTest {
     private static Logger logger = LoggerFactory.getLogger(JsonTest.class);
 
-    @Test
-    public void jsonvalidTest() {
-        String json = "";
-
-
-        try {
-            JSONObject jsonSchema = new JSONObject(json);
-            logger.debug("{}", jsonSchema);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-//        JSONObject jsonSubject = new JSONObject(new JSONTokener(json));
-//        Schema schema = SchemaLoader.load(jsonSchema);
-//        schema.validate(jsonSubject);
-
-    }
+//    @Test
+//    public void jsonvalidTest() {
+//        String json = "";
+//
+//
+//        try {
+//            JSONObject jsonSchema = new JSONObject(json);
+//            logger.debug("{}", jsonSchema);
+//        } catch (JSONException e) {
+//            e.printStackTrace();
+//        }
+////        JSONObject jsonSubject = new JSONObject(new JSONTokener(json));
+////        Schema schema = SchemaLoader.load(jsonSchema);
+////        schema.validate(jsonSubject);
+//
+//    }
 }
