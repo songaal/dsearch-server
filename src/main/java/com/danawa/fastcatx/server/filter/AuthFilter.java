@@ -13,11 +13,18 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 @Component
 public class AuthFilter extends OncePerRequestFilter {
     private static Logger logger = LoggerFactory.getLogger(AuthFilter.class);
 
+    private static final List<String> bypassUri = Arrays.asList(
+            "/",
+            "/auth", "/auth/sign-in", "/auth/sign-out"
+    );
 
     @Override
     protected void doFilterInternal(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, FilterChain filterChain) throws ServletException, IOException {
@@ -26,10 +33,10 @@ public class AuthFilter extends OncePerRequestFilter {
         AuthUser authUser = (AuthUser) session.getAttribute(AuthController.SESSION_KEY);
         logger.debug("sessionId: {}, isAuth: {}, URI: {}", sessionId, authUser != null, httpServletRequest.getRequestURI());
 
-        if (authUser == null) {
+        String uri = httpServletRequest.getRequestURI();
+        if (!bypassUri.contains(uri) && authUser == null) {
             httpServletResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         }
-
         filterChain.doFilter(httpServletRequest, httpServletResponse);
     }
 
