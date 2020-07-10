@@ -25,6 +25,11 @@ public class AuthFilter extends OncePerRequestFilter {
         String sessionId = session.getId();
         AuthUser authUser = (AuthUser) session.getAttribute(AuthController.SESSION_KEY);
         logger.debug("sessionId: {}, isAuth: {}, URI: {}", sessionId, authUser != null, httpServletRequest.getRequestURI());
+
+        if (authUser == null) {
+            httpServletResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        }
+
         filterChain.doFilter(httpServletRequest, httpServletResponse);
     }
 
