@@ -30,6 +30,9 @@
             "type": "keyword"
           }
         }
+      },
+      "timestamp": {
+        "type": "date"
       }
     }
   }

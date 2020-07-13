@@ -31,11 +31,7 @@ public class JdbcService {
 //            oracle.jdbc.driver.OracleDriver
 //            jdbc:oracle:thin:@{host}:{port}/{database}
 
-            System.out.println(jdbcRequest.getDriver());
-            System.out.println(jdbcRequest.getUser());
-            System.out.println(jdbcRequest.getPassword());
             String url = jdbcRequest.getUrl() + jdbcRequest.getAddress() + ":" + jdbcRequest.getPort() + "/" + jdbcRequest.getDB_name();
-            System.out.println(url);
             Class.forName(jdbcRequest.getDriver());
             Connection connection = null;
             connection = DriverManager.getConnection(url, jdbcRequest.getUser(), jdbcRequest.getPassword());

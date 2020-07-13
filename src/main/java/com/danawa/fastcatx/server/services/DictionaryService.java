@@ -5,6 +5,7 @@ import com.danawa.fastcatx.server.entity.DictionaryDocumentRequest;
 import com.danawa.fastcatx.server.entity.DictionarySetting;
 import com.danawa.fastcatx.server.entity.DocumentPagination;
 import com.danawa.fastcatx.server.excpetions.ServiceException;
+import org.apache.http.util.EntityUtils;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.get.GetRequest;
@@ -16,28 +17,27 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchScrollRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.client.indices.CreateIndexRequest;
-import org.elasticsearch.client.indices.GetIndexRequest;
+import org.elasticsearch.client.*;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.common.xcontent.*;
 import org.elasticsearch.index.query.*;
 import org.elasticsearch.search.Scroll;
 import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StreamUtils;
+import org.springframework.web.client.RestTemplate;
 
-import javax.annotation.PostConstruct;
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -269,4 +269,33 @@ public class DictionaryService {
         return sb;
     }
 
+    public String getDictionaryInfo(UUID clusterId) throws IOException{
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            RestClient restClient = client.getLowLevelClient();
+            Request request = new Request("GET", "/_analysis-product-name/info-dict");
+            Response response = restClient.performRequest(request);
+            String responseBody = EntityUtils.toString(response.getEntity());
+
+            return responseBody;
+        }
+    }
+
+    public SearchResponse getDictionaryTimes(UUID clusterId) throws IOException {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            SearchRequest searchRequest = new SearchRequest();
+            searchRequest.indices(".fastcatx_dict_setting");
+
+            String query = "{\n" +
+                    "        \"size\": 10000\n" +
+                    "      }";
+            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+            SearchModule searchModule = new SearchModule(Settings.EMPTY, false, Collections.emptyList());
+            try (XContentParser parser = XContentFactory.xContent(XContentType.JSON).createParser(new NamedXContentRegistry(searchModule.getNamedXContents()), null, query)) {
+                searchSourceBuilder.parseXContent(parser);
+                searchRequest.source(searchSourceBuilder);
+            }
+            SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
+            return searchResponse;
+        }
+    }
 }
