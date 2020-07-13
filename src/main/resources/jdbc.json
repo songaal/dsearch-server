@@ -1,0 +1,44 @@
+{
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0
+  },
+  "mappings": {
+    "properties": {
+      "ID" : {
+        "type" : "text"
+      },
+      "NAME" : {
+        "type" : "text"
+      },
+      "PROVIDER" : {
+        "type" : "text"
+      },
+      "DRIVER" : {
+        "type" : "text"
+      },
+      "ADDRESS" : {
+        "type" : "text"
+      },
+      "PORT" : {
+        "type" : "text"
+      },
+      "DB_NAME" : {
+        "type" : "text"
+      },
+      "USER" : {
+        "type" : "text"
+      },
+      "PASSWORD" : {
+        "type" : "text"
+      },
+      "PARAMS" : {
+        "type" : "text"
+      },
+      "URL" : {
+        "type" : "text"
+      }
+    }
+  }
+
+}
