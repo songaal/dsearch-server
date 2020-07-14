@@ -27,20 +27,23 @@ public class JdbcTest {
     @Test
     public void connection() {
         try{
-//            /* MySql */
-//            JdbcRequest jdbcRequest = new JdbcRequest();
-//            jdbcRequest.setUrl("jdbc:mysql://");
-//            jdbcRequest.setAddress("127.0.0.1");
-//            jdbcRequest.setPort("3306");
-//            jdbcRequest.setDB_name("test");
-//            jdbcRequest.setUser("root");
-//            jdbcRequest.setPassword("qwe123");
-//            jdbcRequest.setDriver("com.mysql.jdbc.Driver");
-//            String url1 = jdbcRequest.getUrl() + jdbcRequest.getAddress() + ":" + jdbcRequest.getPort() + "/" + jdbcRequest.getDB_name();
-//            Class.forName(jdbcRequest.getDriver());
-//            Connection connection = null;
-//            connection = DriverManager.getConnection(url1, jdbcRequest.getUser(), jdbcRequest.getPassword());
-//            connection.close();
+            /* MySql */
+            JdbcRequest jdbcRequest = new JdbcRequest();
+            jdbcRequest.setUrl("jdbc:mysql://");
+            jdbcRequest.setAddress("127.0.0.1");
+            jdbcRequest.setPort("3306");
+            jdbcRequest.setDB_name("test");
+            jdbcRequest.setUser("root");
+            jdbcRequest.setPassword("qwe123");
+            /* Deprecated */
+            jdbcRequest.setDriver("com.mysql.jdbc.Driver");
+            /* Newer */
+            jdbcRequest.setDriver("com.mysql.cj.jdbc.Driver");
+            String url1 = jdbcRequest.getUrl() + jdbcRequest.getAddress() + ":" + jdbcRequest.getPort() + "/" + jdbcRequest.getDB_name();
+            Class.forName(jdbcRequest.getDriver());
+            Connection connection = null;
+            connection = DriverManager.getConnection(url1, jdbcRequest.getUser(), jdbcRequest.getPassword());
+            connection.close();
 
 
             /* AltiBase */
@@ -59,7 +62,7 @@ public class JdbcTest {
             connection2.close();
 
 
-//            /* Oracle */
+            /* Oracle */
 //            JdbcRequest jdbcRequest3 = new JdbcRequest();
 //            jdbcRequest3.setUrl("jdbc:mysql://");
 //            jdbcRequest3.setAddress("127.0.0.1");

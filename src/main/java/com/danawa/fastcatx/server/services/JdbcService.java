@@ -24,7 +24,7 @@ public class JdbcService {
     private final ElasticsearchFactory elasticsearchFactory;
     private IndicesService indicesService;
 
-    public JdbcService(@Value("$(fastcatx.jdbc.setting") String jdbcIndex, IndicesService indicesService, ElasticsearchFactory elasticsearchFactory) {
+    public JdbcService(@Value("$(fastcatx.jdbc.setting)") String jdbcIndex, IndicesService indicesService, ElasticsearchFactory elasticsearchFactory) {
         this.jdbcIndex = jdbcIndex;
         this.indicesService = indicesService;
         this.elasticsearchFactory = elasticsearchFactory;
