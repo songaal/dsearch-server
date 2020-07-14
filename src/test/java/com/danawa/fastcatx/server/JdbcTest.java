@@ -46,7 +46,7 @@ public class JdbcTest {
             /* AltiBase */
             JdbcRequest jdbcRequest2 = new JdbcRequest();
             jdbcRequest2.setUrl("jdbc:Altibase://");
-            jdbcRequest2.setAddress("alti2-dev.danawa.com");
+            jdbcRequest2.setAddress("112.175.252.198");
             jdbcRequest2.setPort("20200");
             jdbcRequest2.setDB_name("DNWALTI");
             jdbcRequest2.setUser("danawa"); // ?
@@ -78,6 +78,7 @@ public class JdbcTest {
             logger.error("", sqlException);
             System.out.println(sqlException);
         }catch (ClassNotFoundException classNotFoundException){
+            logger.error("", classNotFoundException);
             System.out.println(classNotFoundException);
         } catch (Exception e){
             System.out.println(e);

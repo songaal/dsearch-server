@@ -129,8 +129,8 @@
             <groupId>Altibase</groupId>
             <artifactId>Altibase</artifactId>
             <version>1.0.0</version>
-<!--            <scope>system</scope>-->
-<!--            <systemPath>${project.lib.path}/Altibase.jar</systemPath>-->
+            <scope>system</scope>
+            <systemPath>${project.lib.path}/Altibase.jar</systemPath>
         </dependency>
     </dependencies>
 
