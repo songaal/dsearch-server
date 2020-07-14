@@ -23,6 +23,7 @@ public class ClusterController {
     private final ReferenceService referenceService;
     private final CollectionService collectionService;
     private final JdbcService jdbcService;
+    private final IndicesService indicesService;
 
     public ClusterController(ClusterService clusterService, DictionaryService dictionaryService, ReferenceService referenceService, CollectionService collectionService, IndicesService indicesService, JdbcService jdbcService) {
         this.clusterService = clusterService;
