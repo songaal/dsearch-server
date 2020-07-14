@@ -22,14 +22,15 @@ public class ClusterController {
     private final DictionaryService dictionaryService;
     private final ReferenceService referenceService;
     private final CollectionService collectionService;
-    private final IndicesService indicesService;
+    private final JdbcService jdbcService;
 
-    public ClusterController(ClusterService clusterService, DictionaryService dictionaryService, ReferenceService referenceService, CollectionService collectionService, IndicesService indicesService) {
+    public ClusterController(ClusterService clusterService, DictionaryService dictionaryService, ReferenceService referenceService, CollectionService collectionService, IndicesService indicesService, JdbcService jdbcService) {
         this.clusterService = clusterService;
         this.dictionaryService = dictionaryService;
         this.referenceService = referenceService;
         this.collectionService = collectionService;
         this.indicesService = indicesService;
+        this.jdbcService = jdbcService;
     }
 
     @GetMapping
@@ -73,6 +74,7 @@ public class ClusterController {
         referenceService.fetchSystemIndex(registerCluster.getId());
         collectionService.fetchSystemIndex(registerCluster.getId());
         indicesService.fetchSystemIndex(registerCluster.getId());
+        jdbcService.fetchSystemIndex(registerCluster.getId()); /* JDBC 인덱스 추가 */
         return new ResponseEntity<>(registerCluster, HttpStatus.OK);
     }
 

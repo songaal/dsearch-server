@@ -37,6 +37,8 @@ fastcatx:
     index: .fastcatx_collection
     index-suffix-a: -a
     index-suffix-b: -b
+  jdbc:
+    setting: .fastcatx_jdbc
   build:
     name: @project.name@
     version: @project.version@

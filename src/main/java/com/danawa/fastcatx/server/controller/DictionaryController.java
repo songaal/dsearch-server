@@ -1,9 +1,13 @@
 package com.danawa.fastcatx.server.controller;
 
 import com.danawa.fastcatx.server.entity.DictionaryDocumentRequest;
+import com.danawa.fastcatx.server.entity.DictionarySetting;
 import com.danawa.fastcatx.server.entity.DocumentPagination;
 import com.danawa.fastcatx.server.excpetions.ServiceException;
 import com.danawa.fastcatx.server.services.DictionaryService;
+import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.client.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -12,6 +16,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -20,7 +27,6 @@ public class DictionaryController {
     private static Logger logger = LoggerFactory.getLogger(DictionaryController.class);
 
     private DictionaryService dictionaryService;
-
     public DictionaryController(DictionaryService dictionaryService) {
         this.dictionaryService = dictionaryService;
     }
@@ -75,5 +81,25 @@ public class DictionaryController {
                                             @RequestBody DictionaryDocumentRequest request) throws IOException {
         request.setType(dictionary);
         return new ResponseEntity<>(dictionaryService.updateDocument(clusterId, id, request), HttpStatus.OK);
+    }
+
+
+    @GetMapping("/summary")
+    public ResponseEntity<?> getSummary(@RequestHeader(value = "cluster-id") UUID clusterId) throws IOException {
+        Map<String, Object> entity = new HashMap<String, Object>();
+        // 1. setting 필요
+        List<DictionarySetting> dictionarySettings = dictionaryService.getSettings(clusterId);
+
+        // 2. Dictionary 정보 필요 (_analysis-product-name/info-dict)
+        String dictionaryInfo  = dictionaryService.getDictionaryInfo(clusterId);
+        // 3. Time 가져오기
+        SearchResponse dictionaryTimes = dictionaryService.getDictionaryTimes(clusterId);
+
+        entity.put("dictionarySettings", dictionarySettings);
+        entity.put("dictionaryInfo", dictionaryInfo);
+        entity.put("dictionaryTimes", dictionaryTimes);
+
+        // 전송
+        return new ResponseEntity<>(entity, HttpStatus.OK);
     }
 }
