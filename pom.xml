@@ -129,8 +129,8 @@
             <groupId>Altibase</groupId>
             <artifactId>Altibase</artifactId>
             <version>1.0.0</version>
-            <scope>system</scope>
-            <systemPath>${project.lib.path}/Altibase.jar</systemPath>
+<!--            <scope>system</scope>-->
+<!--            <systemPath>${project.lib.path}/Altibase.jar</systemPath>-->
         </dependency>
     </dependencies>
 
@@ -154,6 +154,28 @@
                             <outputDirectory>target/generated-sources/java</outputDirectory>
                             <processor>com.querydsl.apt.jpa.JPAAnnotationProcessor</processor>
                         </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-install-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>install-Transformation lib</id>
+                        <phase>clean</phase>
+                        <configuration>
+                            <file>${project.lib.path}/Altibase.jar</file>
+                            <repositoryLayout>default</repositoryLayout>
+                            <groupId>Altibase</groupId>
+                            <artifactId>Altibase</artifactId>
+                            <version>1.0.0</version>
+                            <packaging>jar</packaging>
+                            <generatePom>true</generatePom>
+                        </configuration>
+                        <goals>
+                            <goal>install-file</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>
