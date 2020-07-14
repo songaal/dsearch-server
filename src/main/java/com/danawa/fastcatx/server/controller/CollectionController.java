@@ -58,10 +58,24 @@ public class CollectionController {
         return new ResponseEntity<>(collectionService.findById(clusterId, id), HttpStatus.OK);
     }
 
-    @DeleteMapping("{id}")
+    @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteById(@RequestHeader(value = "cluster-id") UUID clusterId,
                                         @PathVariable String id) throws IOException {
         collectionService.deleteById(clusterId, id);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> editCollection(@RequestHeader(value = "cluster-id") UUID clusterId,
+                                            @RequestParam String action,
+                                            @PathVariable String id,
+                                            @RequestBody Collection collection) throws IOException, DuplicateException {
+        if ("source".equalsIgnoreCase(action)) {
+            collectionService.editSource(clusterId, id, collection);
+        } else if ("schedule".equalsIgnoreCase(action)) {
+            collectionService.editSchedule(clusterId, id, collection);
+        }
+
         return new ResponseEntity<>(HttpStatus.OK);
     }
 

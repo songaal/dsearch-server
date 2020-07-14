@@ -8,6 +8,8 @@ import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
+import org.apache.http.impl.nio.reactor.IOReactorConfig;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.client.*;
 import org.slf4j.Logger;
@@ -29,36 +31,24 @@ public class ElasticsearchFactory {
     }
 
     public RestHighLevelClient getClient(UUID id) {
-        RestHighLevelClient client = null;
-        RestHighLevelClient singleClient = null;
-        try {
-            Cluster cluster = clusterService.find(id);
+        Cluster cluster = clusterService.find(id);
 
-            String scheme = cluster.getScheme();
-            String host = cluster.getHost();
-            int port = cluster.getPort();
+        String scheme = cluster.getScheme();
+        String host = cluster.getHost();
+        int port = cluster.getPort();
 
-            String username = cluster.getUsername();
-            String password = cluster.getPassword();
+        String username = cluster.getUsername();
+        String password = cluster.getPassword();
 
-            HttpHost[] httpHosts = getHttpHostList(username, password, new HttpHost(host, port, scheme));
-            client = getClient(username, password, httpHosts);
-        } catch (Exception e) {
-            logger.warn("", e);
-        } finally {
-            if (singleClient != null) {
-                try {
-                    singleClient.close();
-                } catch (IOException e) {
-                    logger.error("", e);
-                }
-            }
-        }
-        return client;
+        HttpHost[] httpHosts = getHttpHostList(username, password, new HttpHost(host, port, scheme));
+        return getClient(username, password, httpHosts);
     }
 
     public RestHighLevelClient getClient(String username, String password, HttpHost ...httpHost) {
-        RestClientBuilder builder = RestClient.builder(httpHost);
+        RestClientBuilder builder = RestClient.builder(httpHost).setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder.setDefaultIOReactorConfig(
+                IOReactorConfig.custom()
+                        .setIoThreadCount(1)
+                        .build() ));
 
         final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         if (username != null && !"".equals(username)
@@ -67,6 +57,7 @@ public class ElasticsearchFactory {
             builder.setHttpClientConfigCallback(httpClientBuilder ->
                     httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
         }
+
         return new RestHighLevelClient(builder);
     }
 

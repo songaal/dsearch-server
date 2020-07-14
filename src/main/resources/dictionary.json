@@ -5,13 +5,26 @@
     "analysis": {
       "analyzer": {
         "comma_analyzer": {
-          "tokenizer": "comma_analyzer"
+          "tokenizer" : "comma_tokenizer",
+          "filter" : ["lowercase_filter"]
+        },
+        "keyword_analyzer": {
+          "tokenizer" : "keyword_tokenizer",
+          "filter" : ["lowercase_filter"]
         }
       },
       "tokenizer": {
-        "comma_analyzer": {
+        "comma_tokenizer": {
           "type": "pattern",
           "pattern": ","
+        },
+        "keyword_tokenizer": {
+          "type": "keyword"
+        }
+      },
+      "filter": {
+        "lowercase_filter": {
+          "type": "lowercase"
         }
       }
     }

@@ -23,13 +23,19 @@
       "jdbcId": {
         "type": "keyword"
       },
+      "status": {
+        "type": "keyword"
+      },
       "cron": {
+        "type": "keyword"
+      },
+      "sourceName": {
         "type": "keyword"
       },
       "launcher": {
         "type": "nested",
         "properties": {
-          "param": {
+          "path": {
             "type": "keyword"
           },
           "yaml": {

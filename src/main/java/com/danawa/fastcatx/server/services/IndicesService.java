@@ -34,8 +34,18 @@ public class IndicesService {
     private static Logger logger = LoggerFactory.getLogger(IndicesService.class);
     private final ElasticsearchFactory elasticsearchFactory;
 
+    private final String lastIndexStatusIndex = ".fastcatx_last_index_status";
+    private final String lastIndexStatusIndexJson = "last_index_status.json";
+    private final String indexHistory = ".fastcatx_index_history";
+    private final String indexHistoryJson = "index_history.json";
+
     public IndicesService(ElasticsearchFactory elasticsearchFactory) {
         this.elasticsearchFactory = elasticsearchFactory;
+    }
+
+    public void fetchSystemIndex(UUID clusterId) throws IOException {
+        createSystemIndex(clusterId, lastIndexStatusIndex, lastIndexStatusIndexJson);
+        createSystemIndex(clusterId, indexHistory, indexHistoryJson);
     }
 
     public void createSystemIndex(UUID clusterId, String index, String source) throws IOException {

@@ -23,7 +23,7 @@ public class AuthFilter extends OncePerRequestFilter {
 
     private static final List<String> bypassUri = Arrays.asList(
             "/",
-            "/auth", "/auth/sign-in", "/auth/sign-out"
+            "/auth/sign-in", "/auth/sign-out"
     );
 
     @Override

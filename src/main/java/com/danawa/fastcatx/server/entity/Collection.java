@@ -12,9 +12,20 @@ public class Collection implements Serializable {
     private boolean scheduled;
     private String jdbcId;
     private String cron;
+    private String sourceName;
     private Launcher launcher;
     private Index indexA;
     private Index indexB;
+    private String status;
+    private boolean autoRun;
+
+    public boolean isAutoRun() {
+        return autoRun;
+    }
+
+    public void setAutoRun(boolean autoRun) {
+        this.autoRun = autoRun;
+    }
 
     public static class Index {
         private String index;
@@ -27,6 +38,7 @@ public class Collection implements Serializable {
         private String docsDeleted;
         private String storeSize;
         private String priStoreSize;
+
         private Map<String, Object> aliases;
 
         public Map<String, Object> getAliases() {
@@ -157,6 +169,14 @@ public class Collection implements Serializable {
         }
     }
 
+    public String getSourceName() {
+        return sourceName;
+    }
+
+    public void setSourceName(String sourceName) {
+        this.sourceName = sourceName;
+    }
+
     public String getId() {
         return id;
     }
@@ -227,5 +247,13 @@ public class Collection implements Serializable {
 
     public void setIndexB(Index indexB) {
         this.indexB = indexB;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }

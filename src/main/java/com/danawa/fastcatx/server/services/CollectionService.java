@@ -13,6 +13,8 @@ import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.update.UpdateRequest;
+import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.Response;
@@ -139,7 +141,8 @@ public class CollectionService {
                 if (indexA != null) {
                     indexA.setAliases((Map) ((Map) aliasEntity.get(indexA.getIndex())).get("aliases"));
                     collection.setIndexA(indexA);
-                } else if (indexB != null) {
+                }
+                if (indexB != null) {
                     indexB.setAliases((Map) ((Map) aliasEntity.get(indexB.getIndex())).get("aliases"));
                     collection.setIndexB(indexB);
                 }
@@ -158,6 +161,9 @@ public class CollectionService {
         collection.setName(String.valueOf(source.get("name")));
         collection.setBaseId(String.valueOf(source.get("baseId")));
         collection.setCron(String.valueOf(source.get("cron")));
+        collection.setSourceName(String.valueOf(source.get("sourceName")));
+        collection.setStatus(String.valueOf(source.get("status")));
+        collection.setAutoRun(Boolean.valueOf(String.valueOf(source.get("autoRun"))));
 
         Collection.Index indexA = new Collection.Index();
         indexA.setIndex(String.valueOf(source.get("indexA")));
@@ -189,6 +195,9 @@ public class CollectionService {
                 .field("indexA", collection.getIndexA().getIndex())
                 .field("indexB", collection.getIndexB().getIndex())
                 .field("scheduled", collection.isScheduled())
+                .field("autoRun", collection.isAutoRun())
+                .field("sourceName", collection.getSourceName() == null ? "" : collection.getSourceName())
+                .field("status", collection.getStatus() == null ? "" : collection.getStatus())
                 .field("jdbcId", collection.getJdbcId() == null ? "" : collection.getJdbcId())
                 .field("cron", collection.getCron() == null ? "" : collection.getCron());
         if (collection.getLauncher() != null) {
@@ -276,4 +285,41 @@ public class CollectionService {
     }
 
 
+    public void editSource(UUID clusterId, String id, Collection collection) throws IOException {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            GetResponse getResponse = client.get(new GetRequest().index(collectionIndex).id(id), RequestOptions.DEFAULT);
+            Map<String, Object> sourceAsMap = getResponse.getSourceAsMap();
+            sourceAsMap.put("cron", collection.getCron());
+            sourceAsMap.put("sourceName", collection.getSourceName());
+            sourceAsMap.put("jdbcId", collection.getJdbcId());
+            Map<String, Object> launcherSourceAsMap = (Map<String, Object>) sourceAsMap.get("launcher");
+            if (launcherSourceAsMap == null) {
+                launcherSourceAsMap = new HashMap<>();
+            }
+            launcherSourceAsMap.put("path", collection.getLauncher().getPath());
+            launcherSourceAsMap.put("yaml", collection.getLauncher().getYaml());
+            launcherSourceAsMap.put("host", collection.getLauncher().getHost());
+            launcherSourceAsMap.put("port", collection.getLauncher().getPort());
+            sourceAsMap.put("launcher", launcherSourceAsMap);
+
+            UpdateResponse updateResponse = client.update(new UpdateRequest().index(collectionIndex).
+                    id(id).
+                    doc(sourceAsMap), RequestOptions.DEFAULT);
+
+            logger.debug("update Response: {}", updateResponse);
+        }
+    }
+
+    public void editSchedule(UUID clusterId, String id, Collection collection) throws IOException {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            GetResponse getResponse = client.get(new GetRequest().index(collectionIndex).id(id), RequestOptions.DEFAULT);
+            Map<String, Object> sourceAsMap = getResponse.getSourceAsMap();
+            sourceAsMap.put("scheduled", collection.isScheduled());
+            UpdateResponse updateResponse = client.update(new UpdateRequest().index(collectionIndex).
+                    id(id).
+                    doc(sourceAsMap), RequestOptions.DEFAULT);
+
+            logger.debug("update Response: {}", updateResponse);
+        }
+    }
 }
