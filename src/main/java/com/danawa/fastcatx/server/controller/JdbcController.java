@@ -25,7 +25,6 @@ public class JdbcController {
 
     @PostMapping("/")
     public ResponseEntity<?> getConnectionTest(@RequestBody JdbcRequest jdbcRequest) throws Exception {
-        System.out.println(jdbcRequest.getUrl());
         Map<String, Object> resultEntitiy = new HashMap<String, Object>();
         boolean flag = jdbcService.connectionTest(jdbcRequest);
         resultEntitiy.put("message", flag);
