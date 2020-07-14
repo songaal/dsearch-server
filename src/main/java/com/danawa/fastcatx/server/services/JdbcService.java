@@ -37,7 +37,8 @@ public class JdbcService {
     public boolean connectionTest(JdbcRequest jdbcRequest){
         boolean flag = false;
         try{
-            String url = jdbcRequest.getUrl() + jdbcRequest.getAddress() + ":" + jdbcRequest.getPort() + "/" + jdbcRequest.getDB_name();
+            String url = jdbcRequest.getUrl();
+//            + jdbcRequest.getAddress() + ":" + jdbcRequest.getPort() + "/" + jdbcRequest.getDB_name();
             Class.forName(jdbcRequest.getDriver());
             Connection connection = null;
             connection = DriverManager.getConnection(url, jdbcRequest.getUser(), jdbcRequest.getPassword());

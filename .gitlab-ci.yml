@@ -16,7 +16,6 @@ before_script:
 build:
   stage: build
   script:
-    - ls -al
     - sh mvnw clean
     - sh mvnw package -DskipTests
     - docker build -t ${IMAGE} .
