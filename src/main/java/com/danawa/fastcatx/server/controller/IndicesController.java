@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -38,11 +39,16 @@ public class IndicesController {
         return new ResponseEntity<>(documentPagination, HttpStatus.OK);
     }
 
-    @PostMapping("/{index}/_analyzer")
+    @PostMapping("/{index}/analyzer")
     public ResponseEntity<?> analyzer(@PathVariable String index,
                                       @RequestHeader(value = "cluster-id") UUID clusterId,
                                       @RequestBody Map<String, List<DocumentAnalyzer.Analyzer>> documents) throws IOException {
-        Map<String, List<DocumentAnalyzer.Analyzer>> analyzerMap = indicesService.getDocumentAnalyzer(clusterId, index, documents);
+        Map<String, List<DocumentAnalyzer.Analyzer>> analyzerMap = new HashMap<>();
+        try {
+            analyzerMap = indicesService.getDocumentAnalyzer(clusterId, index, documents);
+        } catch (Exception e) {
+            logger.warn("", e.getMessage());
+        }
         return new ResponseEntity<>(analyzerMap, HttpStatus.OK);
     }
 
