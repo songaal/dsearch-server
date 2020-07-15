@@ -1,5 +1,6 @@
 package com.danawa.fastcatx.server.controller;
 
+import com.danawa.fastcatx.server.entity.DocumentAnalyzer;
 import com.danawa.fastcatx.server.entity.DocumentPagination;
 import com.danawa.fastcatx.server.services.IndicesService;
 import org.slf4j.Logger;
@@ -9,6 +10,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -33,6 +36,14 @@ public class IndicesController {
         DocumentPagination documentPagination = indicesService.findAllDocumentPagination(clusterId, index, pageNum, rowSize, id, analysis, null);
 
         return new ResponseEntity<>(documentPagination, HttpStatus.OK);
+    }
+
+    @PostMapping("/{index}/_analyzer")
+    public ResponseEntity<?> analyzer(@PathVariable String index,
+                                      @RequestHeader(value = "cluster-id") UUID clusterId,
+                                      @RequestBody Map<String, List<DocumentAnalyzer.Analyzer>> documents) throws IOException {
+        Map<String, List<DocumentAnalyzer.Analyzer>> analyzerMap = indicesService.getDocumentAnalyzer(clusterId, index, documents);
+        return new ResponseEntity<>(analyzerMap, HttpStatus.OK);
     }
 
 }

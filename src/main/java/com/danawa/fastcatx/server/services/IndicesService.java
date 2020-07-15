@@ -1,6 +1,7 @@
 package com.danawa.fastcatx.server.services;
 
 import com.danawa.fastcatx.server.config.ElasticsearchFactory;
+import com.danawa.fastcatx.server.entity.DocumentAnalyzer;
 import com.danawa.fastcatx.server.entity.DocumentPagination;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
@@ -144,6 +145,36 @@ public class IndicesService {
                 .analyze(AnalyzeRequest.withIndexAnalyzer(index, analyzer, text), RequestOptions.DEFAULT);
         List<AnalyzeResponse.AnalyzeToken> result = response.getTokens();
         return result;
+    }
+
+    public Map<String, List<DocumentAnalyzer.Analyzer>> getDocumentAnalyzer(UUID clusterId, String index, Map<String, List<DocumentAnalyzer.Analyzer>> documents) throws IOException {
+        Map<String, List<DocumentAnalyzer.Analyzer>> analyzerMap = new HashMap<>();
+        try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            Iterator<String> iterator = documents.keySet().iterator();
+            while (iterator.hasNext()) {
+                String documentId = iterator.next();
+                List<DocumentAnalyzer.Analyzer> fields = documents.get(documentId);
+                for (int i = 0; i < fields.size(); i++) {
+                    try {
+                        DocumentAnalyzer.Analyzer fieldAnalyzer = fields.get(i);
+                        String text = fieldAnalyzer.getText();
+                        String analyzer = fieldAnalyzer.getAnalyzer();
+                        List<String> termList = new ArrayList<>();
+                        List<AnalyzeResponse.AnalyzeToken> analyzeTokenList = analyze(client, index, analyzer, text);
+                        int tokenSize = analyzeTokenList.size();
+                        for (int t = 0; t< tokenSize; t++) {
+                            AnalyzeResponse.AnalyzeToken analyzeToken = analyzeTokenList.get(t);
+                            termList.add(analyzeToken.getTerm());
+                        }
+                        fieldAnalyzer.setTerm(termList);
+                    } catch (Exception e) {
+                        logger.warn("", e.getMessage());
+                    }
+                }
+                analyzerMap.put(documentId, fields);
+            }
+        }
+        return analyzerMap;
     }
 
     public SearchResponse findAll(UUID clusterId, String index) throws IOException {
