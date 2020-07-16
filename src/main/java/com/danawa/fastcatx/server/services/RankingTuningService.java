@@ -64,10 +64,47 @@ public class RankingTuningService {
             GetMappingsRequest getMappingsRequest = new GetMappingsRequest().indices(index);
             GetMappingsResponse response = client.indices().getMapping(getMappingsRequest, RequestOptions.DEFAULT);
             Map<String, MappingMetaData> mappings = response.mappings();
+            for(String key: mappings.keySet()){
+                System.out.println(key);
+            }
             Map<String, Object> properties = (Map<String, Object>) mappings.get(index).getSourceAsMap().get("properties");
             Map<String, Object> result = mappings.get(index).getSourceAsMap().get("properties") == null ? new HashMap<>() : properties;
             return result;
         }
     }
 
+    public Map<String, MappingMetaData> getMultipleMappings(UUID clusterId, RankingTuningRequest rankingTuningRequest) throws IOException {
+        try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            String index = rankingTuningRequest.getIndex();
+            GetMappingsRequest getMappingsRequest = new GetMappingsRequest().indices(index);
+            GetMappingsResponse response = client.indices().getMapping(getMappingsRequest, RequestOptions.DEFAULT);
+            Map<String, MappingMetaData> mappings = response.mappings();
+//            Map<String, Object> properties = (Map<String, Object>) mappings.get(index).getSourceAsMap().get("properties");
+//            Map<String, Object> result = mappings.get(index).getSourceAsMap().get("properties") == null ? new HashMap<>() : properties;
+            return mappings;
+        }
+    }
+
+    public SearchResponse getMultipleSearch(UUID clusterId, RankingTuningRequest rankingTuningRequest) throws IOException {
+        try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            SearchRequest searchRequest = new SearchRequest();
+            searchRequest.indices(rankingTuningRequest.getIndex());
+            String query = rankingTuningRequest.getText();
+            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+            SearchModule searchModule = new SearchModule(Settings.EMPTY, false, Collections.emptyList());
+            try (XContentParser parser = XContentFactory.xContent(XContentType.JSON).createParser(new NamedXContentRegistry(searchModule.getNamedXContents()) , null, query)) {
+                searchSourceBuilder.parseXContent(parser);
+                searchRequest.source(searchSourceBuilder);
+            }
+            SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
+            return searchResponse;
+        }
+    }
+    public AnalyzeResponse getMultipleAnalyze(UUID clusterId, String index, String analyzer, String hitValue) throws IOException{
+        try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            AnalyzeRequest analyzeRequest = AnalyzeRequest.withIndexAnalyzer(index, analyzer, hitValue);
+            AnalyzeResponse analyzeResponse = client.indices().analyze(analyzeRequest, RequestOptions.DEFAULT);
+            return analyzeResponse;
+        }
+    }
 }

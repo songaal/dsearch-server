@@ -3,8 +3,17 @@ package com.danawa.fastcatx.server.entity;
 import java.io.Serializable;
 
 public class RankingTuningRequest implements Serializable {
+    private boolean isMultiple;
     private String text;
     private String index;
+
+    public boolean getIsMultiple() {
+        return isMultiple;
+    }
+
+    public void setIsMultiple(boolean isMultiple) {
+        this.isMultiple = isMultiple ;
+    }
 
     public String getText() {
         return text;
