@@ -1,9 +1,7 @@
 package com.danawa.fastcatx.server.services;
 
 import com.danawa.fastcatx.server.config.ElasticsearchFactory;
-import com.danawa.fastcatx.server.entity.DictionaryDocumentRequest;
-import com.danawa.fastcatx.server.entity.DictionarySetting;
-import com.danawa.fastcatx.server.entity.DocumentPagination;
+import com.danawa.fastcatx.server.entity.*;
 import com.danawa.fastcatx.server.excpetions.ServiceException;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.action.delete.DeleteRequest;
@@ -338,6 +336,23 @@ public class DictionaryService {
             client.update(updateRequest, RequestOptions.DEFAULT);
         } catch (Exception e) {
             logger.warn("diction updateTime edit fail: {}", e.getMessage());
+        }
+    }
+
+
+    public Response findDict(UUID clusterId, DictionarySearchRequest dictionarySearchRequest) throws IOException{
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            RestClient restClient = client.getLowLevelClient();
+            String word = dictionarySearchRequest.getWord();
+            String method = "POST";
+            String endPoint = "/_analysis-product-name/find-dict";
+            String setJson = "{ \n" +
+                                "\"index\": \"" + dictionaryIndex + "\", \n" +
+                                "\"word\": \"" + word + "\"" +
+                              "}";
+            Request findDictRequest = new Request(method, endPoint);
+            findDictRequest.setJsonEntity(setJson);
+            return restClient.performRequest(findDictRequest);
         }
     }
 }

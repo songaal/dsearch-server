@@ -1,10 +1,12 @@
 package com.danawa.fastcatx.server.controller;
 
 import com.danawa.fastcatx.server.entity.DictionaryDocumentRequest;
+import com.danawa.fastcatx.server.entity.DictionarySearchRequest;
 import com.danawa.fastcatx.server.entity.DictionarySetting;
 import com.danawa.fastcatx.server.entity.DocumentPagination;
 import com.danawa.fastcatx.server.excpetions.ServiceException;
 import com.danawa.fastcatx.server.services.DictionaryService;
+import org.apache.http.util.EntityUtils;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Response;
@@ -101,5 +103,14 @@ public class DictionaryController {
 
         // 전송
         return new ResponseEntity<>(entity, HttpStatus.OK);
+    }
+
+    @PostMapping("/find-dict")
+    public ResponseEntity<?> searchDictionaries(@RequestHeader(value = "cluster-id") UUID clusterId,
+                                                @RequestBody DictionarySearchRequest dictionarySearchRequest) throws IOException{
+
+        Response findDictResponse = dictionaryService.findDict(clusterId, dictionarySearchRequest);
+        String response = EntityUtils.toString(findDictResponse.getEntity());
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }

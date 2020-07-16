@@ -28,8 +28,7 @@ public class RankingTuningController {
     @Autowired
     private RankingTuningService rankingTuningService;
 
-    public RankingTuningController() {
-    }
+    public RankingTuningController() { }
 
     public void findAnalyzer(Map<String, Object> analyzers, String property, Map<String, Object> linkedHashMap){
         for(String key : linkedHashMap.keySet()){

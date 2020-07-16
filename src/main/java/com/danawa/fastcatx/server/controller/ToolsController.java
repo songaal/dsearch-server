@@ -18,7 +18,7 @@ import java.util.*;
 @RestController
 @RequestMapping("/tools")
 public class ToolsController {
-    private static Logger logger = LoggerFactory.getLogger(JdbcController.class);
+    private static Logger logger = LoggerFactory.getLogger(ToolsController.class);
 
     @Autowired
     ToolsService toolsService;
