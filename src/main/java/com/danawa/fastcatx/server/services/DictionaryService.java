@@ -297,7 +297,7 @@ public class DictionaryService {
     public SearchResponse getDictionaryTimes(UUID clusterId) throws IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             SearchRequest searchRequest = new SearchRequest();
-            searchRequest.indices(".fastcatx_dict_setting");
+            searchRequest.indices(settingIndex);
 
             String query = "{\n" +
                     "        \"size\": 10000\n" +

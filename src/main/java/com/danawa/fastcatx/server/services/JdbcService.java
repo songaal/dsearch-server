@@ -17,7 +17,7 @@ import java.util.UUID;
 @Service
 public class JdbcService {
 
-    private static Logger logger = LoggerFactory.getLogger(RankingTuningService.class);
+    private static Logger logger = LoggerFactory.getLogger(JdbcService.class);
 
     private String jdbcIndex;
     private final String JDBC_JSON = "jdbc.json";
@@ -36,21 +36,22 @@ public class JdbcService {
 
     public boolean connectionTest(JdbcRequest jdbcRequest){
         boolean flag = false;
+
         try{
             String url = jdbcRequest.getUrl();
-//            + jdbcRequest.getAddress() + ":" + jdbcRequest.getPort() + "/" + jdbcRequest.getDB_name();
             Class.forName(jdbcRequest.getDriver());
             Connection connection = null;
             connection = DriverManager.getConnection(url, jdbcRequest.getUser(), jdbcRequest.getPassword());
             connection.close();
             flag = true;
         }catch (SQLException sqlException){
-            System.out.println(sqlException);
+            logger.debug("", sqlException);
         }catch (ClassNotFoundException classNotFoundException){
-            System.out.println(classNotFoundException);
+            logger.debug("", classNotFoundException);
         } catch (Exception e){
-            System.out.println(e);
+            logger.debug("", e);
         }
+
         return flag;
     }
 }
