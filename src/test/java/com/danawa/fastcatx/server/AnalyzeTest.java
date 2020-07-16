@@ -45,10 +45,11 @@ public class AnalyzeTest {
             return analyzeResponse;
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException{
         RestClientBuilder builder = RestClient.builder(new HttpHost("es1.danawa.io", 80, "http"));
+        RestHighLevelClient client = new RestHighLevelClient(builder);
         try {
-            RestHighLevelClient client = new RestHighLevelClient(builder);
+
 //            RestClient restClient = client.getLowLevelClient();
 //            Request request = new Request("GET", "/_analysis-product-name/info-dict");
 //            Response response = restClient.performRequest(request);
@@ -79,7 +80,6 @@ public class AnalyzeTest {
                 analyzers.put(_index, indexAnalyzer);
             }
 
-
             /* search */
             SearchRequest searchRequest = new SearchRequest();
             searchRequest.indices(index);
@@ -91,7 +91,7 @@ public class AnalyzeTest {
                 searchRequest.source(searchSourceBuilder);
             }
             SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
-
+            List<Map<String, Object>> searchHitsResponse = new ArrayList<>();
             /* analyze */
             SearchHit[] searchHits = searchResponse.getHits().getHits();
 
@@ -102,7 +102,7 @@ public class AnalyzeTest {
                 List<AnalyzerTokens> analyzerTokensList = new ArrayList<>();
 
                 Map<String, Object> source = searchHits[i].getSourceAsMap();
-
+                searchHitsResponse.add(source);
                 if(analyzers.get(hitsIndex) != null){
                     Map<String, Object> indexAnalyzer = (Map<String, Object>) analyzers.get(hitsIndex);
 
@@ -128,41 +128,60 @@ public class AnalyzeTest {
                 analyzerTokensMap.put(hitsIndex, docWithTokensMap);
             }
 
+            
 
-            client.close();
-//
-//
-//
-//
+            /* 리스트 형태로 합치기 */
+            List<Object> result = new ArrayList<>();
+            for(int i = 0; i < searchHitsResponse.size(); i++){
+                List<Object> convertList = new ArrayList<>();
+                Map<String, Object> item =  searchHitsResponse.get(i);
 
-//                searchHitsResponse.add(source);
-//                for(String field: source.keySet()){
-//                    if(analyzers.get(field) != null){
-//                        AnalyzeResponse analyzeResponse = rankingTuningService.getMultipleAnalyze(clusterId, hitsIndex, (String) analyzers.get(field), (String) source.get(field));
-//                        AnalyzerTokens analyzerTokens = new AnalyzerTokens();
-//                        analyzerTokens.setField(field);
-//                        List<String> tokens = new ArrayList<>();
-//                        for (AnalyzeResponse.AnalyzeToken token : analyzeResponse.getTokens()) {
-//                            tokens.add(token.getTerm());
-//                        }
-//                        analyzerTokens.setTokens(tokens);
-//                        analyzerTokensList.add(analyzerTokens);
-//                    }
-//                }
-//
-//                source.put("_index", searchHits[i].getIndex());
-//                source.put("_id", searchHits[i].getId());
-//                source.put("_explanation", searchHits[i].getExplanation());
-//                docWithTokensMap.put(searchHits[i].getId(), analyzerTokensList);
-//                analyzerTokensMap.put(hitsIndex, docWithTokensMap);
-//            }
+                for(String key : item.keySet()){
+                    String id = (String) item.get("_id");
+                    String _index = (String) item.get("_index");
+                    Object text = item.get(key);
 
+                    if(analyzerTokensMap.get(_index) != null){
+                        List<AnalyzerTokens> analyzerFieldList = (ArrayList<AnalyzerTokens> ) analyzerTokensMap.get(_index).get(id);
+                        AnalyzerTokens analyzerTokens = null;
 
+                        if(analyzerFieldList == null){
+                            Map<String, Object> data = new HashMap<>();
+                            data.put("field", key);
+                            data.put("text", text);
+                            data.put("tokens",new ArrayList<>() );
+                            convertList.add(data);
+                            continue;
+                        }
+                        for(int j = 0; j < analyzerFieldList.size(); j++) {
+                            if(analyzerFieldList.get(j).getField().equals(key)) {
+                                analyzerTokens = analyzerFieldList.get(j);
+                                break;
+                            }
+                        }
+
+                        if(analyzerTokens == null || analyzerTokens.getTokens() == null || analyzerTokens.getTokens().size() == 0) {
+                            Map<String, Object> data = new HashMap<>();
+                            data.put("field", key);
+                            data.put("text", text);
+                            data.put("tokens", new ArrayList<>() );
+                            convertList.add(data);
+                        } else {
+                            Map<String, Object> data = new HashMap<>();
+                            data.put("field", key);
+                            data.put("text", text);
+                            data.put("tokens",analyzerTokens.getTokens() );
+                            convertList.add(data);
+                        }
+                    }
+                }
+                result.add(convertList);
+            }
+
+            System.out.println();
         } catch (Exception e) {
             System.out.println(e);
         }
-
+        client.close();
     }
-
-
 }
