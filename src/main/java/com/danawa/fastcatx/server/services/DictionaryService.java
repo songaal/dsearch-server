@@ -22,6 +22,10 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.*;
 import org.elasticsearch.index.query.*;
+import org.elasticsearch.index.reindex.BulkByScrollResponse;
+import org.elasticsearch.index.reindex.UpdateByQueryAction;
+import org.elasticsearch.index.reindex.UpdateByQueryRequest;
+import org.elasticsearch.index.reindex.UpdateByQueryRequestBuilder;
 import org.elasticsearch.search.Scroll;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchModule;
@@ -208,6 +212,8 @@ public class DictionaryService {
                             .index(dictionaryIndex)
                             .source(builder)
                     , RequestOptions.DEFAULT);
+
+            refreshUpdateTime(clusterId, document.getType());
             return indexResponse;
         }
     }
@@ -225,6 +231,7 @@ public class DictionaryService {
                             .id(id)
                     , RequestOptions.DEFAULT);
 
+            refreshUpdateTime(clusterId, dictionary);
             return deleteResponse;
         }
     }
@@ -243,6 +250,13 @@ public class DictionaryService {
                             .id(id)
                             .doc(builder)
                     , RequestOptions.DEFAULT);
+
+            GetRequest getRequest = new GetRequest().index(dictionaryIndex).id(id);
+            GetResponse getResponse = client.get(getRequest, RequestOptions.DEFAULT);
+            if (getResponse.getSourceAsMap().get("type") != null && !"".equals(getResponse.getSourceAsMap().get("type"))) {
+                String type = String.valueOf(getResponse.getSourceAsMap().get("type"));
+                refreshUpdateTime(clusterId, type);
+            }
             return updateResponse;
         }
     }
@@ -296,6 +310,34 @@ public class DictionaryService {
             }
             SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
             return searchResponse;
+        }
+    }
+
+    public void refreshUpdateTime(UUID clusterId, String type) {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            SearchRequest searchRequest = new SearchRequest()
+                    .indices(settingIndex).source(new SearchSourceBuilder()
+                            .query(new MatchQueryBuilder("id", type))
+                            .from(0)
+                            .size(1));
+
+            SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
+            if (searchResponse.getHits().getHits() == null || searchResponse.getHits().getHits().length == 0) {
+                return;
+            }
+            SearchHit searchHit = searchResponse.getHits().getHits()[0];
+
+            UpdateRequest updateRequest = new UpdateRequest()
+                    .index(settingIndex)
+                    .id(searchHit.getId())
+                    .doc(jsonBuilder()
+                            .startObject()
+                            .field("updatedTime", new Date())
+                            .endObject());
+
+            client.update(updateRequest, RequestOptions.DEFAULT);
+        } catch (Exception e) {
+            logger.warn("diction updateTime edit fail: {}", e.getMessage());
         }
     }
 }

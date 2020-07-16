@@ -27,11 +27,11 @@ POST /.fastcatx_dict_setting/_doc
     "columns": [
         {
             "type": "keyword",
-            "label": "키워드",
+            "label": "키워드"
         },
         {
             "type": "value",
-            "label": "유사어",
+            "label": "유사어"
         }
     ]
 }
@@ -47,7 +47,7 @@ POST /.fastcatx_dict_setting/_doc
     "columns": [
         {
             "type": "keyword",
-            "label": "단어",
+            "label": "단어"
         }
     ]
 }
@@ -63,7 +63,7 @@ POST /.fastcatx_dict_setting/_doc
     "columns": [
         {
             "type": "keyword",
-            "label": "단어",
+            "label": "단어"
         }
     ]
 }
@@ -79,11 +79,11 @@ POST /.fastcatx_dict_setting/_doc
     "columns": [
         {
             "type": "keyword",
-            "label": "단어",
+            "label": "단어"
         },
         {
             "type": "value",
-            "label": "값",
+            "label": "값"
         }
     ]
 }
@@ -99,7 +99,7 @@ POST /.fastcatx_dict_setting/_doc
     "columns": [
         {
             "type": "keyword",
-            "label": "단어",
+            "label": "단어"
         }
     ]
 }
@@ -115,7 +115,7 @@ POST /.fastcatx_dict_setting/_doc
     "columns": [
         {
             "type": "value",
-            "label": "유사어",
+            "label": "유사어"
         }
     ]
 }
@@ -131,15 +131,15 @@ POST /.fastcatx_dict_setting/_doc
     "columns": [
         {
             "type": "id",
-            "label": "MAKERID",
+            "label": "MAKERID"
         },
         {
             "type": "keyword",
-            "label": "KEYWORD",
+            "label": "KEYWORD"
         },
         {
             "type": "value",
-            "label": "VALUE",
+            "label": "VALUE"
         }
     ]
 }
@@ -159,11 +159,11 @@ POST /.fastcatx_dict_setting/_doc
         },
         {
             "type": "keyword",
-            "label": "KEYWORD",
+            "label": "KEYWORD"
         },
         {
             "type": "value",
-            "label": "VALUE",
+            "label": "VALUE"
         }
     ]
 }
@@ -183,11 +183,11 @@ POST /.fastcatx_dict_setting/_doc
         },
         {
             "type": "keyword",
-            "label": "KEYWORD",
+            "label": "KEYWORD"
         },
         {
             "type": "value",
-            "label": "VALUE",
+            "label": "VALUE"
         }
     ]
 }
@@ -203,7 +203,7 @@ POST /.fastcatx_dict_setting/_doc
     "columns": [
         {
             "type": "keyword",
-            "label": "KEYWORD",
+            "label": "KEYWORD"
         }
     ]
 }
