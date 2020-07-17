@@ -1,77 +1,95 @@
 package com.danawa.fastcatx.server.services;
 
 import com.danawa.fastcatx.server.config.ElasticsearchFactory;
+import com.danawa.fastcatx.server.entity.Collection;
+import com.danawa.fastcatx.server.excpetions.IndexingJobFailureException;
+import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.RestHighLevelClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.support.CronTrigger;
+import org.springframework.scheduling.support.PeriodicTrigger;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class IndexingJobService {
 
     private static Logger logger = LoggerFactory.getLogger(IndexingJobService.class);
     private final ElasticsearchFactory elasticsearchFactory;
+    private final CollectionService collectionService;
 
-    public IndexingJobService(ElasticsearchFactory elasticsearchFactory) {
+    private final String exclude = "search*";
+
+    public IndexingJobService(ElasticsearchFactory elasticsearchFactory, CollectionService collectionService) {
         this.elasticsearchFactory = elasticsearchFactory;
+        this.collectionService = collectionService;
     }
 
     /**
      * 소스를 읽어들여 ES 색인에 입력하는 작업.
      * indexer를 외부 프로세스로 실행한다.
      * */
-    public void indexing(String index) throws IOException, InterruptedException {
-        ProcessBuilder processBuilder = new ProcessBuilder("C:\\Program Files\\Amazon Corretto\\jdk1.8.0_252\\bin\\java.exe",
-                "-jar", "C:\\Users\\admin\\Downloads\\indexer-0.1.0.jar");
+    public synchronized void indexing(UUID clusterId, String collectionId) throws IOException, IndexingJobFailureException {
+        Collection collection = collectionService.findById(clusterId, collectionId);
 
-        processBuilder.inheritIO();
-        Process process = processBuilder.start();
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            Collection.Index indexA = collection.getIndexA();
+            Collection.Index indexB = collection.getIndexB();
 
 
-        //1. status READY 확인.
-        HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory();
-        factory.setConnectTimeout(5000); //타임아웃 설정 5초
-        factory.setReadTimeout(5000);//타임아웃 설정 5초
-        RestTemplate restTemplate = new RestTemplate(factory);
-        String uri = "http://localhost:8080/status";
-        ResponseEntity<Map> resultMap = restTemplate.exchange(uri, HttpMethod.GET, null, Map.class);
-        resultMap.getStatusCodeValue(); //http status code를 확인
-        resultMap.getHeaders(); //헤더 정보 확인
-        resultMap.getBody(); //실제 데이터 정보 확인
-        // READY 이면 시작한다.
+            // 인덱스에 대한 alias를 확인
+            String index = null;
+            if (indexA.getAliases() == null && indexB.getAliases() == null) {
+                index = indexA.getIndex();
+            } else if (indexA.getAliases().get(collection.getBaseId()) != null) {
+                index = indexB.getIndex();
+            } else if (indexB.getAliases().get(collection.getBaseId()) != null) {
+                index = indexA.getIndex();
+            }
 
-        //2. 색인요청
-        /*
-        * POST http://localhost:8080/start
-        * {
-            "scheme": "http",
-            "host": "es1.danawa.io",
-            "port": 80,
-            "index": "song5",
-            "type": "ndjson",
-            "path": "C:\\Projects\\fastcatx-indexer\\src\\test\\resources\\sample.ndjson",
-            "encoding": "utf-8",
-            "bulkSize": 1000
+            // settings에 index.routing.allocation.include._exclude=search* 호출
+            // refresh interval: -1로 변경. 색인도중 검색노출하지 않음. 성능향상목적.
+            Map<String, Object> ready = new HashMap<>();
+            ready.put("refresh_interval", "-1");
+            ready.put("index.routing.allocation.include._exclude", "search*");
+            client.indices().putSettings(new UpdateSettingsRequest().indices(index).settings(ready), RequestOptions.DEFAULT);
+
+            Collection.Launcher launcher = collection.getLauncher();
+            String yaml = launcher.getYaml();
+            if (yaml == null || "".equals(yaml)) {
+                throw new IndexingJobFailureException("empty yaml");
+            }
+
+            // 인덱서에 REST API를 호출하여 색인시작. 문서가 index node로 bulk insert되기 시작함.
+            String host = launcher.getHost();
+            int port = launcher.getPort();
+
+
+
+            // 중간 중간 status 확인 (SUCCESS, ERROR)
+//            ThreadPoolTaskScheduler scheduler
+//            scheduler.schedule(getRunnable(), getTrigger());
+//            new CronTrigger()
+
+
+            // refresh interval: 1s로 다시 원복.
+//            Map<String, Object> success = new HashMap<>();
+//            success.put("refresh_interval", "-1");
+//            success.put("index.routing.allocation.include._exclude", "search*");
+//            client.indices().putSettings(new UpdateSettingsRequest().indices(index).settings(success), RequestOptions.DEFAULT);
+
+        } catch (IndexingJobFailureException e) {
+            logger.error("", e);
+            throw e;
         }
-        * */
-
-
-
-        //3. 지속적으로 status 확인
-        // SUCCESS | ERROR 인지확인. 최종 문서갯수 확인.
-        // ==> 색인정보를 ES의 History와 LAST 인덱스에 입력
-
-
-
-        //4. 자식 프로세스 종료
-        process.destroy();
-
     }
 
     /**

@@ -273,10 +273,18 @@ public class CollectionService {
             Collection.Index indexA = collection.getIndexA();
             Collection.Index indexB = collection.getIndexB();
             if (indexA.getUuid() != null) {
-                client.delete(new DeleteRequest().index(indexA.getIndex()), RequestOptions.DEFAULT);
+                try {
+                    client.delete(new DeleteRequest().index(indexA.getIndex()), RequestOptions.DEFAULT);
+                } catch (Exception e) {
+                    logger.error("", e);
+                }
             }
             if (indexB.getUuid() != null) {
-                client.delete(new DeleteRequest().index(indexB.getIndex()), RequestOptions.DEFAULT);
+                try {
+                    client.delete(new DeleteRequest().index(indexB.getIndex()), RequestOptions.DEFAULT);
+                } catch (Exception e) {
+                    logger.error("", e);
+                }
             }
             client.indices().deleteTemplate(new DeleteIndexTemplateRequest(indexA.getIndex()), RequestOptions.DEFAULT);
             client.indices().deleteTemplate(new DeleteIndexTemplateRequest(indexB.getIndex()), RequestOptions.DEFAULT);
