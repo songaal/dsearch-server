@@ -9,6 +9,8 @@ public class DictionarySetting implements Serializable {
     private String type;
     private String tokenType;
     private String ignoreCase;
+    private String updatedTime;
+    private String appliedTime;
     private List<Column> columns;
 
     public static class Column {
@@ -37,6 +39,22 @@ public class DictionarySetting implements Serializable {
         public void setLabel(String label) {
             this.label = label;
         }
+    }
+
+    public String getAppliedTime() {
+        return appliedTime;
+    }
+
+    public void setAppliedTime(String appliedTime) {
+        this.appliedTime = appliedTime;
+    }
+
+    public String getUpdatedTime() {
+        return updatedTime;
+    }
+
+    public void setUpdatedTime(String updatedTime) {
+        this.updatedTime = updatedTime;
     }
 
     public String getDocumentId() {

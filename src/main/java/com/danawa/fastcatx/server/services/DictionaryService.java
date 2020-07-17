@@ -93,7 +93,7 @@ public class DictionaryService {
             List<DictionarySetting> settings = new ArrayList<>();
             SearchResponse response = client.search(new SearchRequest()
                     .indices(settingIndex)
-                    .source(new SearchSourceBuilder().size(10000)), RequestOptions.DEFAULT);
+                    .source(new SearchSourceBuilder().size(10000).sort("id")), RequestOptions.DEFAULT);
             SearchHit[] searchHits = response.getHits().getHits();
             int hitsSize = searchHits.length;
             for (int i = 0; i < hitsSize; i++) {
@@ -112,6 +112,9 @@ public class DictionaryService {
         setting.setType((String) source.get("type"));
         setting.setIgnoreCase((String) source.get("ignoreCase"));
         setting.setTokenType((String) source.get("tokenType"));
+        setting.setUpdatedTime((String) source.get("updatedTime"));
+        setting.setAppliedTime((String) source.get("appliedTime"));
+
         List<Map> columnList = (List<Map>) source.get("columns");
         List<DictionarySetting.Column> columns = new ArrayList<>();
         for (int i = 0; i < columnList.size(); i++) {
