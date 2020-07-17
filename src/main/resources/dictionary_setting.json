@@ -31,7 +31,10 @@
           }
         }
       },
-      "timestamp": {
+      "updatedTime": {
+        "type": "date"
+      },
+      "appliedTime": {
         "type": "date"
       }
     }

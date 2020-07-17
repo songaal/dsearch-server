@@ -3,6 +3,7 @@ import java.io.Serializable;
 import java.util.List;
 
 public class DictionarySetting implements Serializable {
+    private String documentId;
     private String id;
     private String name;
     private String type;
@@ -36,6 +37,14 @@ public class DictionarySetting implements Serializable {
         public void setLabel(String label) {
             this.label = label;
         }
+    }
+
+    public String getDocumentId() {
+        return documentId;
+    }
+
+    public void setDocumentId(String documentId) {
+        this.documentId = documentId;
     }
 
     public String getId() {

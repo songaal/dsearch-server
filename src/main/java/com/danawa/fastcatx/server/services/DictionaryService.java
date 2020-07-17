@@ -40,6 +40,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -82,7 +83,7 @@ public class DictionaryService {
                                     .size(1)
                                     .query(new MatchQueryBuilder("id", dictionary))),
                     RequestOptions.DEFAULT);
-            return fillSettingValue(response.getHits().getHits()[0]);
+            return fillSettingValue(response.getHits().getHits()[0], response.getHits().getHits()[0].getId());
         }
     }
 
@@ -96,15 +97,16 @@ public class DictionaryService {
             SearchHit[] searchHits = response.getHits().getHits();
             int hitsSize = searchHits.length;
             for (int i = 0; i < hitsSize; i++) {
-                settings.add(fillSettingValue(searchHits[i]));
+                settings.add(fillSettingValue(searchHits[i], searchHits[i].getId()));
             }
             return settings;
         }
     }
 
-    private DictionarySetting fillSettingValue(SearchHit searchHit) {
+    private DictionarySetting fillSettingValue(SearchHit searchHit, String documentId) {
         Map<String, Object> source = searchHit.getSourceAsMap();
         DictionarySetting setting = new DictionarySetting();
+        setting.setDocumentId(documentId);
         setting.setId((String) source.get("id"));
         setting.setName((String) source.get("name"));
         setting.setType((String) source.get("type"));
@@ -353,6 +355,41 @@ public class DictionaryService {
             Request findDictRequest = new Request(method, endPoint);
             findDictRequest.setJsonEntity(setJson);
             return restClient.performRequest(findDictRequest);
+        }
+    }
+
+    public Response compileDict(UUID clusterId, DictionaryCompileRequest dictionaryCompileRequest) throws IOException{
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            RestClient restClient = client.getLowLevelClient();
+            String type = dictionaryCompileRequest.getType();
+            String method = "POST";
+            String endPoint = "/_analysis-product-name/compile-dict";
+            String setJson = "{ \n" +
+                    "\"index\": \"" + dictionaryIndex + "\", \n" +
+                    "\"exportFile\": false, \n" +
+                    "\"distribute\": false, \n" +
+                    "\"type\": \"" + type+ "\", \n" +
+                    "}";
+
+            Request compileDictRequest = new Request(method, endPoint);
+            compileDictRequest.setJsonEntity(setJson);
+            return restClient.performRequest(compileDictRequest);
+        }
+    }
+
+    public void updateTime(UUID clusterId, String id) throws IOException{
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            UpdateRequest updateRequest = new UpdateRequest()
+                    .index(settingIndex)
+                    .id(id)
+                    .doc(jsonBuilder()
+                            .startObject()
+                            .field("appliedTime", new Date())
+                            .endObject());
+
+            client.update(updateRequest, RequestOptions.DEFAULT);
+        } catch (Exception e) {
+            logger.warn("dictionary appliedTime edit fail: {}", e.getMessage());
         }
     }
 }

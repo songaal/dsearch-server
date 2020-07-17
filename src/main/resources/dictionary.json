@@ -48,12 +48,6 @@
       },
       "type": {
         "type": "keyword"
-      },
-      "updatedTime": {
-        "type": "date"
-      },
-      "appliedTime": {
-        "type": "date"
       }
     }
   }

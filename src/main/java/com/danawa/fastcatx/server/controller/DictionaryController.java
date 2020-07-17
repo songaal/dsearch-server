@@ -1,9 +1,6 @@
 package com.danawa.fastcatx.server.controller;
 
-import com.danawa.fastcatx.server.entity.DictionaryDocumentRequest;
-import com.danawa.fastcatx.server.entity.DictionarySearchRequest;
-import com.danawa.fastcatx.server.entity.DictionarySetting;
-import com.danawa.fastcatx.server.entity.DocumentPagination;
+import com.danawa.fastcatx.server.entity.*;
 import com.danawa.fastcatx.server.excpetions.ServiceException;
 import com.danawa.fastcatx.server.services.DictionaryService;
 import org.apache.http.util.EntityUtils;
@@ -95,11 +92,11 @@ public class DictionaryController {
         // 2. Dictionary 정보 필요 (_analysis-product-name/info-dict)
         String dictionaryInfo  = dictionaryService.getDictionaryInfo(clusterId);
         // 3. Time 가져오기
-        SearchResponse dictionaryTimes = dictionaryService.getDictionaryTimes(clusterId);
+//        SearchResponse dictionaryTimes = dictionaryService.getDictionaryTimes(clusterId);
 
         entity.put("dictionarySettings", dictionarySettings);
         entity.put("dictionaryInfo", dictionaryInfo);
-        entity.put("dictionaryTimes", dictionaryTimes);
+//        entity.put("dictionaryTimes", dictionaryTimes);
 
         // 전송
         return new ResponseEntity<>(entity, HttpStatus.OK);
@@ -111,6 +108,22 @@ public class DictionaryController {
 
         Response findDictResponse = dictionaryService.findDict(clusterId, dictionarySearchRequest);
         String response = EntityUtils.toString(findDictResponse.getEntity());
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @PostMapping("/compile-dict")
+    public ResponseEntity<?> compileDictionaries(@RequestHeader(value = "cluster-id") UUID clusterId,
+                                                @RequestBody DictionaryCompileRequest dictionaryCompileRequest) throws IOException{
+
+        System.out.println(dictionaryCompileRequest.getType());
+        Response compileDictResponse = dictionaryService.compileDict(clusterId, dictionaryCompileRequest);
+        String[] ids = dictionaryCompileRequest.getIds().trim().split(",");
+
+        for(String id : ids){
+            System.out.print(id);
+            dictionaryService.updateTime(clusterId, id);
+        }
+        String response = EntityUtils.toString(compileDictResponse.getEntity());
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }
