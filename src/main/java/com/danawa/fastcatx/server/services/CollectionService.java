@@ -1,7 +1,9 @@
 package com.danawa.fastcatx.server.services;
 
 import com.danawa.fastcatx.server.config.ElasticsearchFactory;
+import com.danawa.fastcatx.server.entity.ChangeIndexRequset;
 import com.danawa.fastcatx.server.entity.Collection;
+import com.danawa.fastcatx.server.entity.DictionaryCompileRequest;
 import com.danawa.fastcatx.server.excpetions.DuplicateException;
 import com.google.gson.Gson;
 import org.apache.http.util.EntityUtils;
@@ -15,10 +17,7 @@ import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
-import org.elasticsearch.client.Request;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.Response;
-import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.*;
 import org.elasticsearch.client.indices.IndexTemplatesExistRequest;
 import org.elasticsearch.client.indices.PutIndexTemplateRequest;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -330,6 +329,45 @@ public class CollectionService {
                     doc(sourceAsMap), RequestOptions.DEFAULT);
 
             logger.debug("update Response: {}", updateResponse);
+        }
+    }
+
+    public Response changeIndex(UUID clusterId, ChangeIndexRequset changeIndexRequset) throws IOException{
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            RestClient restClient = client.getLowLevelClient();
+            String aliases = changeIndexRequset.getAliases();
+            String currentIndex = changeIndexRequset.getCurrentIndex();
+            String changeIndex = changeIndexRequset.getChangeIndex();
+            String setJson = "{ \n" +
+                    "\"actions\" : [" +
+                        "{\n" +
+                            "\"add\": {" +
+                                "\"index\": \"" + changeIndex + "\", \n " +
+                                "\"alias\": \"" + aliases + "\" \n" +
+                            "}\n" +
+                        "},\n" +
+                        "{\n" +
+                            "\"remove\" : {\n" +
+                                "\"index\" : \"" + currentIndex + "\", \n" +
+                                "\"alias\" : \"" + aliases + "\"" +
+                            "}\n" +
+                        "}\n" +
+                    "]\n" + "}";
+
+            Request request = new Request("POST", "_aliases");
+            request.setJsonEntity(setJson);
+
+            return restClient.performRequest(request);
+        }
+    }
+
+    public Response propagateIndex(UUID clusterId) throws IOException{
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            RestClient restClient = client.getLowLevelClient();
+
+            Request request = new Request("POST", "_aliases");
+
+            return restClient.performRequest(request);
         }
     }
 }

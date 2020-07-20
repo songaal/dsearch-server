@@ -118,7 +118,6 @@ public class DictionaryController {
         System.out.println(dictionaryCompileRequest.getType());
         Response compileDictResponse = dictionaryService.compileDict(clusterId, dictionaryCompileRequest);
         String[] ids = dictionaryCompileRequest.getIds().trim().split(",");
-
         for(String id : ids){
             System.out.print(id);
             dictionaryService.updateTime(clusterId, id);
