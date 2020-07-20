@@ -28,4 +28,3 @@ deploy:
     - kubectl patch deployment fastcatx-server -n fastcatx -p "{\"spec\":{\"template\":{\"metadata\":{\"labels\":{\"date\":\"`date +'%s'`\"}},\"spec\":{\"containers\":[{\"name\":\"fastcatx-server\",\"image\":\"${IMAGE}\"}]}}}}"
     - sleep 5
     - kubectl get pod -n fastcatx -o wide
-    - kubectl logs -l  app=fastcatx-server -n fastcatx
