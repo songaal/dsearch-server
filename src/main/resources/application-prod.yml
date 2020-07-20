@@ -30,8 +30,8 @@ fastcatx:
     email: admin@example.com
   dictionary:
     setting: .fastcatx_dict_setting
-#    index: .fastcatx_dict
-    index: .fastcatx_dictionary
+    index: .fastcatx_dict
+#    index: .fastcatx_dictionary
   reference:
     index: .fastcatx_reference
   collection:
