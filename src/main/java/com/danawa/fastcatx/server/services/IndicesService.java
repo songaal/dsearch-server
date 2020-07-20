@@ -3,6 +3,7 @@ package com.danawa.fastcatx.server.services;
 import com.danawa.fastcatx.server.config.ElasticsearchFactory;
 import com.danawa.fastcatx.server.entity.DocumentAnalyzer;
 import com.danawa.fastcatx.server.entity.DocumentPagination;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchRequest;
@@ -193,6 +194,14 @@ public class IndicesService {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             return client.get(new GetRequest().index(index).id(id), RequestOptions.DEFAULT);
         }
-
     }
+
+    public void delete(UUID clusterId, String index) throws IOException {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            DeleteIndexRequest deleteIndexRequest = new DeleteIndexRequest();
+            deleteIndexRequest.indices(index);
+            client.indices().delete(deleteIndexRequest, RequestOptions.DEFAULT);
+        }
+    }
+
 }

@@ -178,7 +178,7 @@ public class CollectionService {
         Map<String, Object> launcherMap = ((Map<String, Object>) source.get("launcher"));
         Collection.Launcher launcher = new Collection.Launcher();
         if (launcherMap != null) {
-            launcher.setPath(String.valueOf(launcherMap.get("path")));
+//            launcher.setPath(String.valueOf(launcherMap.get("path")));
             launcher.setYaml(String.valueOf(launcherMap.get("yaml")));
             launcher.setHost(String.valueOf(launcherMap.get("host")));
             launcher.setPort(Integer.parseInt(String.valueOf(launcherMap.get("port"))));
@@ -203,7 +203,7 @@ public class CollectionService {
         if (collection.getLauncher() != null) {
             Collection.Launcher launcher = collection.getLauncher();
             builder.startObject("launcher")
-                    .field("path", launcher.getPath() == null ? "" : launcher.getPath())
+//                    .field("path", launcher.getPath() == null ? "" : launcher.getPath())
                     .field("yaml", launcher.getYaml() == null ? "" : launcher.getYaml())
                     .field("host", launcher.getHost() == null ? "" : launcher.getHost())
                     .field("port", launcher.getPort() == 0 ? "" : launcher.getPort())
@@ -221,11 +221,14 @@ public class CollectionService {
 
             if (collection.getIndexA().getUuid() != null) {
                 collection.getIndexA().setAliases(getAlias(clusterId, collection.getIndexA().getIndex()));
+            } else {
+                collection.getIndexA().setAliases(new HashMap<>());
             }
             if (collection.getIndexB().getUuid() != null) {
                 collection.getIndexB().setAliases(getAlias(clusterId, collection.getIndexB().getIndex()));
+            } else {
+                collection.getIndexB().setAliases(new HashMap<>());
             }
-
             return collection;
         }
     }
@@ -304,7 +307,6 @@ public class CollectionService {
             if (launcherSourceAsMap == null) {
                 launcherSourceAsMap = new HashMap<>();
             }
-            launcherSourceAsMap.put("path", collection.getLauncher().getPath());
             launcherSourceAsMap.put("yaml", collection.getLauncher().getYaml());
             launcherSourceAsMap.put("host", collection.getLauncher().getHost());
             launcherSourceAsMap.put("port", collection.getLauncher().getPort());

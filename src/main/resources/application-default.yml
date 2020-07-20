@@ -26,6 +26,7 @@ logging:
     clean-history-on-start: true
     max-size: 100MB
 fastcatx:
+  delete: .fastcatx*
   admin:
     username: admin
     password: admin
@@ -39,6 +40,11 @@ fastcatx:
     index: .fastcatx_collection
     index-suffix-a: -a
     index-suffix-b: -b
+    params:
+      encoding: utf-8
+      bulkSize: 2
+      reset: true
+      threadSize: 1
   jdbc:
     setting: .fastcatx_jdbc
   build:

@@ -6,6 +6,7 @@ import com.danawa.fastcatx.server.excpetions.NotFoundException;
 import com.danawa.fastcatx.server.services.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +19,8 @@ import java.util.*;
 public class ClusterController {
     private static Logger logger = LoggerFactory.getLogger(ClusterController.class);
 
+    private final String deletePrefix;
+
     private final ClusterService clusterService;
     private final DictionaryService dictionaryService;
     private final ReferenceService referenceService;
@@ -25,7 +28,8 @@ public class ClusterController {
     private final JdbcService jdbcService;
     private final IndicesService indicesService;
 
-    public ClusterController(ClusterService clusterService, DictionaryService dictionaryService, ReferenceService referenceService, CollectionService collectionService, IndicesService indicesService, JdbcService jdbcService) {
+    public ClusterController(@Value("${fastcatx.delete}") String deletePrefix, ClusterService clusterService, DictionaryService dictionaryService, ReferenceService referenceService, CollectionService collectionService, IndicesService indicesService, JdbcService jdbcService) {
+        this.deletePrefix = deletePrefix;
         this.clusterService = clusterService;
         this.dictionaryService = dictionaryService;
         this.referenceService = referenceService;
@@ -80,7 +84,8 @@ public class ClusterController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> remove(@PathVariable String id) {
+    public ResponseEntity<?> remove(@PathVariable String id) throws IOException {
+        indicesService.delete(UUID.fromString(id), deletePrefix);
         Cluster removeCluster = clusterService.remove(UUID.fromString(id));
         return new ResponseEntity<>(removeCluster, HttpStatus.OK);
     }

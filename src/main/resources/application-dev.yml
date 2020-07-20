@@ -26,6 +26,7 @@ logging:
     max-history: 30
     max-size: 500MB
 fastcatx:
+  delete: .fastcatx*
   admin:
     username: admin
     password: admin
@@ -39,6 +40,11 @@ fastcatx:
     index: .fastcatx_collection
     index-suffix-a: -a
     index-suffix-b: -b
+    params:
+      encoding: utf-8
+      bulkSize: 500
+      reset: true
+      threadSize: 1
   jdbc:
     setting: .fastcatx_jdbc
   build:

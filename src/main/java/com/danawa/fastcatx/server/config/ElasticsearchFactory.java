@@ -63,26 +63,29 @@ public class ElasticsearchFactory {
 
     private HttpHost[] getHttpHostList(String username, String password, HttpHost httpHost) {
         HttpHost[] httpHosts = null;
-        try {
-            Request request = new Request("GET", "/_cat/nodes");
-            request.addParameter("format", "json");
-            request.addParameter("h", "http");
-            Response response = getClient(username, password, httpHost)
-                    .getLowLevelClient()
-                    .performRequest(request);
-            String responseBody = EntityUtils.toString(response.getEntity());
-            List HostList = new Gson().fromJson(responseBody, List.class);
+//        try {
+////            TODO 도커 컨테이너 환경에선 연결이 안되어 솔루션 필요.
+////            Request request = new Request("GET", "/_cat/nodes");
+////            request.addParameter("format", "json");
+////            request.addParameter("h", "http");
+////            Response response = getClient(username, password, httpHost)
+////                    .getLowLevelClient()
+////                    .performRequest(request);
+////            String responseBody = EntityUtils.toString(response.getEntity());
+////            List HostList = new Gson().fromJson(responseBody, List.class);
+////            httpHosts = new HttpHost[HostList.size() + 1];
+////            httpHosts[0] = httpHost;
+////            for (int i = 0; i < HostList.size(); i++) {
+////                Map<String, Object> hostMap = (Map<String, Object>) HostList.get(i);
+////                String[] host = ((String) hostMap.get("http")).split(":");
+////                httpHosts[i + 1] = new HttpHost(host[0], Integer.parseInt(host[1]), httpHost.getSchemeName());
+////            }
+//        } catch (IOException e) {
+//            logger.error("", e);
+//        }
 
-            httpHosts = new HttpHost[HostList.size() + 1];
-            httpHosts[0] = httpHost;
-            for (int i = 0; i < HostList.size(); i++) {
-                Map<String, Object> hostMap = (Map<String, Object>) HostList.get(i);
-                String[] host = ((String) hostMap.get("http")).split(":");
-                httpHosts[i + 1] = new HttpHost(host[0], Integer.parseInt(host[1]), httpHost.getSchemeName());
-            }
-        } catch (IOException e) {
-            logger.error("", e);
-        }
+        httpHosts = new HttpHost[1];
+        httpHosts[0] = httpHost;
         return httpHosts;
     }
 

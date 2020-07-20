@@ -131,18 +131,18 @@ public class Collection implements Serializable {
     }
 
     public static class Launcher {
-        private String path;
+//        private String path;
         private String yaml;
         private String host;
         private int port;
 
-        public String getPath() {
-            return path;
-        }
-
-        public void setPath(String path) {
-            this.path = path;
-        }
+//        public String getPath() {
+//            return path;
+//        }
+//
+//        public void setPath(String path) {
+//            this.path = path;
+//        }
 
         public String getHost() {
             return host;
@@ -256,4 +256,5 @@ public class Collection implements Serializable {
     public void setStatus(String status) {
         this.status = status;
     }
+
 }
