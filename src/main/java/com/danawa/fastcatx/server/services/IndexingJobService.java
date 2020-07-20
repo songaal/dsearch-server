@@ -22,25 +22,19 @@ import org.yaml.snakeyaml.Yaml;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @ConfigurationProperties(prefix = "fastcatx.collection")
 public class IndexingJobService {
     private static Logger logger = LoggerFactory.getLogger(IndexingJobService.class);
     private final ElasticsearchFactory elasticsearchFactory;
-    private final CollectionService collectionService;
+    private RestTemplate restTemplate;
 
     private Map<String, Object> params;
 
-    private RestTemplate restTemplate;
-
-    public IndexingJobService(ElasticsearchFactory elasticsearchFactory, CollectionService collectionService) {
+    public IndexingJobService(ElasticsearchFactory elasticsearchFactory) {
         this.elasticsearchFactory = elasticsearchFactory;
-        this.collectionService = collectionService;
 
         HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory();
         factory.setConnectTimeout(10 * 1000);
@@ -53,16 +47,15 @@ public class IndexingJobService {
      * indexer를 외부 프로세스로 실행한다.
      *
      * @return */
-    public IndexingStatus indexing(UUID clusterId, String collectionId) throws IndexingJobFailureException {
-        return indexing(clusterId,collectionId, false, null);
+    public IndexingStatus indexing(UUID clusterId, Collection collection) throws IndexingJobFailureException {
+        return indexing(clusterId, collection, false, new ArrayDeque<>());
     }
-    public IndexingStatus indexing(UUID clusterId, String collectionId, Set<IndexStep> nextStep) throws IndexingJobFailureException {
-        return indexing(clusterId,collectionId, false, nextStep);
+    public IndexingStatus indexing(UUID clusterId, Collection collection, Queue<IndexStep> nextStep) throws IndexingJobFailureException {
+        return indexing(clusterId, collection, false, nextStep);
     }
-    public synchronized IndexingStatus indexing(UUID clusterId, String collectionId, boolean autoRun, Set<IndexStep> nextStep) throws IndexingJobFailureException {
+    public synchronized IndexingStatus indexing(UUID clusterId, Collection collection, boolean autoRun, Queue<IndexStep> nextStep) throws IndexingJobFailureException {
         IndexingStatus indexingStatus = new IndexingStatus();
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            Collection collection = collectionService.findById(clusterId, collectionId);
             Collection.Index indexA = collection.getIndexA();
             Collection.Index indexB = collection.getIndexB();
 
@@ -77,6 +70,7 @@ public class IndexingJobService {
             String host = launcher.getHost();
             int port = launcher.getPort();
             Map<String, Object> body = convertRequestParams(launcher.getYaml());
+            body.put("index", index.getIndex());
 
 //            4. indexer 색인 전송
             ResponseEntity<Map> responseEntity = restTemplate.exchange(
@@ -88,7 +82,7 @@ public class IndexingJobService {
 
             String id = (String) responseEntity.getBody().get("id");
             logger.info("Job ID: {}", id);
-            indexingStatus.setCollectionId(collectionId);
+            indexingStatus.setCollectionId(collection.getId());
             indexingStatus.setIndex(index.getIndex());
             indexingStatus.setHost(host);
             indexingStatus.setPort(port);
@@ -160,7 +154,6 @@ public class IndexingJobService {
         }
         return convert;
     }
-
 
 
     public Map<String, Object> getParams() {

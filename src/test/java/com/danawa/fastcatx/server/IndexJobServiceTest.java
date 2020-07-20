@@ -31,14 +31,14 @@ public class IndexJobServiceTest {
     @Test
     public void startTest(){
 
-        try {
-            UUID testUUID = UUID.fromString("1821fb61-d85b-4223-b980-c5560e6aca34");
-            String collectionId = "fUT3aXMBPWfEq1VaJEMW";
-
-            indexingJobService.indexing(testUUID, collectionId);
-        } catch (Exception e) {
-            logger.error("", e);
-        }
+//        try {
+//            UUID testUUID = UUID.fromString("1821fb61-d85b-4223-b980-c5560e6aca34");
+//            String collectionId = "fUT3aXMBPWfEq1VaJEMW";
+//
+////            indexingJobService.indexing(testUUID, collectionId);
+//        } catch (Exception e) {
+//            logger.error("", e);
+//        }
     }
 
 

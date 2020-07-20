@@ -1,5 +1,6 @@
 package com.danawa.fastcatx.server.services;
 
+import com.danawa.fastcatx.server.entity.IndexStep;
 import com.danawa.fastcatx.server.entity.IndexingStatus;
 import com.danawa.fastcatx.server.excpetions.IndexingJobFailureException;
 import org.slf4j.Logger;
@@ -13,9 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
@@ -24,7 +23,7 @@ public class IndexingJobManager {
     private final IndexingJobService indexingJobService;
 
     // KEY: collection id, value: Indexing status
-    private ConcurrentHashMap<String, IndexingStatus> indexing = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<String, IndexingStatus> job = new ConcurrentHashMap<>();
     private static RestTemplate restTemplate;
 
     public IndexingJobManager(IndexingJobService indexingJobService) {
@@ -37,10 +36,10 @@ public class IndexingJobManager {
 
     @Scheduled(cron = "*/5 * * * * *")
     private void fetchIndexingStatus() {
-        if (indexing.size() == 0) {
+        if (job.size() == 0) {
             return;
         }
-        Iterator<Map.Entry<String, IndexingStatus>> entryIterator =indexing.entrySet().iterator();
+        Iterator<Map.Entry<String, IndexingStatus>> entryIterator = job.entrySet().iterator();
         entryIterator.forEachRemaining(entry -> {
             String id = entry.getKey();
             IndexingStatus indexingStatus = entry.getValue();
@@ -48,39 +47,42 @@ public class IndexingJobManager {
                 URI url = URI.create(String.format("http://%s:%d/async/status?id=%s", indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId()));
                 ResponseEntity<Map> responseEntity = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(new HashMap<>()), Map.class);
                 String status = (String) responseEntity.getBody().get("status");
+                logger.debug("{}", status);
 
                 if ("SUCCESS".equalsIgnoreCase(status)) {
-                    indexing.remove(id);
+                    job.remove(id);
 //                    TODO 다음 진행할 스텝이 있을 경우 호출하기.
+                    IndexStep nextStep = indexingStatus.getNextStep().poll();
+                    logger.debug("next Step >> {}", nextStep);
+                } else if ("RUNNING".equalsIgnoreCase(status)) {
+
+                } else if ("ERROR".equalsIgnoreCase(status)) {
+
+                } else if ("READY".equalsIgnoreCase(status)) {
+
                 }
-                logger.debug("{}", status);
             } catch (Exception e) {
                 if (indexingStatus.getRetry() > 0) {
                     indexingStatus.setRetry(indexingStatus.getRetry() - 1);
                 } else {
-//                    TODO retry 하였지만 에러가 발생시.. 히스토리 추가 후 인덱싱에서 제거
-                    indexing.remove(id);
+//                    TODO retry 하였지만 에러가 발생시.. 히스토리 추가 후 잡에서 제거
+                    job.remove(id);
                 }
             }
         });
-
-        // refresh interval: 1s로 다시 원복.
-//            Map<String, Object> success = new HashMap<>();
-//            success.put("refresh_interval", "-1");
-//            success.put("index.routing.allocation.include._exclude", "search*");
-//            client.indices().putSettings(new UpdateSettingsRequest().indices(index).settings(success), RequestOptions.DEFAULT);
     }
 
-    public synchronized void add(String collectionId, IndexingStatus indexingStatus) throws IndexingJobFailureException {
+
+    public void add(String collectionId, IndexingStatus indexingStatus) throws IndexingJobFailureException {
         IndexingStatus registerIndexingStatus = findById(collectionId);
         if (registerIndexingStatus != null) {
             throw new IndexingJobFailureException("Duplicate Collection Indexing");
         }
-        indexing.put(collectionId, indexingStatus);
+        job.put(collectionId, indexingStatus);
     }
 
     public IndexingStatus findById(String collectionId) {
-        return indexing.get(collectionId);
+        return job.get(collectionId);
     }
 
 

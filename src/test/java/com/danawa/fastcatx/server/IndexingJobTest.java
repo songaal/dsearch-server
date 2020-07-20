@@ -17,11 +17,11 @@ public class IndexingJobTest {
 
     @Test
     public void indexTest() {
-        try {
-            indexingJobService.indexing(UUID.fromString("6db92f95-a3c3-4f0c-926a-9c9fdbac281e"), "test");
-        } catch (Exception e) {
-            logger.error("", e);
-        }
+//        try {
+////            indexingJobService.indexing(UUID.fromString("6db92f95-a3c3-4f0c-926a-9c9fdbac281e"), "test");
+//        } catch (Exception e) {
+//            logger.error("", e);
+//        }
     }
 
 }

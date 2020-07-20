@@ -124,13 +124,12 @@ public class CollectionController {
     @PutMapping("/{id}/action")
     public ResponseEntity<?> indexing(@RequestHeader(value = "cluster-id") UUID clusterId,
                                       @PathVariable String id,
-                                      @RequestParam String action) throws IOException, IndexingJobFailureException, URISyntaxException {
+                                      @RequestParam String action) throws IOException, IndexingJobFailureException {
 
         if ("indexing".equalsIgnoreCase(action)) {
-            IndexingStatus indexingStatus = indexingJobService.indexing(clusterId, id);
+            Collection collection = collectionService.findById(clusterId, id);
+            IndexingStatus indexingStatus = indexingJobService.indexing(clusterId, collection);
             indexingJobManager.add(indexingStatus.getCollectionId(), indexingStatus);
-        } else if ("indexing".equalsIgnoreCase(action)) {
-
         }
         return new ResponseEntity<>(HttpStatus.OK);
     }

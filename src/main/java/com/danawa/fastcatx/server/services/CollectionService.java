@@ -3,8 +3,10 @@ package com.danawa.fastcatx.server.services;
 import com.danawa.fastcatx.server.config.ElasticsearchFactory;
 import com.danawa.fastcatx.server.entity.ChangeIndexRequset;
 import com.danawa.fastcatx.server.entity.Collection;
-import com.danawa.fastcatx.server.entity.DictionaryCompileRequest;
+import com.danawa.fastcatx.server.entity.IndexStep;
+import com.danawa.fastcatx.server.entity.IndexingStatus;
 import com.danawa.fastcatx.server.excpetions.DuplicateException;
+import com.danawa.fastcatx.server.excpetions.IndexingJobFailureException;
 import com.google.gson.Gson;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
@@ -12,13 +14,11 @@ import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.*;
-import org.elasticsearch.client.indices.IndexTemplatesExistRequest;
 import org.elasticsearch.client.indices.PutIndexTemplateRequest;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.query.MatchAllQueryBuilder;
@@ -29,10 +29,15 @@ import org.elasticsearch.search.sort.SortOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledFuture;
 
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
@@ -40,28 +45,45 @@ import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 public class CollectionService {
     private static Logger logger = LoggerFactory.getLogger(CollectionService.class);
 
+    private ConcurrentHashMap<String, ScheduledFuture<?>> scheduled = new ConcurrentHashMap<>();
+
+    private final ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
+    private final IndexingJobService indexingJobService;
     private final String COLLECTION_INDEX_JSON = "collection.json";
     private final String collectionIndex;
     private final ElasticsearchFactory elasticsearchFactory;
     private final IndicesService indicesService;
     private final String indexSuffixA;
     private final String indexSuffixB;
+    private final IndexingJobManager indexingJobManager;
 
-    public CollectionService(@Value("${fastcatx.collection.index}") String collectionIndex,
+    public CollectionService(IndexingJobService indexingJobService, @Value("${fastcatx.collection.index}") String collectionIndex,
                              @Value("${fastcatx.collection.index-suffix-a}") String indexSuffixA,
                              @Value("${fastcatx.collection.index-suffix-b}") String indexSuffixB,
                              ElasticsearchFactory elasticsearchFactory,
-                             IndicesService indicesService) {
+                             IndicesService indicesService,
+                             IndexingJobManager indexingJobManager) {
+        this.indexingJobService = indexingJobService;
+        this.indexingJobManager = indexingJobManager;
         this.collectionIndex = collectionIndex;
         this.elasticsearchFactory = elasticsearchFactory;
         this.indicesService = indicesService;
         this.indexSuffixA = indexSuffixA.toLowerCase();
         this.indexSuffixB = indexSuffixB.toLowerCase();
-
+        this.scheduler.initialize();
         if (indexSuffixA.equalsIgnoreCase(indexSuffixB)) {
             throw new IllegalArgumentException("Error [index-suffix-a, index-suffix-b] duplicate");
         }
     }
+
+    @PostConstruct
+    public void init() {
+//        TODO 컬렉션 조회해서 스케쥴 true면 전부 등록하기.
+//        TODO index_last_status ? 색인 중인 인덱스가 있으면 job manager로 전달하기.
+
+
+    }
+
 
     public void fetchSystemIndex(UUID clusterId) throws IOException {
         indicesService.createSystemIndex(clusterId, collectionIndex, COLLECTION_INDEX_JSON);
@@ -324,11 +346,41 @@ public class CollectionService {
             GetResponse getResponse = client.get(new GetRequest().index(collectionIndex).id(id), RequestOptions.DEFAULT);
             Map<String, Object> sourceAsMap = getResponse.getSourceAsMap();
             sourceAsMap.put("scheduled", collection.isScheduled());
-            UpdateResponse updateResponse = client.update(new UpdateRequest().index(collectionIndex).
-                    id(id).
-                    doc(sourceAsMap), RequestOptions.DEFAULT);
+            client.update(new UpdateRequest()
+                    .index(collectionIndex)
+                    .id(id)
+                    .doc(sourceAsMap), RequestOptions.DEFAULT);
+            Collection registerCollection = findById(clusterId, id);
 
-            logger.debug("update Response: {}", updateResponse);
+            String scheduledKey = String.format("%s-%s", clusterId.toString(), registerCollection.getId());
+            if (registerCollection.isScheduled()) {
+                String cron = registerCollection.getCron();
+                scheduled.put(scheduledKey, scheduler.schedule(() -> {
+                    try {
+                        IndexingStatus indexingStatus = indexingJobManager.findById(registerCollection.getId());
+                        if (indexingStatus != null) {
+                            return;
+                        }
+                        Deque<IndexStep> nextStep = new ArrayDeque<>();
+                        nextStep.add(IndexStep.PROPAGATE);
+                        nextStep.add(IndexStep.EXPOSE);
+                        indexingJobManager.add(registerCollection.getId(), indexingJobService.indexing(clusterId, registerCollection, true, nextStep));
+                    } catch (IndexingJobFailureException e) {
+                        logger.error("", e);
+                    }
+                }, new CronTrigger(cron + " *")));
+            } else {
+                ScheduledFuture<?> future = scheduled.get(scheduledKey);
+                if (future != null) {
+                    try {
+                        future.cancel(true);
+                        scheduled.remove(collection.getId());
+                        logger.debug("collection {} >> cancel {}", collection.getId(), future.isCancelled());
+                    } catch (NullPointerException e) {
+                        logger.warn("ignore exception", e.getMessage());
+                    }
+                }
+            }
         }
     }
 

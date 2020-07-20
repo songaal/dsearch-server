@@ -1,6 +1,7 @@
 package com.danawa.fastcatx.server.entity;
 
 import java.io.Serializable;
+import java.util.Queue;
 import java.util.Set;
 
 public class IndexingStatus implements Serializable {
@@ -20,7 +21,7 @@ public class IndexingStatus implements Serializable {
 
     private int retry;
     private IndexStep currentStep;
-    private Set<IndexStep> nextStep;
+    private Queue<IndexStep> nextStep;
 
     public String getCollectionId() {
         return collectionId;
@@ -126,11 +127,11 @@ public class IndexingStatus implements Serializable {
         this.currentStep = currentStep;
     }
 
-    public Set<IndexStep> getNextStep() {
+    public Queue<IndexStep> getNextStep() {
         return nextStep;
     }
 
-    public void setNextStep(Set<IndexStep> nextStep) {
+    public void setNextStep(Queue<IndexStep> nextStep) {
         this.nextStep = nextStep;
     }
 }

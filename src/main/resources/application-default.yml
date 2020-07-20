@@ -43,7 +43,7 @@ fastcatx:
     index-suffix-b: -b
     params:
       encoding: utf-8
-      bulkSize: 2
+      bulkSize: 100
       reset: true
       threadSize: 1
   jdbc:
