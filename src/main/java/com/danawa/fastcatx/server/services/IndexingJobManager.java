@@ -90,6 +90,8 @@ public class IndexingJobManager {
                             jobs.remove(id);
                             deleteLastIndexStatus(client, index, startTime);
                             addIndexHistory(client, index, jobType, startTime, endTime, autoRun, "0", "ERROR", "0");
+                            URI deleteUrl = URI.create(String.format("http://%s:%d/async/%s", indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId()));
+                            restTemplate.exchange(deleteUrl, HttpMethod.DELETE, new HttpEntity<>(new HashMap<>()), String.class);
                             logger.error("[remove job] retry.. {}", indexingStatus.getRetry());
                         } catch (Exception e1) {
                             logger.error("", e1);
@@ -147,6 +149,10 @@ public class IndexingJobManager {
         ResponseEntity<Map> responseEntity = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(new HashMap<>()), Map.class);
         String status = (String) responseEntity.getBody().get("status");
         if ("SUCCESS".equalsIgnoreCase(status) || "ERROR".equalsIgnoreCase(status)) {
+            // indexer job id 삭제.
+            URI deleteUrl = URI.create(String.format("http://%s:%d/async/%s", indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId()));
+            restTemplate.exchange(deleteUrl, HttpMethod.DELETE, new HttpEntity<>(new HashMap<>()), String.class);
+
             UUID clusterId = indexingStatus.getClusterId();
             String index = indexingStatus.getIndex();
             IndexStep step = indexingStatus.getCurrentStep();
@@ -191,12 +197,33 @@ public class IndexingJobManager {
     /**
      * elasticsearch 조회 후 상태 업데이트.
      * */
-    private void updateElasticsearchStatus(String id, IndexingStatus indexingStatus) {
-        // 완료 여부만 체크함.
-        logger.info("전파 Success");
-        jobs.remove(id);
-//        indexingStatus.setStatus("SUCCESS");
+    private void updateElasticsearchStatus(String id, IndexingStatus indexingStatus) throws IOException {
+//        TODO elasticsearch 전파 상태 조회
 
+
+
+
+        UUID clusterId = indexingStatus.getClusterId();
+        String index = indexingStatus.getIndex();
+        IndexStep step = indexingStatus.getCurrentStep();
+        long startTime = indexingStatus.getStartTime();
+        long endTime = System.currentTimeMillis();
+        boolean autoRun = indexingStatus.isAutoRun();
+        try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            Request request = new Request("GET", String.format("/_cat/indices/%s", index));
+            request.addParameter("format", "json");
+            request.addParameter("h", "store.size,docs.count");
+            Response response = client.getLowLevelClient().performRequest(request);
+            String responseBodyString = EntityUtils.toString(response.getEntity());
+            List<Map<String, Object>> catIndices = new Gson().fromJson(responseBodyString, List.class);
+            Map<String, Object> catIndex = catIndices.get(0);
+            String docSize = (String) catIndex.get("docs.count");
+            String store = (String) catIndex.get("store.size");
+            addIndexHistory(client, index, step.name(), startTime, endTime, autoRun, docSize, "SUCCESS", store);
+        } finally {
+            logger.info("전파 Success");
+            jobs.remove(id);
+        }
     }
 
     public void addIndexHistory(RestHighLevelClient client, String index, String jobType, long startTime, long endTime, boolean autoRun, String docSize, String status, String store) {
