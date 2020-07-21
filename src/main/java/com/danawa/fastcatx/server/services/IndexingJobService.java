@@ -6,9 +6,19 @@ import com.danawa.fastcatx.server.entity.IndexStep;
 import com.danawa.fastcatx.server.entity.IndexingStatus;
 import com.danawa.fastcatx.server.excpetions.IndexingJobFailureException;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.indices.CreateIndexRequest;
+import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.MatchQueryBuilder;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.sort.SortOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -31,7 +41,12 @@ public class IndexingJobService {
     private final ElasticsearchFactory elasticsearchFactory;
     private RestTemplate restTemplate;
 
+    private final String lastIndexStatusIndex = ".fastcatx_last_index_status";
+    private final String indexHistory = ".fastcatx_index_history";
+
     private Map<String, Object> params;
+    private Map<String, Object> indexing;
+    private Map<String, Object> propagate;
 
     public IndexingJobService(ElasticsearchFactory elasticsearchFactory) {
         this.elasticsearchFactory = elasticsearchFactory;
@@ -103,8 +118,41 @@ public class IndexingJobService {
     /**
      * 색인 샤드의 TAG 제약을 풀고 전체 클러스터로 확장시킨다.
      * */
-    public void propagate() {
+    public IndexingStatus propagate(UUID clusterId, Collection collection) throws IndexingJobFailureException, IOException {
+        return propagate(clusterId, collection, new ArrayDeque<>());
+    }
+    public IndexingStatus propagate(UUID clusterId, Collection collection, Queue<IndexStep> nextStep) throws IndexingJobFailureException, IOException {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            Collection.Index indexA = collection.getIndexA();
+            Collection.Index indexB = collection.getIndexB();
 
+            QueryBuilder queryBuilder = QueryBuilders.boolQuery().must(new MatchQueryBuilder("status", "SUCCESS"))
+                    .should(new MatchQueryBuilder("index", indexA.getIndex()))
+                    .should(new MatchQueryBuilder("index", indexB.getIndex()));
+
+            SearchRequest searchRequest = new SearchRequest()
+                    .source(new SearchSourceBuilder().query(queryBuilder).size(1).from(0).sort("endTime", SortOrder.DESC));
+            SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
+
+            SearchHit[] searchHits = searchResponse.getHits().getHits();
+            if (searchHits.length != 1) {
+                throw new IndexingJobFailureException("propagate >> Not Matched");
+            }
+            Map<String, Object> source = searchHits[0].getSourceAsMap();
+            String index = (String) source.get("index");
+
+            client.indices().putSettings(new UpdateSettingsRequest().indices(index).settings(propagate), RequestOptions.DEFAULT);
+            IndexingStatus indexingStatus = new IndexingStatus();
+            indexingStatus.setCollectionId(collection.getId());
+            indexingStatus.setClusterId(clusterId);
+            indexingStatus.setIndex(index);
+            indexingStatus.setStartTime(System.currentTimeMillis());
+            indexingStatus.setAutoRun(collection.isAutoRun());
+            indexingStatus.setCurrentStep(IndexStep.PROPAGATE);
+            indexingStatus.setNextStep(nextStep);
+            indexingStatus.setRetry(50);
+            return indexingStatus;
+        }
     }
 
     /**
@@ -128,18 +176,17 @@ public class IndexingJobService {
     }
 
     private void editPreparations(RestHighLevelClient client, Collection.Index index) throws IOException {
-        Map<String, Object> settings = new HashMap<>();
-        settings.put("refresh_interval", "-1");
-        settings.put("index.routing.allocation.include._exclude", "search*");
+        logger.debug("indexing settings >>> {}", indexing);
         if (index.getUuid() == null) {
             // 인덱스 존재하지 않기 때문에 생성해주기.
             // 인덱스 템플릿이 존재하기 때문에 맵핑 설정 패쓰
-            client.indices().create(new CreateIndexRequest(index.getIndex()).settings(settings), RequestOptions.DEFAULT);
+            logger.debug("create settings : {} ", client.indices().create(new CreateIndexRequest(index.getIndex()).settings(indexing), RequestOptions.DEFAULT));
         } else {
             // 기존 인덱스가 존재하기 때문에 셋팅 설정만 변경함.
             // settings에 index.routing.allocation.include._exclude=search* 호출
             // refresh interval: -1로 변경. 색인도중 검색노출하지 않음. 성능향상목적.
-            client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(settings), RequestOptions.DEFAULT);
+//            client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(indexing), RequestOptions.DEFAULT);
+            logger.debug("edit settings : {} ", client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(indexing), RequestOptions.DEFAULT));
         }
     }
     private Map<String, Object> convertRequestParams(String yamlStr) throws IndexingJobFailureException {
@@ -163,5 +210,21 @@ public class IndexingJobService {
 
     public void setParams(Map<String, Object> params) {
         this.params = params;
+    }
+
+    public Map<String, Object> getIndexing() {
+        return indexing;
+    }
+
+    public void setIndexing(Map<String, Object> indexing) {
+        this.indexing = indexing;
+    }
+
+    public Map<String, Object> getPropagate() {
+        return propagate;
+    }
+
+    public void setPropagate(Map<String, Object> propagate) {
+        this.propagate = propagate;
     }
 }

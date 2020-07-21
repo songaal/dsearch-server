@@ -46,6 +46,14 @@ fastcatx:
       bulkSize: 100
       reset: true
       threadSize: 1
+    indexing:
+      "[index.routing.allocation.include._exclude]": search
+      "[index.number_of_replicas]": 0
+      refresh_interval: "-1"
+    propagate:
+      "[index.routing.allocation.include._exclude]": index
+      "[index.number_of_replicas]": 1
+      refresh_interval: "1s"
   jdbc:
     setting: .fastcatx_jdbc
   build:

@@ -137,7 +137,7 @@ public class IndexingJobManager {
         }
     }
 
-    public IndexingStatus findById(String collectionId) {
+    public synchronized IndexingStatus findById(String collectionId) {
         return jobs.get(collectionId);
     }
 
@@ -180,6 +180,7 @@ public class IndexingJobManager {
                 indexingStatus.setStartTime(System.currentTimeMillis());
                 indexingStatus.setEndTime(0L);
                 indexingStatus.setAutoRun(true);
+//                indexingJobService.propagate();
                 jobs.put(id, indexingStatus);
                 logger.debug("next Step >> {}", nextStep);
             } else {

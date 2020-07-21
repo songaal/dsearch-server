@@ -131,6 +131,10 @@ public class CollectionController {
             Collection collection = collectionService.findById(clusterId, id);
             IndexingStatus indexingStatus = indexingJobService.indexing(clusterId, collection, IndexStep.FULL_INDEX);
             indexingJobManager.add(indexingStatus.getCollectionId(), indexingStatus);
+        } else if ("propagate".equalsIgnoreCase(action)) {
+            Collection collection = collectionService.findById(clusterId, id);
+            IndexingStatus indexingStatus = indexingJobService.propagate(clusterId, collection);
+            indexingJobManager.add(indexingStatus.getCollectionId(), indexingStatus);
         }
         return new ResponseEntity<>(HttpStatus.OK);
     }

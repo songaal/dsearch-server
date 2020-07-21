@@ -362,7 +362,8 @@ public class CollectionService {
                         Deque<IndexStep> nextStep = new ArrayDeque<>();
                         nextStep.add(IndexStep.PROPAGATE);
                         nextStep.add(IndexStep.EXPOSE);
-                        indexingJobManager.add(registerCollection.getId(), indexingJobService.indexing(clusterId, registerCollection, true, IndexStep.FULL_INDEX, nextStep));
+                        IndexingStatus status = indexingJobService.indexing(clusterId, registerCollection, true, IndexStep.FULL_INDEX, nextStep);
+                        indexingJobManager.add(registerCollection.getId(), status);
                     } catch (IndexingJobFailureException e) {
                         logger.error("", e);
                     }
