@@ -65,9 +65,6 @@ public class IndexingJobService {
     public IndexingStatus indexing(UUID clusterId, Collection collection, IndexStep step) throws IndexingJobFailureException {
         return indexing(clusterId, collection, false, step, new ArrayDeque<>());
     }
-    public IndexingStatus indexing(UUID clusterId, Collection collection, IndexStep step, Queue<IndexStep> nextStep) throws IndexingJobFailureException {
-        return indexing(clusterId, collection, false, step, nextStep);
-    }
     public synchronized IndexingStatus indexing(UUID clusterId, Collection collection, boolean autoRun, IndexStep step, Queue<IndexStep> nextStep) throws IndexingJobFailureException {
         IndexingStatus indexingStatus = new IndexingStatus();
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
@@ -77,7 +74,7 @@ public class IndexingJobService {
 //            1. 대상 인덱스 찾기.
             Collection.Index index = getTargetIndex(collection.getBaseId(), indexA, indexB);
 
-//            2. 인덱스 설정 변경하기.
+//            2. 인덱스 설정 변경.
             editPreparations(client, index);
 
 //            3. 런처 파라미터 변환작업
@@ -171,7 +168,10 @@ public class IndexingJobService {
             index = indexB;
         } else if (indexB.getAliases().get(baseId) != null) {
             index = indexA;
+        } else {
+            index = indexA;
         }
+        logger.debug("choice Index: {}", index.getIndex());
         return index;
     }
 
@@ -180,13 +180,14 @@ public class IndexingJobService {
         if (index.getUuid() == null) {
             // 인덱스 존재하지 않기 때문에 생성해주기.
             // 인덱스 템플릿이 존재하기 때문에 맵핑 설정 패쓰
-            logger.debug("create settings : {} ", client.indices().create(new CreateIndexRequest(index.getIndex()).settings(indexing), RequestOptions.DEFAULT));
+            boolean isAcknowledged = client.indices().create(new CreateIndexRequest(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
+            logger.debug("create settings : {} ", isAcknowledged);
         } else {
             // 기존 인덱스가 존재하기 때문에 셋팅 설정만 변경함.
             // settings에 index.routing.allocation.include._exclude=search* 호출
             // refresh interval: -1로 변경. 색인도중 검색노출하지 않음. 성능향상목적.
-//            client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(indexing), RequestOptions.DEFAULT);
-            logger.debug("edit settings : {} ", client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(indexing), RequestOptions.DEFAULT));
+            boolean isAcknowledged = client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
+            logger.debug("edit settings : {} ", isAcknowledged);
         }
     }
     private Map<String, Object> convertRequestParams(String yamlStr) throws IndexingJobFailureException {
