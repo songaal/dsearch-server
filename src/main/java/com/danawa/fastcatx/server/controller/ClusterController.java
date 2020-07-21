@@ -85,7 +85,11 @@ public class ClusterController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> remove(@PathVariable String id) throws IOException {
-        indicesService.delete(UUID.fromString(id), deletePrefix);
+        try {
+            indicesService.delete(UUID.fromString(id), deletePrefix);
+        } catch (Exception e) {
+            logger.warn("fastcatx system index remove fail. {}", e.getMessage());
+        }
         Cluster removeCluster = clusterService.remove(UUID.fromString(id));
         return new ResponseEntity<>(removeCluster, HttpStatus.OK);
     }

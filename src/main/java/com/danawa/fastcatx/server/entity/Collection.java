@@ -1,7 +1,6 @@
 package com.danawa.fastcatx.server.entity;
 
 import java.io.Serializable;
-import java.util.List;
 import java.util.Map;
 
 public class Collection implements Serializable {
@@ -16,7 +15,6 @@ public class Collection implements Serializable {
     private Launcher launcher;
     private Index indexA;
     private Index indexB;
-    private String status;
     private boolean autoRun;
 
     public boolean isAutoRun() {
@@ -247,14 +245,6 @@ public class Collection implements Serializable {
 
     public void setIndexB(Index indexB) {
         this.indexB = indexB;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
     }
 
 }

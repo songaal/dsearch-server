@@ -83,6 +83,7 @@ public class IndexingJobService {
             String id = (String) responseEntity.getBody().get("id");
             logger.info("Job ID: {}", id);
             indexingStatus.setCollectionId(collection.getId());
+            indexingStatus.setClusterId(clusterId);
             indexingStatus.setIndex(index.getIndex());
             indexingStatus.setHost(host);
             indexingStatus.setPort(port);
@@ -154,7 +155,6 @@ public class IndexingJobService {
         }
         return convert;
     }
-
 
     public Map<String, Object> getParams() {
         return params;

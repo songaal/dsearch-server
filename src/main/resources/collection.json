@@ -23,9 +23,6 @@
       "jdbcId": {
         "type": "keyword"
       },
-      "status": {
-        "type": "keyword"
-      },
       "cron": {
         "type": "keyword"
       },

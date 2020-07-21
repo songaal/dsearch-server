@@ -183,7 +183,6 @@ public class CollectionService {
         collection.setBaseId(String.valueOf(source.get("baseId")));
         collection.setCron(String.valueOf(source.get("cron")));
         collection.setSourceName(String.valueOf(source.get("sourceName")));
-        collection.setStatus(String.valueOf(source.get("status")));
         collection.setAutoRun(Boolean.valueOf(String.valueOf(source.get("autoRun"))));
 
         Collection.Index indexA = new Collection.Index();
@@ -218,7 +217,6 @@ public class CollectionService {
                 .field("scheduled", collection.isScheduled())
                 .field("autoRun", collection.isAutoRun())
                 .field("sourceName", collection.getSourceName() == null ? "" : collection.getSourceName())
-                .field("status", collection.getStatus() == null ? "" : collection.getStatus())
                 .field("jdbcId", collection.getJdbcId() == null ? "" : collection.getJdbcId())
                 .field("cron", collection.getCron() == null ? "" : collection.getCron());
         if (collection.getLauncher() != null) {

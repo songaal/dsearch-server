@@ -3,6 +3,7 @@ package com.danawa.fastcatx.server.entity;
 import java.io.Serializable;
 import java.util.Queue;
 import java.util.Set;
+import java.util.UUID;
 
 public class IndexingStatus implements Serializable {
     private String collectionId;
@@ -11,7 +12,7 @@ public class IndexingStatus implements Serializable {
     private String index;
     private String indexingJobId;
     private boolean isAutoRun;
-
+    private UUID clusterId;
 
     private String status;
     private String error;
@@ -133,5 +134,13 @@ public class IndexingStatus implements Serializable {
 
     public void setNextStep(Queue<IndexStep> nextStep) {
         this.nextStep = nextStep;
+    }
+
+    public UUID getClusterId() {
+        return clusterId;
+    }
+
+    public void setClusterId(UUID clusterId) {
+        this.clusterId = clusterId;
     }
 }
