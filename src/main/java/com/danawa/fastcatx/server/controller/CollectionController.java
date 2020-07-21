@@ -2,6 +2,7 @@ package com.danawa.fastcatx.server.controller;
 
 import com.danawa.fastcatx.server.entity.ChangeIndexRequset;
 import com.danawa.fastcatx.server.entity.Collection;
+import com.danawa.fastcatx.server.entity.IndexStep;
 import com.danawa.fastcatx.server.entity.IndexingStatus;
 import com.danawa.fastcatx.server.excpetions.DuplicateException;
 import com.danawa.fastcatx.server.excpetions.IndexingJobFailureException;
@@ -128,7 +129,7 @@ public class CollectionController {
 
         if ("indexing".equalsIgnoreCase(action)) {
             Collection collection = collectionService.findById(clusterId, id);
-            IndexingStatus indexingStatus = indexingJobService.indexing(clusterId, collection);
+            IndexingStatus indexingStatus = indexingJobService.indexing(clusterId, collection, IndexStep.FULL_INDEX);
             indexingJobManager.add(indexingStatus.getCollectionId(), indexingStatus);
         }
         return new ResponseEntity<>(HttpStatus.OK);

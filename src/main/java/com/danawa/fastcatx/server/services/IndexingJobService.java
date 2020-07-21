@@ -47,13 +47,13 @@ public class IndexingJobService {
      * indexer를 외부 프로세스로 실행한다.
      *
      * @return */
-    public IndexingStatus indexing(UUID clusterId, Collection collection) throws IndexingJobFailureException {
-        return indexing(clusterId, collection, false, new ArrayDeque<>());
+    public IndexingStatus indexing(UUID clusterId, Collection collection, IndexStep step) throws IndexingJobFailureException {
+        return indexing(clusterId, collection, false, step, new ArrayDeque<>());
     }
-    public IndexingStatus indexing(UUID clusterId, Collection collection, Queue<IndexStep> nextStep) throws IndexingJobFailureException {
-        return indexing(clusterId, collection, false, nextStep);
+    public IndexingStatus indexing(UUID clusterId, Collection collection, IndexStep step, Queue<IndexStep> nextStep) throws IndexingJobFailureException {
+        return indexing(clusterId, collection, false, step, nextStep);
     }
-    public synchronized IndexingStatus indexing(UUID clusterId, Collection collection, boolean autoRun, Queue<IndexStep> nextStep) throws IndexingJobFailureException {
+    public synchronized IndexingStatus indexing(UUID clusterId, Collection collection, boolean autoRun, IndexStep step, Queue<IndexStep> nextStep) throws IndexingJobFailureException {
         IndexingStatus indexingStatus = new IndexingStatus();
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Collection.Index indexA = collection.getIndexA();
@@ -89,7 +89,7 @@ public class IndexingJobService {
             indexingStatus.setPort(port);
             indexingStatus.setIndexingJobId(id);
             indexingStatus.setAutoRun(autoRun);
-            indexingStatus.setCurrentStep(IndexStep.INDEX);
+            indexingStatus.setCurrentStep(step);
             indexingStatus.setNextStep(nextStep);
             indexingStatus.setRetry(50);
         } catch (Exception e) {

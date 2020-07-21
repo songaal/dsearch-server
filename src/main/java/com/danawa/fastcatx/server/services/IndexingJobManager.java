@@ -4,8 +4,12 @@ import com.danawa.fastcatx.server.config.ElasticsearchFactory;
 import com.danawa.fastcatx.server.entity.IndexStep;
 import com.danawa.fastcatx.server.entity.IndexingStatus;
 import com.danawa.fastcatx.server.excpetions.IndexingJobFailureException;
+import com.google.gson.Gson;
+import org.apache.http.util.EntityUtils;
 import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.client.Request;
 import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.MatchQueryBuilder;
@@ -20,6 +24,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -61,10 +66,12 @@ public class IndexingJobManager {
             try {
                 if (step == null) {
                     throw new Exception("Invalid Step");
-                } else if (step == IndexStep.INDEX) {
+                } else if (step == IndexStep.FULL_INDEX || step == IndexStep.DYNAMIC_INDEX) {
+                    // indexer한테 상태를 조회한다.
                     updateIndexerStatus(id, indexingStatus);
                 } else if (step == IndexStep.PROPAGATE) {
-                    updateRecoveryStatus(id, indexingStatus);
+                    // elsticsearch한테 상태를 조회한다.
+                    updateElasticsearchStatus(id, indexingStatus);
                 } else {
                     logger.error("index: {}, NOT Matched Step.. {}", indexingStatus.getIndex(), step);
                 }
@@ -72,9 +79,33 @@ public class IndexingJobManager {
                 if (indexingStatus.getRetry() > 0) {
                     indexingStatus.setRetry(indexingStatus.getRetry() - 1);
                 } else {
-//                    TODO retry 하였지만 에러가 발생시.. 히스토리 추가 후 잡에서 제거
-                    jobs.remove(id);
-                    logger.error("[remove job] retry.. {}", indexingStatus.getRetry());
+                    UUID clusterId = indexingStatus.getClusterId();
+                    String index = indexingStatus.getIndex();
+                    String jobType = step.name();
+                    long startTime = indexingStatus.getStartTime();
+                    long endTime = System.currentTimeMillis();
+                    boolean autoRun = indexingStatus.isAutoRun();
+                    if (step == IndexStep.FULL_INDEX || step == IndexStep.DYNAMIC_INDEX) {
+                        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+                            jobs.remove(id);
+                            deleteLastIndexStatus(client, index, startTime);
+                            addIndexHistory(client, index, jobType, startTime, endTime, autoRun, "0", "ERROR", "0");
+                            logger.error("[remove job] retry.. {}", indexingStatus.getRetry());
+                        } catch (Exception e1) {
+                            logger.error("", e1);
+                        }
+                    } else if (step == IndexStep.PROPAGATE) {
+                        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+                            jobs.remove(id);
+                            addIndexHistory(client, index, jobType, startTime, endTime, autoRun, "0", "ERROR", "0");
+                            logger.error("[remove job] retry.. {}", indexingStatus.getRetry());
+                        } catch (Exception e1) {
+                            logger.error("", e1);
+                        }
+                    } else {
+                        jobs.remove(id);
+                        logger.error("[remove job] retry.. {}", indexingStatus.getRetry());
+                    }
                 }
             }
         });
@@ -88,7 +119,20 @@ public class IndexingJobManager {
         if (registerIndexingStatus != null) {
             throw new IndexingJobFailureException("Duplicate Collection Indexing");
         }
-        jobs.put(collectionId, indexingStatus);
+        if (indexingStatus.getCurrentStep() == null) {
+            throw new IndexingJobFailureException("Empty Current Step");
+        }
+
+
+        if (IndexStep.FULL_INDEX == indexingStatus.getCurrentStep() || indexingStatus.getCurrentStep() == IndexStep.DYNAMIC_INDEX) {
+            try (RestHighLevelClient client = elasticsearchFactory.getClient(indexingStatus.getClusterId())) {
+                addLastIndexStatus(client, indexingStatus.getIndex(), indexingStatus.getStartTime(), "READY");
+                jobs.put(collectionId, indexingStatus);
+            } catch (IOException e) {
+                logger.error("", e);
+                throw new IndexingJobFailureException(e);
+            }
+        }
     }
 
     public IndexingStatus findById(String collectionId) {
@@ -98,31 +142,59 @@ public class IndexingJobManager {
     /**
      * indexer 조회 후 상태 업데이트.
      * */
-    private void updateIndexerStatus(String id, IndexingStatus indexingStatus) {
+    private void updateIndexerStatus(String id, IndexingStatus indexingStatus) throws IOException {
         URI url = URI.create(String.format("http://%s:%d/async/status?id=%s", indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId()));
         ResponseEntity<Map> responseEntity = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(new HashMap<>()), Map.class);
         String status = (String) responseEntity.getBody().get("status");
-        if ("SUCCESS".equalsIgnoreCase(status)) {
+        if ("SUCCESS".equalsIgnoreCase(status) || "ERROR".equalsIgnoreCase(status)) {
+            UUID clusterId = indexingStatus.getClusterId();
+            String index = indexingStatus.getIndex();
+            IndexStep step = indexingStatus.getCurrentStep();
+            long startTime = indexingStatus.getStartTime();
+            long endTime = System.currentTimeMillis();
+            boolean autoRun = indexingStatus.isAutoRun();
+            try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+                Request request = new Request("GET", String.format("/_cat/indices/%s", index));
+                request.addParameter("format", "json");
+                request.addParameter("h", "store.size,docs.count");
+                Response response = client.getLowLevelClient().performRequest(request);
+                String responseBodyString = EntityUtils.toString(response.getEntity());
+                List<Map<String, Object>> catIndices = new Gson().fromJson(responseBodyString, List.class);
+                Map<String, Object> catIndex = catIndices.get(0);
+                String docSize = (String) catIndex.get("docs.count");
+                String store = (String) catIndex.get("store.size");
+                deleteLastIndexStatus(client, index, startTime);
+                addIndexHistory(client, index, step.name(), startTime, endTime, autoRun, docSize, status.toUpperCase(), store);
+            }
+
             IndexStep nextStep = indexingStatus.getNextStep().poll();
-            if (nextStep != null) {
-                logger.debug("next Step >> {}", nextStep);
+            if ("SUCCESS".equalsIgnoreCase(status) && nextStep != null) {
                 indexingStatus.setCurrentStep(nextStep);
+                indexingStatus.setRetry(50);
+                indexingStatus.setStartTime(System.currentTimeMillis());
+                indexingStatus.setEndTime(0L);
+                indexingStatus.setAutoRun(true);
+                jobs.put(id, indexingStatus);
+                logger.debug("next Step >> {}", nextStep);
             } else {
-                logger.debug("empty next Step >> {}", id);
                 // 다음 작업이 없으면 제거.
                 jobs.remove(id);
+                logger.debug("empty next status : {} Step >> {}", status, id);
             }
-        } else if ("ERROR".equalsIgnoreCase(status)) {
-            // TODO index_history 내역 추가.
-            jobs.remove(id);
+        } else {
+            indexingStatus.setStatus(status);
+            jobs.put(id, indexingStatus);
         }
     }
 
     /**
      * elasticsearch 조회 후 상태 업데이트.
      * */
-    private void updateRecoveryStatus(String id, IndexingStatus indexingStatus) {
+    private void updateElasticsearchStatus(String id, IndexingStatus indexingStatus) {
         // 완료 여부만 체크함.
+        logger.info("전파 Success");
+        jobs.remove(id);
+//        indexingStatus.setStatus("SUCCESS");
 
     }
 

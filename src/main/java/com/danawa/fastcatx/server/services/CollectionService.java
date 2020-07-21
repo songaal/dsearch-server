@@ -353,7 +353,7 @@ public class CollectionService {
             String scheduledKey = String.format("%s-%s", clusterId.toString(), registerCollection.getId());
             if (registerCollection.isScheduled()) {
                 String cron = registerCollection.getCron();
-                scheduled.put(scheduledKey, scheduler.schedule(() -> {
+                scheduled.put(scheduledKey, Objects.requireNonNull(scheduler.schedule(() -> {
                     try {
                         IndexingStatus indexingStatus = indexingJobManager.findById(registerCollection.getId());
                         if (indexingStatus != null) {
@@ -362,11 +362,11 @@ public class CollectionService {
                         Deque<IndexStep> nextStep = new ArrayDeque<>();
                         nextStep.add(IndexStep.PROPAGATE);
                         nextStep.add(IndexStep.EXPOSE);
-                        indexingJobManager.add(registerCollection.getId(), indexingJobService.indexing(clusterId, registerCollection, true, nextStep));
+                        indexingJobManager.add(registerCollection.getId(), indexingJobService.indexing(clusterId, registerCollection, true, IndexStep.FULL_INDEX, nextStep));
                     } catch (IndexingJobFailureException e) {
                         logger.error("", e);
                     }
-                }, new CronTrigger(cron + " *")));
+                }, new CronTrigger("* " + cron))));
             } else {
                 ScheduledFuture<?> future = scheduled.get(scheduledKey);
                 if (future != null) {
