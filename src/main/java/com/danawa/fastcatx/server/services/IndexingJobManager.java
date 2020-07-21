@@ -185,6 +185,7 @@ public class IndexingJobManager {
             indexingStatus.setStatus(status);
             jobs.put(id, indexingStatus);
         }
+        logger.debug("index: {}, status: {}", indexingStatus.getIndex(), status);
     }
 
     /**

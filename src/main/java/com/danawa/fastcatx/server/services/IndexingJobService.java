@@ -86,6 +86,7 @@ public class IndexingJobService {
             indexingStatus.setClusterId(clusterId);
             indexingStatus.setIndex(index.getIndex());
             indexingStatus.setHost(host);
+            indexingStatus.setStartTime(System.currentTimeMillis());
             indexingStatus.setPort(port);
             indexingStatus.setIndexingJobId(id);
             indexingStatus.setAutoRun(autoRun);
