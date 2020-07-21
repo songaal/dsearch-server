@@ -284,7 +284,7 @@ public class CollectionService {
                 tmpIndex.setPriStoreSize(String.valueOf(((Map) indexEntityList.get(0)).get("pri.store.size")));
             }
         } catch (IOException e) {
-            logger.debug("NotFoundIndex: {}", index);
+            logger.warn("NotFoundIndex: {}", index);
         }
         return tmpIndex;
     }
