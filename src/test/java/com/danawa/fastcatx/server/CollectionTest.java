@@ -29,13 +29,13 @@ public class CollectionTest {
     @Test
     public void propagateTest() {
         UUID clusterId = UUID.fromString("a4ac402c-b18c-45b4-916a-88e09cc7165e");
-        String collectionId = "naOBcHMBfPWyeN6Dveab";
-        try {
-            Collection collection = collectionService.findById(clusterId, collectionId);
-            indexingJobService.propagate(clusterId, collection);
-        } catch (Exception e) {
-            logger.error("", e);
-        }
+//        String collectionId = "naOBcHMBfPWyeN6Dveab";
+//        try {
+//            Collection collection = collectionService.findById(clusterId, collectionId);
+//            indexingJobService.propagate(clusterId, false, collection);
+//        } catch (Exception e) {
+//            logger.error("", e);
+//        }
 
 
 
