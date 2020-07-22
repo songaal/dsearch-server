@@ -5,6 +5,9 @@
   },
   "mappings": {
     "properties": {
+      "collectionId": {
+        "type": "keyword"
+      },
       "index": {
         "type": "keyword"
       },

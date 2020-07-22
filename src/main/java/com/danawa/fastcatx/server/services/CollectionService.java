@@ -44,6 +44,7 @@ public class CollectionService {
     private static Logger logger = LoggerFactory.getLogger(CollectionService.class);
 
     private ConcurrentHashMap<String, ScheduledFuture<?>> scheduled = new ConcurrentHashMap<>();
+    private final String lastIndexStatusIndex = ".fastcatx_last_index_status";
 
     private final ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
     private final IndexingJobService indexingJobService;
@@ -78,42 +79,88 @@ public class CollectionService {
 
     @PostConstruct
     public void init() {
-//        TODO 컬렉션 조회해서 스케쥴 true면 전부 등록하기.
-//        TODO index_last_status ? 색인 중인 인덱스가 있으면 job manager로 전달하기.
 //        1. 등록된 모든 클러스터 조회
         List<Cluster> clusterList = clusterService.findAll();
 
         int clusterSize = clusterList.size();
         for (int i = 0; i < clusterSize; i++) {
-            try {
-                Cluster cluster = clusterList.get(i);
-//                1. 클러스터별로 기존 색인 중인 잡을 다시 등록한다.
-                fetchIndexingCollections(cluster);
+            Cluster cluster = clusterList.get(i);
+            try (RestHighLevelClient client = elasticsearchFactory.getClient(cluster.getId())) {
+//                1. 클러스터별로 기존 작업 중인 잡을 다시 등록한다.
+                SearchResponse lastIndexResponse = client.search(new SearchRequest(lastIndexStatusIndex)
+                        .source(new SearchSourceBuilder()
+                                .size(10000)
+                                .from(0))
+                        , RequestOptions.DEFAULT);
+                lastIndexResponse.getHits().forEach(documentFields -> {
+                    try {
+                        Map<String, Object> source = documentFields.getSourceAsMap();
+                        String collectionId = (String) source.get("collectionId");
+                        String jobId = String.valueOf(source.getOrDefault("jobId", ""));
+                        String index = (String) source.get("index");
+                        long startTime = (long) source.get("startTime");
+                        IndexStep step = IndexStep.valueOf(String.valueOf(source.get("step")));
+                        Collection collection = findById(cluster.getId(), collectionId);
+                        Collection.Launcher launcher = collection.getLauncher();
+                        IndexingStatus indexingStatus = new IndexingStatus();
+
+                        indexingStatus.setClusterId(cluster.getId());
+                        indexingStatus.setIndex(index);
+                        indexingStatus.setStartTime(startTime);
+                        if (launcher != null) {
+                            indexingStatus.setIndexingJobId(jobId);
+                            indexingStatus.setHost(launcher.getHost());
+                            indexingStatus.setPort(launcher.getPort());
+                        }
+                        indexingStatus.setAutoRun(true);
+                        indexingStatus.setCurrentStep(step);
+//                        indexingStatus.setNextStep(nextStep);
+                        indexingStatus.setRetry(50);
+                        indexingStatus.setCollection(collection);
+                        if(indexingJobManager.findById(collectionId) == null) {
+                            indexingJobManager.add(collectionId, indexingStatus, false);
+                            logger.debug("collection register job: {}", collectionId);
+                        }
+                    } catch (Exception e) {
+                        logger.error("[INIT ERROR] ", e);
+                    }
+                });
 
 //                2. 컬렉션의 스케쥴이 enabled 이면 다시 스케쥴을 등록한다.
-                fetchScheduledCollections(cluster);
+                List<Collection> collectionList = findAll(cluster.getId());
+                if (collectionList != null) {
+                    collectionList.forEach(collection -> {
+                        try {
+                            if(collection.isScheduled()) {
+                                String cron = collection.getCron();
+                                String scheduledKey = String.format("%s-%s", cluster.getId(), collection.getId());
+                                scheduled.put(scheduledKey, Objects.requireNonNull(scheduler.schedule(() -> {
+                                    try {
+                                        IndexingStatus indexingStatus = indexingJobManager.findById(collection.getId());
+                                        if (indexingStatus != null) {
+                                            return;
+                                        }
+                                        Deque<IndexStep> nextStep = new ArrayDeque<>();
+                                        nextStep.add(IndexStep.PROPAGATE);
+                                        nextStep.add(IndexStep.EXPOSE);
+                                        IndexingStatus status = indexingJobService.indexing(cluster.getId(), collection, true, IndexStep.FULL_INDEX, nextStep);
+                                        indexingJobManager.add(collection.getId(), status);
+                                        logger.debug("enabled scheduled collection: {}", collection.getId());
+                                    } catch (IndexingJobFailureException e) {
+                                        logger.error("[INIT ERROR] ", e);
+                                    }
+                                }, new CronTrigger(cron + " *"))));
+
+                            }
+                        } catch (Exception e) {
+                            logger.error("[INIT ERROR] ", e);
+                        }
+                    });
+                }
             } catch (Exception e) {
-                logger.error("init error", e);
+                logger.error("[INIT ERROR]", e);
             }
-        }
-    }
-
-    private void fetchIndexingCollections(Cluster cluster) {
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(cluster.getId())){
-//            TODO 인덱스에서 수집해서 잡 등록
-
-        } catch (Exception e) {
-
-        }
-    }
-
-    private void fetchScheduledCollections(Cluster cluster) {
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(cluster.getId())){
-//            TODO 인덱스에서 수집해서 잡 등록
-
-
-        } catch (Exception e) {
-
+            logger.debug("init finished");
         }
     }
 
@@ -399,7 +446,7 @@ public class CollectionService {
                     } catch (IndexingJobFailureException e) {
                         logger.error("", e);
                     }
-                }, new CronTrigger("* " + cron))));
+                }, new CronTrigger(cron + " *"))));
             } else {
                 ScheduledFuture<?> future = scheduled.get(scheduledKey);
                 if (future != null) {

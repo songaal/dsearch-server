@@ -6,6 +6,8 @@ import com.danawa.fastcatx.server.entity.IndexStep;
 import com.danawa.fastcatx.server.entity.IndexingStatus;
 import com.danawa.fastcatx.server.excpetions.IndexingJobFailureException;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
+import org.elasticsearch.action.get.GetRequest;
+import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
@@ -19,6 +21,7 @@ import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
@@ -39,15 +42,16 @@ public class IndexingJobService {
     private final ElasticsearchFactory elasticsearchFactory;
     private RestTemplate restTemplate;
 
-    private final String lastIndexStatusIndex = ".fastcatx_last_index_status";
-    private final String indexHistory = ".fastcatx_index_history";
+    private final String jdbcSystemIndex;
 
     private Map<String, Object> params;
     private Map<String, Object> indexing;
     private Map<String, Object> propagate;
 
-    public IndexingJobService(ElasticsearchFactory elasticsearchFactory) {
+    public IndexingJobService(ElasticsearchFactory elasticsearchFactory,
+                              @Value("${fastcatx.jdbc.setting}")String jdbcSystemIndex) {
         this.elasticsearchFactory = elasticsearchFactory;
+        this.jdbcSystemIndex = jdbcSystemIndex;
 
         HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory();
         factory.setConnectTimeout(10 * 1000);
@@ -80,6 +84,10 @@ public class IndexingJobService {
             String host = launcher.getHost();
             int port = launcher.getPort();
             Map<String, Object> body = convertRequestParams(launcher.getYaml());
+            if (collection.getJdbcId() != null && !"".equals(collection.getJdbcId())) {
+                GetResponse getResponse = client.get(new GetRequest().index(jdbcSystemIndex).id(collection.getJdbcId()), RequestOptions.DEFAULT);
+                body.put("_jdbc", getResponse.getSourceAsMap());
+            }
             body.put("index", index.getIndex());
             body.put("_indexingSettings", indexing);
 
