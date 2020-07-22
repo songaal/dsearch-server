@@ -6,8 +6,9 @@ import java.util.Set;
 import java.util.UUID;
 
 public class IndexingStatus implements Serializable {
+
     private Collection collection;
-    private String collectionId;
+
     private String host;
     private int port;
     private String index;
@@ -31,14 +32,6 @@ public class IndexingStatus implements Serializable {
 
     public Collection getCollection() {
         return collection;
-    }
-
-    public String getCollectionId() {
-        return collectionId;
-    }
-
-    public void setCollectionId(String collectionId) {
-        this.collectionId = collectionId;
     }
 
     public String getHost() {

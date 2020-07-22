@@ -5,6 +5,9 @@
   },
   "mappings": {
     "properties": {
+      "collectionId": {
+        "type": "keyword"
+      },
       "index": {
         "type": "keyword"
       },
@@ -12,6 +15,12 @@
         "type": "date"
       },
       "status": {
+        "type": "keyword"
+      },
+      "step": {
+        "type": "keyword"
+      },
+      "jobId": {
         "type": "keyword"
       }
     }

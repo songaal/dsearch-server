@@ -75,11 +75,11 @@ public class IndexingJobManagerTest {
         long startTime = 1595305624824L;
         String status = "RUNNING";
 
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            indexingJobManager.addLastIndexStatus(client, index, startTime, status);
-        } catch(Exception e) {
-            logger.error("addIndexHistory >> clusterId: {}, index: {}", clusterId, index, e);
-        }
+//        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+//            indexingJobManager.addLastIndexStatus(client, index, startTime, status);
+//        } catch(Exception e) {
+//            logger.error("addIndexHistory >> clusterId: {}, index: {}", clusterId, index, e);
+//        }
     }
 
     @Test

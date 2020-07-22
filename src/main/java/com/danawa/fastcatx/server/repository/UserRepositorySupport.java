@@ -1,6 +1,5 @@
 package com.danawa.fastcatx.server.repository;
 
-import com.danawa.fastcatx.server.entity.QUser;
 import com.danawa.fastcatx.server.entity.User;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.springframework.data.jpa.repository.support.QuerydslRepositorySupport;

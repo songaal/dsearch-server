@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -38,7 +39,8 @@ public class ClusterService {
     }
 
     public List<Cluster> findAll() {
-        return clusterRepository.findAll();
+        List<Cluster> clusterList = clusterRepository.findAll();
+        return clusterList == null ? new ArrayList<>() : clusterList;
     }
 
     public Cluster find(UUID id) {

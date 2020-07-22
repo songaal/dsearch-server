@@ -31,7 +31,7 @@ public class AuthFilter extends OncePerRequestFilter {
         HttpSession session = httpServletRequest.getSession();
         String sessionId = session.getId();
         AuthUser authUser = (AuthUser) session.getAttribute(AuthController.SESSION_KEY);
-        logger.debug("sessionId: {}, isAuth: {}, URI: {}", sessionId, authUser != null, httpServletRequest.getRequestURI());
+//        logger.debug("sessionId: {}, isAuth: {}, URI: {}", sessionId, authUser != null, httpServletRequest.getRequestURI());
 
         String uri = httpServletRequest.getRequestURI();
         if (!bypassUri.contains(uri) && authUser == null) {

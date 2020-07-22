@@ -5,21 +5,23 @@ import com.danawa.fastcatx.server.entity.Collection;
 import com.danawa.fastcatx.server.entity.IndexStep;
 import com.danawa.fastcatx.server.entity.IndexingStatus;
 import com.danawa.fastcatx.server.excpetions.IndexingJobFailureException;
-import org.apache.http.util.EntityUtils;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
+import org.elasticsearch.action.get.GetRequest;
+import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.*;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.indices.CreateIndexRequest;
-import org.elasticsearch.index.query.*;
+import org.elasticsearch.index.query.MatchQueryBuilder;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
-import org.elasticsearch.search.sort.FieldSortBuilder;
-import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
@@ -40,15 +42,16 @@ public class IndexingJobService {
     private final ElasticsearchFactory elasticsearchFactory;
     private RestTemplate restTemplate;
 
-    private final String lastIndexStatusIndex = ".fastcatx_last_index_status";
-    private final String indexHistory = ".fastcatx_index_history";
+    private final String jdbcSystemIndex;
 
     private Map<String, Object> params;
     private Map<String, Object> indexing;
     private Map<String, Object> propagate;
 
-    public IndexingJobService(ElasticsearchFactory elasticsearchFactory) {
+    public IndexingJobService(ElasticsearchFactory elasticsearchFactory,
+                              @Value("${fastcatx.jdbc.setting}")String jdbcSystemIndex) {
         this.elasticsearchFactory = elasticsearchFactory;
+        this.jdbcSystemIndex = jdbcSystemIndex;
 
         HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory();
         factory.setConnectTimeout(10 * 1000);
@@ -61,13 +64,10 @@ public class IndexingJobService {
      * indexer를 외부 프로세스로 실행한다.
      *
      * @return */
-    public IndexingStatus indexing(UUID clusterId, Collection collection, IndexStep step) throws IndexingJobFailureException {
-        return indexing(clusterId, collection, false, step, new ArrayDeque<>());
+    public IndexingStatus indexing(UUID clusterId, Collection collection, boolean autoRun, IndexStep step) throws IndexingJobFailureException {
+        return indexing(clusterId, collection, autoRun, step, new ArrayDeque<>());
     }
-    public IndexingStatus indexing(UUID clusterId, Collection collection, IndexStep step, Queue<IndexStep> nextStep) throws IndexingJobFailureException {
-        return indexing(clusterId, collection, false, step, nextStep);
-    }
-    public synchronized IndexingStatus indexing(UUID clusterId, Collection collection, boolean autoRun, IndexStep step, Queue<IndexStep> nextStep) throws IndexingJobFailureException {
+    public IndexingStatus indexing(UUID clusterId, Collection collection, boolean autoRun, IndexStep step, Queue<IndexStep> nextStep) throws IndexingJobFailureException {
         IndexingStatus indexingStatus = new IndexingStatus();
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Collection.Index indexA = collection.getIndexA();
@@ -76,7 +76,7 @@ public class IndexingJobService {
 //            1. 대상 인덱스 찾기.
             Collection.Index index = getTargetIndex(collection.getBaseId(), indexA, indexB);
 
-//            2. 인덱스 설정 변경하기.
+//            2. 인덱스 설정 변경.
             editPreparations(client, index);
 
 //            3. 런처 파라미터 변환작업
@@ -84,7 +84,12 @@ public class IndexingJobService {
             String host = launcher.getHost();
             int port = launcher.getPort();
             Map<String, Object> body = convertRequestParams(launcher.getYaml());
+            if (collection.getJdbcId() != null && !"".equals(collection.getJdbcId())) {
+                GetResponse getResponse = client.get(new GetRequest().index(jdbcSystemIndex).id(collection.getJdbcId()), RequestOptions.DEFAULT);
+                body.put("_jdbc", getResponse.getSourceAsMap());
+            }
             body.put("index", index.getIndex());
+            body.put("_indexingSettings", indexing);
 
 //            4. indexer 색인 전송
             ResponseEntity<Map> responseEntity = restTemplate.exchange(
@@ -96,8 +101,7 @@ public class IndexingJobService {
 
             String id = (String) responseEntity.getBody().get("id");
             logger.info("Job ID: {}", id);
-            indexingStatus.setCollection(collection);
-            indexingStatus.setCollectionId(collection.getId());
+//            indexingStatus.setCollectionId(collection.getId());
             indexingStatus.setClusterId(clusterId);
             indexingStatus.setIndex(index.getIndex());
             indexingStatus.setHost(host);
@@ -108,6 +112,7 @@ public class IndexingJobService {
             indexingStatus.setCurrentStep(step);
             indexingStatus.setNextStep(nextStep);
             indexingStatus.setRetry(50);
+            indexingStatus.setCollection(collection);
         } catch (Exception e) {
             logger.error("", e);
             throw new IndexingJobFailureException(e);
@@ -118,55 +123,21 @@ public class IndexingJobService {
     /**
      * 색인 샤드의 TAG 제약을 풀고 전체 클러스터로 확장시킨다.
      * */
-    public IndexingStatus propagate(UUID clusterId, Collection collection) throws IndexingJobFailureException, IOException {
-        return propagate(clusterId, collection, new ArrayDeque<>());
+    public IndexingStatus propagate(UUID clusterId, boolean autoRun, Collection collection) throws IndexingJobFailureException, IOException {
+        return propagate(clusterId, autoRun, collection, new ArrayDeque<>());
     }
-    public synchronized IndexingStatus propagate(UUID clusterId, Collection collection, Queue<IndexStep> nextStep) throws IndexingJobFailureException {
-        logger.info("전파 시작");
-        IndexingStatus indexingStatus = new IndexingStatus();
+    public IndexingStatus propagate(UUID clusterId, boolean autoRun, Collection collection, Queue<IndexStep> nextStep) throws IndexingJobFailureException, IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Collection.Index indexA = collection.getIndexA();
             Collection.Index indexB = collection.getIndexB();
 
-            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder()
-                    .query(QueryBuilders.boolQuery()
-                            .minimumShouldMatch(1)
-                            .must(new MatchQueryBuilder("status", "SUCCESS"))
-                            .should(new MatchQueryBuilder("index", indexA.getIndex()))
-                            .should(new MatchQueryBuilder("index", indexB.getIndex())))
-                    .sort(new FieldSortBuilder("endTime").order(SortOrder.DESC)).size(1).from(0);
+            QueryBuilder queryBuilder = QueryBuilders.boolQuery().must(new MatchQueryBuilder("status", "SUCCESS"))
+                    .should(new MatchQueryBuilder("index", indexA.getIndex()))
+                    .should(new MatchQueryBuilder("index", indexB.getIndex()));
 
-            SearchRequest searchRequest = new SearchRequest().indices(indexHistory).source(searchSourceBuilder);
+            SearchRequest searchRequest = new SearchRequest()
+                    .source(new SearchSourceBuilder().query(queryBuilder).size(1).from(0).sort("endTime", SortOrder.DESC));
             SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
-
-//            Request request = new Request("POST", "/.fastcatx_index_history/_search");
-//            request.setJsonEntity("{\n" +
-//                    "  \"query\": {\n" +
-//                    "    \"bool\": {\n" +
-//                    "      \"minimum_should_match\": 1, \n" +
-//                    "      \"must\": [\n" +
-//                    "        {\"match\": {\n" +
-//                    "          \"status\": \"SUCCESS\"\n" +
-//                    "        }}\n" +
-//                    "      ], \n" +
-//                    "      \"should\": [\n" +
-//                    "        {\n" +
-//                    "          \"match\": {\n" +
-//                    "            \"index\": \"two-a\"\n" +
-//                    "          }\n" +
-//                    "        },\n" +
-//                    "        {\n" +
-//                    "          \"match\": {\n" +
-//                    "            \"index\": \"two-b\"\n" +
-//                    "          }\n" +
-//                    "        }\n" +
-//                    "      ]\n" +
-//                    "    }\n" +
-//                    "  }\n" +
-//                    "}");
-//
-//            Response response =client.getLowLevelClient().performRequest(request);
-//            logger.debug("{}", response);
 
             SearchHit[] searchHits = searchResponse.getHits().getHits();
             if (searchHits.length != 1) {
@@ -176,87 +147,28 @@ public class IndexingJobService {
             String index = (String) source.get("index");
 
             client.indices().putSettings(new UpdateSettingsRequest().indices(index).settings(propagate), RequestOptions.DEFAULT);
-            indexingStatus.setCollectionId(collection.getId());
+            IndexingStatus indexingStatus = new IndexingStatus();
+//            indexingStatus.setCollectionId(collection.getId());
             indexingStatus.setClusterId(clusterId);
             indexingStatus.setIndex(index);
             indexingStatus.setStartTime(System.currentTimeMillis());
-            indexingStatus.setAutoRun(collection.isAutoRun());
+            indexingStatus.setAutoRun(autoRun);
             indexingStatus.setCurrentStep(IndexStep.PROPAGATE);
             indexingStatus.setNextStep(nextStep);
             indexingStatus.setRetry(50);
-        } catch (Exception e) {
-            logger.error("", e);
-            throw new IndexingJobFailureException(e);
+            indexingStatus.setCollection(collection);
+            return indexingStatus;
         }
-        return indexingStatus;
     }
 
     /**
      * 색인을 대표이름으로 alias 하고 노출한다.
      * */
-    public void expose(UUID clusterId, Collection collection) throws IOException, IndexingJobFailureException {
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            RestClient restClient = client.getLowLevelClient();
-            Collection.Index indexA = collection.getIndexA();
-            Collection.Index indexB = collection.getIndexB();
+    public void expose() {
 
-            Collection.Index index = getTargetIndex(collection.getBaseId(), indexA, indexB);
-            Collection.Index exposeIndex = null;
-            Collection.Index currentIndex = null;
-
-            if(indexA == index){
-                currentIndex = indexB;
-                exposeIndex = indexA;
-            }else{
-                currentIndex = indexA;
-                exposeIndex = indexB;
-            }
-
-            // 마지막 성공했던 인덱스 적용 되어 있으면 바꾸기
-            QueryBuilder queryBuilder = QueryBuilders.boolQuery().must(new MatchQueryBuilder("status", "SUCCESS"))
-                    .should(new MatchQueryBuilder("index", indexA.getIndex()))
-                    .should(new MatchQueryBuilder("index", indexB.getIndex()));
-
-            SearchRequest searchRequest = new SearchRequest().indices(indexHistory)
-                    .source(new SearchSourceBuilder().query(queryBuilder).size(1).from(0).sort("endTime", SortOrder.DESC));
-            SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
-
-            SearchHit[] searchHits = searchResponse.getHits().getHits();
-
-            if (searchHits.length != 1) {
-                throw new IndexingJobFailureException("expose >> Not Matched");
-            }
-
-            Map<String, Object> source = searchHits[0].getSourceAsMap();
-            String storedIndex = (String) source.get("index");
-
-            if(storedIndex.equals(exposeIndex.getIndex())){
-                return;
-            }
-
-            String setJson = "{ \n" +
-                    "\"actions\" : [" +
-                    "{\n" +
-                    "\"add\": {" +
-                    "\"index\": \"" + exposeIndex.getIndex() + "\", \n " +
-                    "\"alias\": \"" + index.getIndex() + "\" \n" +
-                    "}\n" +
-                    "},\n" +
-                    "{\n" +
-                    "\"remove\" : {\n" +
-                    "\"index\" : \"" + currentIndex.getIndex() + "\", \n" +
-                    "\"alias\" : \"" + index.getIndex() + "\"" +
-                    "}\n" +
-                    "}\n" +
-                    "]\n" + "}";
-
-            Request request = new Request("POST", "_aliases");
-            request.setJsonEntity(setJson);
-            System.out.println(EntityUtils.toString(restClient.performRequest(request).getEntity()));
-        }
     }
 
-    public Collection.Index getTargetIndex(String baseId, Collection.Index indexA, Collection.Index indexB) {
+    private Collection.Index getTargetIndex(String baseId, Collection.Index indexA, Collection.Index indexB) {
         Collection.Index index = null;
         // 인덱스에 대한 alias를 확인
         if (indexA.getAliases().size() == 0 && indexB.getAliases().size() == 0) {
@@ -265,7 +177,10 @@ public class IndexingJobService {
             index = indexB;
         } else if (indexB.getAliases().get(baseId) != null) {
             index = indexA;
+        } else {
+            index = indexA;
         }
+        logger.debug("choice Index: {}", index.getIndex());
         return index;
     }
 
@@ -274,13 +189,14 @@ public class IndexingJobService {
         if (index.getUuid() == null) {
             // 인덱스 존재하지 않기 때문에 생성해주기.
             // 인덱스 템플릿이 존재하기 때문에 맵핑 설정 패쓰
-            logger.debug("create settings : {} ", client.indices().create(new CreateIndexRequest(index.getIndex()).settings(indexing), RequestOptions.DEFAULT));
+            boolean isAcknowledged = client.indices().create(new CreateIndexRequest(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
+            logger.debug("create settings : {} ", isAcknowledged);
         } else {
             // 기존 인덱스가 존재하기 때문에 셋팅 설정만 변경함.
             // settings에 index.routing.allocation.include._exclude=search* 호출
             // refresh interval: -1로 변경. 색인도중 검색노출하지 않음. 성능향상목적.
-//            client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(indexing), RequestOptions.DEFAULT);
-            logger.debug("edit settings : {} ", client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(indexing), RequestOptions.DEFAULT));
+            boolean isAcknowledged = client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
+            logger.debug("edit settings : {} ", isAcknowledged);
         }
     }
     private Map<String, Object> convertRequestParams(String yamlStr) throws IndexingJobFailureException {
