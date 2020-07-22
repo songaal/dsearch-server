@@ -60,8 +60,8 @@ public class IndexingJobService {
      * indexer를 외부 프로세스로 실행한다.
      *
      * @return */
-    public IndexingStatus indexing(UUID clusterId, Collection collection, IndexStep step) throws IndexingJobFailureException {
-        return indexing(clusterId, collection, false, step, new ArrayDeque<>());
+    public IndexingStatus indexing(UUID clusterId, Collection collection, boolean autoRun, IndexStep step) throws IndexingJobFailureException {
+        return indexing(clusterId, collection, autoRun, step, new ArrayDeque<>());
     }
     public IndexingStatus indexing(UUID clusterId, Collection collection, boolean autoRun, IndexStep step, Queue<IndexStep> nextStep) throws IndexingJobFailureException {
         IndexingStatus indexingStatus = new IndexingStatus();
@@ -81,6 +81,7 @@ public class IndexingJobService {
             int port = launcher.getPort();
             Map<String, Object> body = convertRequestParams(launcher.getYaml());
             body.put("index", index.getIndex());
+            body.put("_indexingSettings", indexing);
 
 //            4. indexer 색인 전송
             ResponseEntity<Map> responseEntity = restTemplate.exchange(
@@ -92,7 +93,7 @@ public class IndexingJobService {
 
             String id = (String) responseEntity.getBody().get("id");
             logger.info("Job ID: {}", id);
-            indexingStatus.setCollectionId(collection.getId());
+//            indexingStatus.setCollectionId(collection.getId());
             indexingStatus.setClusterId(clusterId);
             indexingStatus.setIndex(index.getIndex());
             indexingStatus.setHost(host);
@@ -103,6 +104,7 @@ public class IndexingJobService {
             indexingStatus.setCurrentStep(step);
             indexingStatus.setNextStep(nextStep);
             indexingStatus.setRetry(50);
+            indexingStatus.setCollection(collection);
         } catch (Exception e) {
             logger.error("", e);
             throw new IndexingJobFailureException(e);
@@ -113,10 +115,10 @@ public class IndexingJobService {
     /**
      * 색인 샤드의 TAG 제약을 풀고 전체 클러스터로 확장시킨다.
      * */
-    public IndexingStatus propagate(UUID clusterId, Collection collection) throws IndexingJobFailureException, IOException {
-        return propagate(clusterId, collection, new ArrayDeque<>());
+    public IndexingStatus propagate(UUID clusterId, boolean autoRun, Collection collection) throws IndexingJobFailureException, IOException {
+        return propagate(clusterId, autoRun, collection, new ArrayDeque<>());
     }
-    public IndexingStatus propagate(UUID clusterId, Collection collection, Queue<IndexStep> nextStep) throws IndexingJobFailureException, IOException {
+    public IndexingStatus propagate(UUID clusterId, boolean autoRun, Collection collection, Queue<IndexStep> nextStep) throws IndexingJobFailureException, IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Collection.Index indexA = collection.getIndexA();
             Collection.Index indexB = collection.getIndexB();
@@ -138,14 +140,15 @@ public class IndexingJobService {
 
             client.indices().putSettings(new UpdateSettingsRequest().indices(index).settings(propagate), RequestOptions.DEFAULT);
             IndexingStatus indexingStatus = new IndexingStatus();
-            indexingStatus.setCollectionId(collection.getId());
+//            indexingStatus.setCollectionId(collection.getId());
             indexingStatus.setClusterId(clusterId);
             indexingStatus.setIndex(index);
             indexingStatus.setStartTime(System.currentTimeMillis());
-            indexingStatus.setAutoRun(collection.isAutoRun());
+            indexingStatus.setAutoRun(autoRun);
             indexingStatus.setCurrentStep(IndexStep.PROPAGATE);
             indexingStatus.setNextStep(nextStep);
             indexingStatus.setRetry(50);
+            indexingStatus.setCollection(collection);
             return indexingStatus;
         }
     }

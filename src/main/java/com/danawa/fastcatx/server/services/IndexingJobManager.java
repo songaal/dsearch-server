@@ -125,30 +125,28 @@ public class IndexingJobManager {
             throw new IndexingJobFailureException("Empty Current Step");
         }
 
-
-        if (IndexStep.FULL_INDEX == indexingStatus.getCurrentStep() || indexingStatus.getCurrentStep() == IndexStep.DYNAMIC_INDEX) {
-            try (RestHighLevelClient client = elasticsearchFactory.getClient(indexingStatus.getClusterId())) {
-                addLastIndexStatus(client, indexingStatus.getIndex(), indexingStatus.getStartTime(), "READY");
-                jobs.put(collectionId, indexingStatus);
-            } catch (IOException e) {
-                logger.error("", e);
-                throw new IndexingJobFailureException(e);
-            }
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(indexingStatus.getClusterId())) {
+            addLastIndexStatus(client, indexingStatus.getIndex(), indexingStatus.getStartTime(), "READY", indexingStatus.getCurrentStep().name(), indexingStatus.getIndexingJobId());
+            jobs.put(collectionId, indexingStatus);
+        } catch (IOException e) {
+            logger.error("", e);
+            throw new IndexingJobFailureException(e);
         }
     }
 
-    public synchronized IndexingStatus findById(String collectionId) {
+    public IndexingStatus findById(String collectionId) {
         return jobs.get(collectionId);
     }
 
     /**
      * indexer 조회 후 상태 업데이트.
      * */
-    private void updateIndexerStatus(String id, IndexingStatus indexingStatus) throws IOException {
+    private void updateIndexerStatus(String id, IndexingStatus indexingStatus) throws IOException, IndexingJobFailureException {
         URI url = URI.create(String.format("http://%s:%d/async/status?id=%s", indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId()));
         ResponseEntity<Map> responseEntity = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(new HashMap<>()), Map.class);
         String status = (String) responseEntity.getBody().get("status");
-        if ("SUCCESS".equalsIgnoreCase(status) || "ERROR".equalsIgnoreCase(status)) {
+        logger.debug("index: {}, status: {}", indexingStatus.getIndex(), status);
+        if ("SUCCESS".equalsIgnoreCase(status) || "ERROR".equalsIgnoreCase(status) || "STOP".equalsIgnoreCase(status)) {
             // indexer job id 삭제.
             URI deleteUrl = URI.create(String.format("http://%s:%d/async/%s", indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId()));
             restTemplate.exchange(deleteUrl, HttpMethod.DELETE, new HttpEntity<>(new HashMap<>()), String.class);
@@ -175,12 +173,9 @@ public class IndexingJobManager {
 
             IndexStep nextStep = indexingStatus.getNextStep().poll();
             if ("SUCCESS".equalsIgnoreCase(status) && nextStep != null) {
-                indexingStatus.setCurrentStep(nextStep);
-                indexingStatus.setRetry(50);
-                indexingStatus.setStartTime(System.currentTimeMillis());
-                indexingStatus.setEndTime(0L);
-                indexingStatus.setAutoRun(true);
-//                indexingJobService.propagate();
+                // 다음 작업이 있을 경우.
+                indexingStatus = indexingJobService.propagate(clusterId, true, indexingStatus.getCollection(), indexingStatus.getNextStep());
+                addLastIndexStatus(clusterId, index, indexingStatus.getStartTime(), "RUNNING", indexingStatus.getCurrentStep().name());
                 jobs.put(id, indexingStatus);
                 logger.debug("next Step >> {}", nextStep);
             } else {
@@ -192,7 +187,6 @@ public class IndexingJobManager {
             indexingStatus.setStatus(status);
             jobs.put(id, indexingStatus);
         }
-        logger.debug("index: {}, status: {}", indexingStatus.getIndex(), status);
     }
 
     /**
@@ -220,6 +214,7 @@ public class IndexingJobManager {
             Map<String, Object> catIndex = catIndices.get(0);
             String docSize = (String) catIndex.get("docs.count");
             String store = (String) catIndex.get("store.size");
+            deleteLastIndexStatus(client, index, startTime);
             addIndexHistory(client, index, step.name(), startTime, endTime, autoRun, docSize, "SUCCESS", store);
         } finally {
             logger.info("전파 Success");
@@ -244,12 +239,19 @@ public class IndexingJobManager {
         }
     }
 
-    public void addLastIndexStatus(RestHighLevelClient client, String index, long startTime, String status) {
+    public void addLastIndexStatus(UUID clusterId, String index, long startTime, String status, String step) throws IOException {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            addLastIndexStatus(client, index, startTime, status, step, null);
+        }
+    }
+    public void addLastIndexStatus(RestHighLevelClient client, String index, long startTime, String status, String step, String jobId) {
         try {
             Map<String, Object> source = new HashMap<>();
             source.put("index", index);
             source.put("startTime", startTime);
             source.put("status", status);
+            source.put("step", step);
+            source.put("jobId", jobId);
             client.index(new IndexRequest().index(lastIndexStatusIndex).source(source), RequestOptions.DEFAULT);
         } catch(Exception e) {
             logger.error("addLastIndexStatus >> index: {}", index, e);

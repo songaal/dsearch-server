@@ -29,6 +29,7 @@ import java.util.UUID;
 public class CollectionController {
     private static Logger logger = LoggerFactory.getLogger(CollectionController.class);
 
+    private static Object obj = new Object();
     private final String indexSuffixA;
     private final String indexSuffixB;
     private final CollectionService collectionService;
@@ -126,16 +127,22 @@ public class CollectionController {
     public ResponseEntity<?> indexing(@RequestHeader(value = "cluster-id") UUID clusterId,
                                       @PathVariable String id,
                                       @RequestParam String action) throws IOException, IndexingJobFailureException {
-
-        if ("indexing".equalsIgnoreCase(action)) {
-            Collection collection = collectionService.findById(clusterId, id);
-            IndexingStatus indexingStatus = indexingJobService.indexing(clusterId, collection, IndexStep.FULL_INDEX);
-            indexingJobManager.add(indexingStatus.getCollectionId(), indexingStatus);
-        } else if ("propagate".equalsIgnoreCase(action)) {
-            Collection collection = collectionService.findById(clusterId, id);
-            IndexingStatus indexingStatus = indexingJobService.propagate(clusterId, collection);
-            indexingJobManager.add(indexingStatus.getCollectionId(), indexingStatus);
-        }
+            if ("indexing".equalsIgnoreCase(action)) {
+                synchronized (obj) {
+                    IndexingStatus registerStatus = indexingJobManager.findById(id);
+                    if (registerStatus == null) {
+                        Collection collection = collectionService.findById(clusterId, id);
+                        IndexingStatus indexingStatus = indexingJobService.indexing(clusterId, collection, false, IndexStep.FULL_INDEX);
+                        indexingJobManager.add(collection.getId(), indexingStatus);
+                    }
+                }
+            } else if ("propagate".equalsIgnoreCase(action)) {
+                synchronized (obj) {
+                    Collection collection = collectionService.findById(clusterId, id);
+                    IndexingStatus indexingStatus = indexingJobService.propagate(clusterId, false, collection);
+                    indexingJobManager.add(collection.getId(), indexingStatus);
+                }
+            }
         return new ResponseEntity<>(HttpStatus.OK);
     }
 

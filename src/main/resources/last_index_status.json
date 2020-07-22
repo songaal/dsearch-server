@@ -13,6 +13,12 @@
       },
       "status": {
         "type": "keyword"
+      },
+      "step": {
+        "type": "keyword"
+      },
+      "jobId": {
+        "type": "keyword"
       }
     }
   }

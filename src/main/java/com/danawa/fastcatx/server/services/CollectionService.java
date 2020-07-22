@@ -1,10 +1,8 @@
 package com.danawa.fastcatx.server.services;
 
 import com.danawa.fastcatx.server.config.ElasticsearchFactory;
-import com.danawa.fastcatx.server.entity.ChangeIndexRequset;
+import com.danawa.fastcatx.server.entity.*;
 import com.danawa.fastcatx.server.entity.Collection;
-import com.danawa.fastcatx.server.entity.IndexStep;
-import com.danawa.fastcatx.server.entity.IndexingStatus;
 import com.danawa.fastcatx.server.excpetions.DuplicateException;
 import com.danawa.fastcatx.server.excpetions.IndexingJobFailureException;
 import com.google.gson.Gson;
@@ -49,6 +47,7 @@ public class CollectionService {
 
     private final ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
     private final IndexingJobService indexingJobService;
+    private final ClusterService clusterService;
     private final String COLLECTION_INDEX_JSON = "collection.json";
     private final String collectionIndex;
     private final ElasticsearchFactory elasticsearchFactory;
@@ -57,13 +56,14 @@ public class CollectionService {
     private final String indexSuffixB;
     private final IndexingJobManager indexingJobManager;
 
-    public CollectionService(IndexingJobService indexingJobService, @Value("${fastcatx.collection.index}") String collectionIndex,
+    public CollectionService(IndexingJobService indexingJobService, ClusterService clusterService, @Value("${fastcatx.collection.index}") String collectionIndex,
                              @Value("${fastcatx.collection.index-suffix-a}") String indexSuffixA,
                              @Value("${fastcatx.collection.index-suffix-b}") String indexSuffixB,
                              ElasticsearchFactory elasticsearchFactory,
                              IndicesService indicesService,
                              IndexingJobManager indexingJobManager) {
         this.indexingJobService = indexingJobService;
+        this.clusterService = clusterService;
         this.indexingJobManager = indexingJobManager;
         this.collectionIndex = collectionIndex;
         this.elasticsearchFactory = elasticsearchFactory;
@@ -80,10 +80,42 @@ public class CollectionService {
     public void init() {
 //        TODO 컬렉션 조회해서 스케쥴 true면 전부 등록하기.
 //        TODO index_last_status ? 색인 중인 인덱스가 있으면 job manager로 전달하기.
+//        1. 등록된 모든 클러스터 조회
+        List<Cluster> clusterList = clusterService.findAll();
 
+        int clusterSize = clusterList.size();
+        for (int i = 0; i < clusterSize; i++) {
+            try {
+                Cluster cluster = clusterList.get(i);
+//                1. 클러스터별로 기존 색인 중인 잡을 다시 등록한다.
+                fetchIndexingCollections(cluster);
 
+//                2. 컬렉션의 스케쥴이 enabled 이면 다시 스케쥴을 등록한다.
+                fetchScheduledCollections(cluster);
+            } catch (Exception e) {
+                logger.error("init error", e);
+            }
+        }
     }
 
+    private void fetchIndexingCollections(Cluster cluster) {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(cluster.getId())){
+//            TODO 인덱스에서 수집해서 잡 등록
+
+        } catch (Exception e) {
+
+        }
+    }
+
+    private void fetchScheduledCollections(Cluster cluster) {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(cluster.getId())){
+//            TODO 인덱스에서 수집해서 잡 등록
+
+
+        } catch (Exception e) {
+
+        }
+    }
 
     public void fetchSystemIndex(UUID clusterId) throws IOException {
         indicesService.createSystemIndex(clusterId, collectionIndex, COLLECTION_INDEX_JSON);
