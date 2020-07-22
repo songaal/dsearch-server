@@ -1,16 +1,14 @@
 package com.danawa.fastcatx.server.services;
 
 import com.danawa.fastcatx.server.config.ElasticsearchFactory;
+import com.danawa.fastcatx.server.entity.Collection;
 import com.danawa.fastcatx.server.entity.IndexStep;
 import com.danawa.fastcatx.server.entity.IndexingStatus;
 import com.danawa.fastcatx.server.excpetions.IndexingJobFailureException;
 import com.google.gson.Gson;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.client.Request;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.Response;
-import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.*;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.MatchQueryBuilder;
 import org.elasticsearch.index.reindex.DeleteByQueryRequest;
@@ -125,7 +123,6 @@ public class IndexingJobManager {
             throw new IndexingJobFailureException("Empty Current Step");
         }
 
-
         if (IndexStep.FULL_INDEX == indexingStatus.getCurrentStep() || indexingStatus.getCurrentStep() == IndexStep.DYNAMIC_INDEX) {
             try (RestHighLevelClient client = elasticsearchFactory.getClient(indexingStatus.getClusterId())) {
                 addLastIndexStatus(client, indexingStatus.getIndex(), indexingStatus.getStartTime(), "READY");
@@ -144,7 +141,7 @@ public class IndexingJobManager {
     /**
      * indexer 조회 후 상태 업데이트.
      * */
-    private void updateIndexerStatus(String id, IndexingStatus indexingStatus) throws IOException {
+    private void updateIndexerStatus(String id, IndexingStatus indexingStatus) throws IOException, IndexingJobFailureException {
         URI url = URI.create(String.format("http://%s:%d/async/status?id=%s", indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId()));
         ResponseEntity<Map> responseEntity = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(new HashMap<>()), Map.class);
         String status = (String) responseEntity.getBody().get("status");
@@ -180,7 +177,9 @@ public class IndexingJobManager {
                 indexingStatus.setStartTime(System.currentTimeMillis());
                 indexingStatus.setEndTime(0L);
                 indexingStatus.setAutoRun(true);
-//                indexingJobService.propagate();
+
+                setIndexAlias(clusterId, indexingStatus.getCollection());
+                indexingJobService.propagate(clusterId, indexingStatus.getCollection());
                 jobs.put(id, indexingStatus);
                 logger.debug("next Step >> {}", nextStep);
             } else {
@@ -195,15 +194,52 @@ public class IndexingJobManager {
         logger.debug("index: {}, status: {}", indexingStatus.getIndex(), status);
     }
 
+
+    private void setIndexAlias(UUID clusterId, Collection collection) throws IOException{
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            RestClient restClient = client.getLowLevelClient();
+            Collection.Index indexA = collection.getIndexA();
+            Collection.Index indexB = collection.getIndexB();
+
+            Collection.Index index = indexingJobService.getTargetIndex(collection.getBaseId(), indexA, indexB);
+            Collection.Index exposeIndex = null;
+            Collection.Index currentIndex = null;
+
+            if(indexA == index){
+                currentIndex = indexB;
+                exposeIndex = indexA;
+            }else{
+                currentIndex = indexA;
+                exposeIndex = indexB;
+            }
+
+            String setJson = "{ \n" +
+                    "\"actions\" : [" +
+                    "{\n" +
+                    "\"add\": {" +
+                    "\"index\": \"" + exposeIndex.getIndex() + "\", \n " +
+                    "\"alias\": \"" + index.getIndex() + "\" \n" +
+                    "}\n" +
+                    "},\n" +
+                    "{\n" +
+                    "\"remove\" : {\n" +
+                    "\"index\" : \"" + currentIndex.getIndex() + "\", \n" +
+                    "\"alias\" : \"" + index.getIndex() + "\"" +
+                    "}\n" +
+                    "}\n" +
+                    "]\n" + "}";
+
+            Request request = new Request("POST", "_aliases");
+            request.setJsonEntity(setJson);
+            restClient.performRequest(request);
+        }
+    }
+
     /**
      * elasticsearch 조회 후 상태 업데이트.
      * */
     private void updateElasticsearchStatus(String id, IndexingStatus indexingStatus) throws IOException {
 //        TODO elasticsearch 전파 상태 조회
-
-
-
-
         UUID clusterId = indexingStatus.getClusterId();
         String index = indexingStatus.getIndex();
         IndexStep step = indexingStatus.getCurrentStep();

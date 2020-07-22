@@ -5,19 +5,18 @@ import com.danawa.fastcatx.server.entity.Collection;
 import com.danawa.fastcatx.server.entity.IndexStep;
 import com.danawa.fastcatx.server.entity.IndexingStatus;
 import com.danawa.fastcatx.server.excpetions.IndexingJobFailureException;
+import org.apache.http.util.EntityUtils;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.*;
 import org.elasticsearch.client.indices.CreateIndexRequest;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.MatchQueryBuilder;
-import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.*;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.sort.FieldSortBuilder;
+import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -97,6 +96,7 @@ public class IndexingJobService {
 
             String id = (String) responseEntity.getBody().get("id");
             logger.info("Job ID: {}", id);
+            indexingStatus.setCollection(collection);
             indexingStatus.setCollectionId(collection.getId());
             indexingStatus.setClusterId(clusterId);
             indexingStatus.setIndex(index.getIndex());
@@ -121,18 +121,52 @@ public class IndexingJobService {
     public IndexingStatus propagate(UUID clusterId, Collection collection) throws IndexingJobFailureException, IOException {
         return propagate(clusterId, collection, new ArrayDeque<>());
     }
-    public IndexingStatus propagate(UUID clusterId, Collection collection, Queue<IndexStep> nextStep) throws IndexingJobFailureException, IOException {
+    public synchronized IndexingStatus propagate(UUID clusterId, Collection collection, Queue<IndexStep> nextStep) throws IndexingJobFailureException {
+        logger.info("전파 시작");
+        IndexingStatus indexingStatus = new IndexingStatus();
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Collection.Index indexA = collection.getIndexA();
             Collection.Index indexB = collection.getIndexB();
 
-            QueryBuilder queryBuilder = QueryBuilders.boolQuery().must(new MatchQueryBuilder("status", "SUCCESS"))
-                    .should(new MatchQueryBuilder("index", indexA.getIndex()))
-                    .should(new MatchQueryBuilder("index", indexB.getIndex()));
+            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder()
+                    .query(QueryBuilders.boolQuery()
+                            .minimumShouldMatch(1)
+                            .must(new MatchQueryBuilder("status", "SUCCESS"))
+                            .should(new MatchQueryBuilder("index", indexA.getIndex()))
+                            .should(new MatchQueryBuilder("index", indexB.getIndex())))
+                    .sort(new FieldSortBuilder("endTime").order(SortOrder.DESC)).size(1).from(0);
 
-            SearchRequest searchRequest = new SearchRequest()
-                    .source(new SearchSourceBuilder().query(queryBuilder).size(1).from(0).sort("endTime", SortOrder.DESC));
+            SearchRequest searchRequest = new SearchRequest().indices(indexHistory).source(searchSourceBuilder);
             SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
+
+//            Request request = new Request("POST", "/.fastcatx_index_history/_search");
+//            request.setJsonEntity("{\n" +
+//                    "  \"query\": {\n" +
+//                    "    \"bool\": {\n" +
+//                    "      \"minimum_should_match\": 1, \n" +
+//                    "      \"must\": [\n" +
+//                    "        {\"match\": {\n" +
+//                    "          \"status\": \"SUCCESS\"\n" +
+//                    "        }}\n" +
+//                    "      ], \n" +
+//                    "      \"should\": [\n" +
+//                    "        {\n" +
+//                    "          \"match\": {\n" +
+//                    "            \"index\": \"two-a\"\n" +
+//                    "          }\n" +
+//                    "        },\n" +
+//                    "        {\n" +
+//                    "          \"match\": {\n" +
+//                    "            \"index\": \"two-b\"\n" +
+//                    "          }\n" +
+//                    "        }\n" +
+//                    "      ]\n" +
+//                    "    }\n" +
+//                    "  }\n" +
+//                    "}");
+//
+//            Response response =client.getLowLevelClient().performRequest(request);
+//            logger.debug("{}", response);
 
             SearchHit[] searchHits = searchResponse.getHits().getHits();
             if (searchHits.length != 1) {
@@ -142,7 +176,6 @@ public class IndexingJobService {
             String index = (String) source.get("index");
 
             client.indices().putSettings(new UpdateSettingsRequest().indices(index).settings(propagate), RequestOptions.DEFAULT);
-            IndexingStatus indexingStatus = new IndexingStatus();
             indexingStatus.setCollectionId(collection.getId());
             indexingStatus.setClusterId(clusterId);
             indexingStatus.setIndex(index);
@@ -151,18 +184,79 @@ public class IndexingJobService {
             indexingStatus.setCurrentStep(IndexStep.PROPAGATE);
             indexingStatus.setNextStep(nextStep);
             indexingStatus.setRetry(50);
-            return indexingStatus;
+        } catch (Exception e) {
+            logger.error("", e);
+            throw new IndexingJobFailureException(e);
         }
+        return indexingStatus;
     }
 
     /**
      * 색인을 대표이름으로 alias 하고 노출한다.
      * */
-    public void expose() {
+    public void expose(UUID clusterId, Collection collection) throws IOException, IndexingJobFailureException {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            RestClient restClient = client.getLowLevelClient();
+            Collection.Index indexA = collection.getIndexA();
+            Collection.Index indexB = collection.getIndexB();
 
+            Collection.Index index = getTargetIndex(collection.getBaseId(), indexA, indexB);
+            Collection.Index exposeIndex = null;
+            Collection.Index currentIndex = null;
+
+            if(indexA == index){
+                currentIndex = indexB;
+                exposeIndex = indexA;
+            }else{
+                currentIndex = indexA;
+                exposeIndex = indexB;
+            }
+
+            // 마지막 성공했던 인덱스 적용 되어 있으면 바꾸기
+            QueryBuilder queryBuilder = QueryBuilders.boolQuery().must(new MatchQueryBuilder("status", "SUCCESS"))
+                    .should(new MatchQueryBuilder("index", indexA.getIndex()))
+                    .should(new MatchQueryBuilder("index", indexB.getIndex()));
+
+            SearchRequest searchRequest = new SearchRequest().indices(indexHistory)
+                    .source(new SearchSourceBuilder().query(queryBuilder).size(1).from(0).sort("endTime", SortOrder.DESC));
+            SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
+
+            SearchHit[] searchHits = searchResponse.getHits().getHits();
+
+            if (searchHits.length != 1) {
+                throw new IndexingJobFailureException("expose >> Not Matched");
+            }
+
+            Map<String, Object> source = searchHits[0].getSourceAsMap();
+            String storedIndex = (String) source.get("index");
+
+            if(storedIndex.equals(exposeIndex.getIndex())){
+                return;
+            }
+
+            String setJson = "{ \n" +
+                    "\"actions\" : [" +
+                    "{\n" +
+                    "\"add\": {" +
+                    "\"index\": \"" + exposeIndex.getIndex() + "\", \n " +
+                    "\"alias\": \"" + index.getIndex() + "\" \n" +
+                    "}\n" +
+                    "},\n" +
+                    "{\n" +
+                    "\"remove\" : {\n" +
+                    "\"index\" : \"" + currentIndex.getIndex() + "\", \n" +
+                    "\"alias\" : \"" + index.getIndex() + "\"" +
+                    "}\n" +
+                    "}\n" +
+                    "]\n" + "}";
+
+            Request request = new Request("POST", "_aliases");
+            request.setJsonEntity(setJson);
+            System.out.println(EntityUtils.toString(restClient.performRequest(request).getEntity()));
+        }
     }
 
-    private Collection.Index getTargetIndex(String baseId, Collection.Index indexA, Collection.Index indexB) {
+    public Collection.Index getTargetIndex(String baseId, Collection.Index indexA, Collection.Index indexB) {
         Collection.Index index = null;
         // 인덱스에 대한 alias를 확인
         if (indexA.getAliases().size() == 0 && indexB.getAliases().size() == 0) {
