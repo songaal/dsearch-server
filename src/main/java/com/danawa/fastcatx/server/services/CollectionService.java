@@ -351,6 +351,7 @@ public class CollectionService {
     private Collection.Index getIndex(UUID clusterId, String index) {
         Collection.Index tmpIndex = new Collection.Index();
         tmpIndex.setIndex(index);
+        logger.debug("getIndex >>> {}", index);
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Request indicesRequest = new Request("GET", "/_cat/indices/" + index);
             indicesRequest.addParameter("format", "json");
