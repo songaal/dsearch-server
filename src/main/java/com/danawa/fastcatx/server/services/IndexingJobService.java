@@ -164,7 +164,7 @@ public class IndexingJobService {
     /**
      * 색인을 대표이름으로 alias 하고 노출한다.
      * */
-    public void expose() {
+    public void expose(UUID clusterId, Collection collection) {
 
     }
 

@@ -1,6 +1,8 @@
 package com.danawa.fastcatx.server;
 
 import com.danawa.fastcatx.server.config.ElasticsearchFactory;
+import com.danawa.fastcatx.server.entity.Collection;
+import com.danawa.fastcatx.server.services.CollectionService;
 import com.danawa.fastcatx.server.services.IndexingJobService;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.search.SearchRequest;
@@ -22,11 +24,21 @@ public class CollectionTest {
     private IndexingJobService indexingJobService;
     @Autowired
     private ElasticsearchFactory elasticsearchFactory;
-
+    @Autowired
+    private CollectionService collectionService;
     @Test
     public void propagateTest() {
-        UUID clusterId = UUID.fromString("");
-        String index = "";
+//        UUID clusterId = UUID.fromString("a4ac402c-b18c-45b4-916a-88e09cc7165e");
+//        String collectionId = "naOBcHMBfPWyeN6Dveab";
+//        try {
+//            Collection collection = collectionService.findById(clusterId, collectionId);
+//            indexingJobService.propagate(clusterId, collection);
+//        } catch (Exception e) {
+//            logger.error("", e);
+//        }
+
+
+
 //        String
 //
 //        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {

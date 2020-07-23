@@ -10,7 +10,10 @@ import com.danawa.fastcatx.server.services.CollectionService;
 import com.danawa.fastcatx.server.services.IndexingJobManager;
 import com.danawa.fastcatx.server.services.IndexingJobService;
 import org.apache.http.util.EntityUtils;
+import org.elasticsearch.client.Request;
 import org.elasticsearch.client.Response;
+import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.RestHighLevelClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -73,6 +76,12 @@ public class CollectionController {
         return new ResponseEntity<>(collectionService.findById(clusterId, id), HttpStatus.OK);
     }
 
+    @GetMapping("/{id}/job")
+    public ResponseEntity<?> getJob(@RequestHeader(value = "cluster-id") UUID clusterId,
+                                    @PathVariable String id) throws IOException {
+        return new ResponseEntity<>(indexingJobManager.findById(id), HttpStatus.OK);
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteById(@RequestHeader(value = "cluster-id") UUID clusterId,
                                         @PathVariable String id) throws IOException {
@@ -94,56 +103,31 @@ public class CollectionController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    @PostMapping("/change")
-    public ResponseEntity<?> changeIndex(@RequestHeader(value = "cluster-id") UUID clusterId, @RequestBody ChangeIndexRequset changeIndexRequset) throws IOException{
-        Response response = collectionService.changeIndex(clusterId, changeIndexRequset);
-        return new ResponseEntity<>(EntityUtils.toString(response.getEntity()), HttpStatus.OK);
-    }
-
-
-
-    @PostMapping("/propagate")
-    public ResponseEntity<?> propagateIndex(@RequestHeader(value = "cluster-id") UUID clusterId) throws IOException {
-        // 1. index가 Success 인지 확인
-
-//        if(index == success?){
-//            replica:1, index.routing.allocation.include._exclude=index* 호출
-//          return new ResponseEntity<>(HttpStatus.OK);
-//        }else{
-//        Map<String, Object> response = new HashMap<>();
-//        response.put("status", "Not Success");
-//        response.put("statusPercent", ???);
-//        response.put("statusCode", 0);
-//         return new ResponseEntity<>("", HttpStatus.OK);
-//    }
-
-        // 2.
-
-        return new ResponseEntity<>(HttpStatus.OK);
-    }
-
-    
     @PutMapping("/{id}/action")
     public ResponseEntity<?> indexing(@RequestHeader(value = "cluster-id") UUID clusterId,
                                       @PathVariable String id,
                                       @RequestParam String action) throws IOException, IndexingJobFailureException {
-            if ("indexing".equalsIgnoreCase(action)) {
-                synchronized (obj) {
-                    IndexingStatus registerStatus = indexingJobManager.findById(id);
-                    if (registerStatus == null) {
-                        Collection collection = collectionService.findById(clusterId, id);
-                        IndexingStatus indexingStatus = indexingJobService.indexing(clusterId, collection, false, IndexStep.FULL_INDEX);
-                        indexingJobManager.add(collection.getId(), indexingStatus);
-                    }
-                }
-            } else if ("propagate".equalsIgnoreCase(action)) {
-                synchronized (obj) {
+        if ("indexing".equalsIgnoreCase(action)) {
+            synchronized (obj) {
+                IndexingStatus registerStatus = indexingJobManager.findById(id);
+                if (registerStatus == null) {
                     Collection collection = collectionService.findById(clusterId, id);
-                    IndexingStatus indexingStatus = indexingJobService.propagate(clusterId, false, collection);
+                    IndexingStatus indexingStatus = indexingJobService.indexing(clusterId, collection, false, IndexStep.FULL_INDEX);
                     indexingJobManager.add(collection.getId(), indexingStatus);
                 }
             }
+        } else if ("propagate".equalsIgnoreCase(action)) {
+            synchronized (obj) {
+                Collection collection = collectionService.findById(clusterId, id);
+                IndexingStatus indexingStatus = indexingJobService.propagate(clusterId, false, collection);
+                indexingJobManager.add(collection.getId(), indexingStatus);
+            }
+        } else if ("expose".equalsIgnoreCase(action)) {
+            synchronized (obj) {
+                Collection collection = collectionService.findById(clusterId, id);
+                indexingJobService.expose(clusterId, collection);
+            }
+        }
         return new ResponseEntity<>(HttpStatus.OK);
     }
-
 }
