@@ -6,11 +6,13 @@ import com.danawa.fastcatx.server.entity.IndexStep;
 import com.danawa.fastcatx.server.entity.IndexingStatus;
 import com.danawa.fastcatx.server.excpetions.IndexingJobFailureException;
 import com.google.gson.Gson;
+import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
@@ -182,26 +184,28 @@ public class IndexingJobService {
 
             Collection.Index addIndex;
             Collection.Index removeIndex;
-            Map<String, Object> actionMap = new HashMap<>();
-            List<Map<String, Object>> actions = new ArrayList<>();
+            IndicesAliasesRequest request = new IndicesAliasesRequest();
+
+            request.addAliasAction(new IndicesAliasesRequest.
+                    AliasActions(IndicesAliasesRequest.AliasActions.Type.REMOVE)
+                    .index(indexA.getIndex()).alias(baseId));
+            request.addAliasAction(new IndicesAliasesRequest.
+                    AliasActions(IndicesAliasesRequest.AliasActions.Type.REMOVE)
+                    .index(indexB.getIndex()).alias(baseId));
 
             if (indexA.getUuid() == null && indexB.getUuid() == null) {
                 logger.debug("empty index");
                 return;
             } else if (indexA.getUuid() == null && indexB.getUuid() != null) {
 //                인덱스가 하나일 경우 고정
-                Map<String, Object> add = new HashMap<>();
-                add.put("index", indexB.getIndex());
-                add.put("alias", baseId);
-                actionMap.put("add", add);
-                actions.add(actionMap);
+                request.addAliasAction(new IndicesAliasesRequest.
+                        AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
+                        .index(indexB.getIndex()).alias(baseId));
             } else if (indexA.getUuid() != null && indexB.getUuid() == null) {
 //                인덱스가 하나일 경우 고정
-                Map<String, Object> add = new HashMap<>();
-                add.put("index", indexA.getIndex());
-                add.put("alias", baseId);
-                actionMap.put("add", add);
-                actions.add(actionMap);
+                request.addAliasAction(new IndicesAliasesRequest.
+                        AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
+                        .index(indexA.getIndex()).alias(baseId));
             } else {
                 // index_history 조회하여 마지막 인덱스, 전파 완료한 인덱스 검색.
                 QueryBuilder queryBuilder = new BoolQueryBuilder()
@@ -234,30 +238,22 @@ public class IndexingJobService {
                     }
 
                     if (addIndex.getUuid() != null) {
-                        Map<String, Object> add = new HashMap<>();
-                        add.put("index", addIndex.getIndex());
-                        add.put("alias", baseId);
-                        actionMap.put("add", add);
+                        request.addAliasAction(new IndicesAliasesRequest.
+                                AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
+                                .index(addIndex.getIndex()).alias(baseId));
                     }
-                    if (removeIndex.getUuid() != null) {
-                        Map<String, Object> remove = new HashMap<>();
-                        remove.put("index", removeIndex.getIndex());
-                        remove.put("alias", baseId);
-                        actionMap.put("remove", remove);
-                    }
-                    actions.add(actionMap);
+                } else {
+
+                    // default
+                    request.addAliasAction(new IndicesAliasesRequest.
+                            AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
+                            .index(indexA.getIndex()).alias(baseId));
+
                 }
-
-
             }
 
             // 교체
-            Map<String, Object> aliases = new HashMap<>();
-            aliases.put("actions", actions);
-
-            Request request = new Request("POST", "_aliases");
-            request.setJsonEntity(new Gson().toJson(aliases));
-            client.getLowLevelClient().performRequest(request);
+            client.indices().updateAliases(request, RequestOptions.DEFAULT);
         }
     }
 
