@@ -5,11 +5,14 @@ import com.danawa.fastcatx.server.entity.Collection;
 import com.danawa.fastcatx.server.entity.IndexStep;
 import com.danawa.fastcatx.server.entity.IndexingStatus;
 import com.danawa.fastcatx.server.excpetions.IndexingJobFailureException;
+import com.google.gson.Gson;
+import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
@@ -127,43 +130,51 @@ public class IndexingJobService {
     /**
      * 색인 샤드의 TAG 제약을 풀고 전체 클러스터로 확장시킨다.
      * */
-    public IndexingStatus propagate(UUID clusterId, boolean autoRun, Collection collection) throws IndexingJobFailureException, IOException {
-        return propagate(clusterId, autoRun, collection, new ArrayDeque<>());
+    public IndexingStatus propagate(UUID clusterId, boolean autoRun, Collection collection, String target) throws IndexingJobFailureException, IOException {
+        return propagate(clusterId, autoRun, collection, new ArrayDeque<>(), target);
     }
-    public IndexingStatus propagate(UUID clusterId, boolean autoRun, Collection collection, Queue<IndexStep> nextStep) throws IndexingJobFailureException, IOException {
+    public IndexingStatus propagate(UUID clusterId, boolean autoRun, Collection collection, Queue<IndexStep> nextStep, String target) throws IndexingJobFailureException, IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Collection.Index indexA = collection.getIndexA();
             Collection.Index indexB = collection.getIndexB();
 
-            BoolQueryBuilder boolQuery = new BoolQueryBuilder();
-            boolQuery.must(new MatchQueryBuilder("jobType", "FULL_INDEX"));
-            boolQuery.must(new MatchQueryBuilder("status", "SUCCESS"));
+            if (target == null) {
+                BoolQueryBuilder boolQuery = new BoolQueryBuilder();
+                boolQuery.must(new MatchQueryBuilder("jobType", IndexStep.FULL_INDEX.name()));
+                boolQuery.must(new MatchQueryBuilder("status", "SUCCESS"));
 
-            // 마지막 성공했던 인덱스를 적용 되어 있으면 바꾸기
-            QueryBuilder queryBuilder = boolQuery.should(new MatchQueryBuilder("index", indexA.getIndex()))
-                    .should(new MatchQueryBuilder("index", indexB.getIndex()))
-                    .minimumShouldMatch(1);
+                // 마지막 성공했던 인덱스를 적용 되어 있으면 바꾸기
+                QueryBuilder queryBuilder = boolQuery.should(new MatchQueryBuilder("index", indexA.getIndex()))
+                        .should(new MatchQueryBuilder("index", indexB.getIndex()))
+                        .minimumShouldMatch(1);
 
-            SearchRequest searchRequest = new SearchRequest()
-                    .indices(indexHistory)
-                    .source(new SearchSourceBuilder().query(queryBuilder).size(1).from(0).sort("endTime", SortOrder.DESC));
-            SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
+                SearchRequest searchRequest = new SearchRequest()
+                        .indices(indexHistory)
+                        .source(new SearchSourceBuilder().query(queryBuilder).size(1).from(0).sort("endTime", SortOrder.DESC));
+                SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
 
-            SearchHit[] searchHits = searchResponse.getHits().getHits();
-            if (searchHits.length != 1) {
-                throw new IndexingJobFailureException("propagate >> Not Matched");
+                SearchHit[] searchHits = searchResponse.getHits().getHits();
+                if (searchHits.length != 1) {
+                    throw new IndexingJobFailureException("propagate >> Not Matched");
+                }
+                Map<String, Object> source = searchHits[0].getSourceAsMap();
+//                String index = (String) source.get("index");
+                target = (String) source.get("index");
             }
-            Map<String, Object> source = searchHits[0].getSourceAsMap();
-            String index = (String) source.get("index");
 
-            client.indices().putSettings(new UpdateSettingsRequest().indices(index).settings(propagate), RequestOptions.DEFAULT);
+
+            client.indices().putSettings(new UpdateSettingsRequest().indices(target).settings(propagate), RequestOptions.DEFAULT);
             IndexingStatus indexingStatus = new IndexingStatus();
             indexingStatus.setClusterId(clusterId);
-            indexingStatus.setIndex(index);
+            indexingStatus.setIndex(target);
             indexingStatus.setStartTime(System.currentTimeMillis());
             indexingStatus.setAutoRun(autoRun);
             indexingStatus.setCurrentStep(IndexStep.PROPAGATE);
-            indexingStatus.setNextStep(nextStep);
+            if (nextStep == null) {
+                indexingStatus.setNextStep(new ArrayDeque<>());
+            } else {
+                indexingStatus.setNextStep(nextStep);
+            }
             indexingStatus.setRetry(50);
             indexingStatus.setCollection(collection);
             return indexingStatus;
@@ -173,72 +184,85 @@ public class IndexingJobService {
     /**
      * 색인을 대표이름으로 alias 하고 노출한다.
      * */
-    public void expose(UUID clusterId, Collection collection) throws IOException, IndexingJobFailureException {
+    public void expose(UUID clusterId, Collection collection) throws IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            RestClient restClient = client.getLowLevelClient();
             String baseId = collection.getBaseId();
             Collection.Index indexA = collection.getIndexA();
             Collection.Index indexB = collection.getIndexB();
 
-            Collection.Index index = getTargetIndex(collection.getBaseId(), indexA, indexB);
-            Collection.Index exposeIndex = null;
-            Collection.Index currentIndex = null;
+            Collection.Index addIndex;
+            Collection.Index removeIndex;
+            IndicesAliasesRequest request = new IndicesAliasesRequest();
 
-            if(indexA == index){
-                currentIndex = indexB;
-                exposeIndex = indexA;
-            }else{
-                currentIndex = indexA;
-                exposeIndex = indexB;
-            }
+            request.addAliasAction(new IndicesAliasesRequest.
+                    AliasActions(IndicesAliasesRequest.AliasActions.Type.REMOVE)
+                    .index(indexA.getIndex()).alias(baseId));
+            request.addAliasAction(new IndicesAliasesRequest.
+                    AliasActions(IndicesAliasesRequest.AliasActions.Type.REMOVE)
+                    .index(indexB.getIndex()).alias(baseId));
 
-            BoolQueryBuilder boolQuery = new BoolQueryBuilder();
-            boolQuery.must(new MatchQueryBuilder("jobType", "PROPAGATE"));
-            boolQuery.must(new MatchQueryBuilder("status", "SUCCESS"));
 
-            // 마지막 성공했던 인덱스를 적용 되어 있으면 바꾸기
-            QueryBuilder queryBuilder = boolQuery.should(new MatchQueryBuilder("index", indexA.getIndex()))
-                                                    .should(new MatchQueryBuilder("index", indexB.getIndex()))
-                                                    .minimumShouldMatch(1);
-
-            SearchRequest searchRequest = new SearchRequest()
-                    .indices(indexHistory)
-                    .source(new SearchSourceBuilder().query(queryBuilder).size(1).from(0).sort("endTime", SortOrder.DESC));
-            SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
-
-            SearchHit[] searchHits = searchResponse.getHits().getHits();
-            if (searchHits.length != 1) {
-                throw new IndexingJobFailureException("expose >> Not Matched");
-            }
-            Map<String, Object> source = searchHits[0].getSourceAsMap();
-            String lastExposedIndex = (String) source.get("index");
-
-            logger.debug("{}", currentIndex.getIndex());
-            logger.debug("{}", exposeIndex.getIndex());
-            logger.debug("{}", lastExposedIndex);
-            if(lastExposedIndex.equals(currentIndex.getIndex())){
+            if (indexA.getUuid() == null && indexB.getUuid() == null) {
+                logger.debug("empty index");
                 return;
+            } else if (indexA.getUuid() == null && indexB.getUuid() != null) {
+//                인덱스가 하나일 경우 고정
+                request.addAliasAction(new IndicesAliasesRequest.
+                        AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
+                        .index(indexB.getIndex()).alias(baseId));
+            } else if (indexA.getUuid() != null && indexB.getUuid() == null) {
+//                인덱스가 하나일 경우 고정
+                request.addAliasAction(new IndicesAliasesRequest.
+                        AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
+                        .index(indexA.getIndex()).alias(baseId));
+            } else {
+                // index_history 조회하여 마지막 인덱스, 전파 완료한 인덱스 검색.
+                QueryBuilder queryBuilder = new BoolQueryBuilder()
+                        .must(new MatchQueryBuilder("jobType", "PROPAGATE"))
+                        .must(new MatchQueryBuilder("status", "SUCCESS"))
+                        .should(new MatchQueryBuilder("index", indexA.getIndex()))
+                        .should(new MatchQueryBuilder("index", indexB.getIndex()))
+                        .minimumShouldMatch(1);
+                SearchRequest searchRequest = new SearchRequest()
+                        .indices(indexHistory)
+                        .source(new SearchSourceBuilder().query(queryBuilder)
+                                .size(1)
+                                .from(0)
+                                .sort("endTime", SortOrder.DESC)
+                        );
+                SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
+                SearchHit[] searchHits = searchResponse.getHits().getHits();
+
+                if (searchHits.length == 1) {
+//                index_history 조회하여 대상 찾음.
+                    Map<String, Object> source = searchHits[0].getSourceAsMap();
+                    String targetIndex = (String) source.get("index");
+
+                    if (indexA.getIndex().equals(targetIndex)) {
+                        addIndex = indexA;
+                        removeIndex = indexB;
+                    } else {
+                        addIndex = indexB;
+                        removeIndex = indexA;
+                    }
+
+                    if (addIndex.getUuid() != null) {
+                        request.addAliasAction(new IndicesAliasesRequest.
+                                AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
+                                .index(addIndex.getIndex()).alias(baseId));
+                    }
+                } else {
+
+                    // default
+                    request.addAliasAction(new IndicesAliasesRequest.
+                            AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
+                            .index(indexA.getIndex()).alias(baseId));
+
+                }
             }
 
-            String setJson = "{ \n" +
-                    "\"actions\" : [" +
-                    "{\n" +
-                    "\"add\": {" +
-                    "\"index\": \"" + exposeIndex.getIndex() + "\", \n " +
-                    "\"alias\": \"" + baseId+ "\" \n" +
-                    "}\n" +
-                    "},\n" +
-                    "{\n" +
-                    "\"remove\" : {\n" +
-                    "\"index\" : \"" + currentIndex.getIndex() + "\", \n" +
-                    "\"alias\" : \"" + baseId+ "\"" +
-                    "}\n" +
-                    "}\n" +
-                    "]\n" + "}";
-
-            Request request = new Request("POST", "_aliases");
-            request.setJsonEntity(setJson);
-            restClient.performRequest(request);
+            // 교체
+            client.indices().updateAliases(request, RequestOptions.DEFAULT);
         }
     }
 
@@ -303,6 +327,18 @@ public class IndexingJobService {
             throw new IndexingJobFailureException("invalid yaml");
         }
         return convert;
+    }
+
+    public void stopIndexing(String host, int port, String jobId) {
+        try {
+            restTemplate.exchange(new URI(String.format("http://%s:%d/async/stop?id=%s", host, port, jobId)),
+                    HttpMethod.PUT,
+                    new HttpEntity(new HashMap<>()),
+                    String.class
+            );
+        } catch (Exception e) {
+            logger.warn("", e);
+        }
     }
 
     public Map<String, Object> getParams() {

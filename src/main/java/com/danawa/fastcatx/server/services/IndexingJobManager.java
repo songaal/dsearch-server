@@ -53,7 +53,7 @@ public class IndexingJobManager {
         restTemplate = new RestTemplate(factory);
     }
 
-    @Scheduled(cron = "*/5 * * * * *")
+    @Scheduled(cron = "*/2 * * * * *")
     private void fetchIndexingStatus() {
         if (jobs.size() == 0) {
             return;
@@ -76,6 +76,7 @@ public class IndexingJobManager {
                     // elsticsearch한테 상태를 조회한다.
                     updateElasticsearchStatus(id, indexingStatus);
                 } else if (step == IndexStep.EXPOSE) {
+//                    EXPOSE
                     UUID clusterId = indexingStatus.getClusterId();
                     Collection collection = indexingStatus.getCollection();
                     indexingJobService.expose(clusterId, collection);
@@ -83,6 +84,7 @@ public class IndexingJobManager {
                     logger.debug("expose success. collection: {}", collection.getId());
                 }
             } catch (Exception e) {
+                logger.error("", e);
                 if (indexingStatus.getRetry() > 0) {
                     indexingStatus.setRetry(indexingStatus.getRetry() - 1);
                 } else {
@@ -146,6 +148,10 @@ public class IndexingJobManager {
         }
     }
 
+    public IndexingStatus remove(String collectionId) {
+        return jobs.remove(collectionId);
+    }
+
     public IndexingStatus findById(String collectionId) {
         return jobs.get(collectionId);
     }
@@ -184,7 +190,7 @@ public class IndexingJobManager {
             IndexStep nextStep = indexingStatus.getNextStep().poll();
             if ("SUCCESS".equalsIgnoreCase(status) && nextStep != null) {
                 // 다음 작업이 있을 경우.
-                indexingStatus = indexingJobService.propagate(clusterId, true, indexingStatus.getCollection(), indexingStatus.getNextStep());
+                indexingStatus = indexingJobService.propagate(clusterId, true, indexingStatus.getCollection(), indexingStatus.getNextStep(), index);
                 addLastIndexStatus(clusterId, indexingStatus.getCollection().getId(), index, indexingStatus.getStartTime(), "RUNNING", indexingStatus.getCurrentStep().name());
                 jobs.put(id, indexingStatus);
                 logger.debug("next Step >> {}", nextStep);
@@ -234,8 +240,22 @@ public class IndexingJobManager {
                 long startTime = indexingStatus.getStartTime();
                 deleteLastIndexStatus(client, index, startTime);
                 addIndexHistory(client, index, step.name(), startTime, System.currentTimeMillis(), indexingStatus.isAutoRun(), docSize, "SUCCESS", store);
+
                 logger.info("PROPAGATE Success");
-                jobs.remove(id);
+
+                IndexStep nextStep = indexingStatus.getNextStep().poll();
+                if (nextStep != null) {
+                    indexingStatus.setCurrentStep(nextStep);
+                    indexingStatus.setStartTime(System.currentTimeMillis());
+                    indexingStatus.setEndTime(0);
+                    indexingStatus.setRetry(50);
+                    indexingStatus.setAutoRun(true);
+                    jobs.put(id, indexingStatus);
+                    logger.debug("add next job : {} ", nextStep.name());
+                } else {
+                    jobs.remove(id);
+                    logger.debug("empty next status : {} ", id);
+                }
             }
         }
     }

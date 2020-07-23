@@ -114,7 +114,7 @@ public class CollectionService {
                         }
                         indexingStatus.setAutoRun(true);
                         indexingStatus.setCurrentStep(step);
-//                        indexingStatus.setNextStep();
+                        indexingStatus.setNextStep(new ArrayDeque<>());
                         indexingStatus.setRetry(50);
                         indexingStatus.setCollection(collection);
                         if(indexingJobManager.findById(collectionId) == null) {

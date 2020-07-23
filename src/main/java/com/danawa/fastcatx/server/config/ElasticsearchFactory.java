@@ -7,6 +7,7 @@ import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.apache.http.impl.nio.reactor.IOReactorConfig;
@@ -45,10 +46,15 @@ public class ElasticsearchFactory {
     }
 
     public RestHighLevelClient getClient(String username, String password, HttpHost ...httpHost) {
-        RestClientBuilder builder = RestClient.builder(httpHost).setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder.setDefaultIOReactorConfig(
-                IOReactorConfig.custom()
-                        .setIoThreadCount(1)
-                        .build() ));
+        RestClientBuilder builder = RestClient.builder(httpHost)
+                .setRequestConfigCallback(requestConfigBuilder -> requestConfigBuilder
+                        .setConnectTimeout(5000)
+                        .setSocketTimeout(60000))
+                .setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder.setDefaultIOReactorConfig(
+                        IOReactorConfig.custom()
+                                .setIoThreadCount(1)
+                                .build()
+                ));
 
         final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         if (username != null && !"".equals(username)
