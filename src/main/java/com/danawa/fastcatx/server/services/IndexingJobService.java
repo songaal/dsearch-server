@@ -5,6 +5,7 @@ import com.danawa.fastcatx.server.entity.Collection;
 import com.danawa.fastcatx.server.entity.IndexStep;
 import com.danawa.fastcatx.server.entity.IndexingStatus;
 import com.danawa.fastcatx.server.excpetions.IndexingJobFailureException;
+import com.google.gson.Gson;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
@@ -173,69 +174,90 @@ public class IndexingJobService {
     /**
      * 색인을 대표이름으로 alias 하고 노출한다.
      * */
-    public void expose(UUID clusterId, Collection collection) throws IOException, IndexingJobFailureException {
+    public void expose(UUID clusterId, Collection collection) throws IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            RestClient restClient = client.getLowLevelClient();
             String baseId = collection.getBaseId();
             Collection.Index indexA = collection.getIndexA();
             Collection.Index indexB = collection.getIndexB();
 
-            Collection.Index index = getTargetIndex(collection.getBaseId(), indexA, indexB);
-            Collection.Index exposeIndex = null;
-            Collection.Index currentIndex = null;
+            Collection.Index addIndex;
+            Collection.Index removeIndex;
+            Map<String, Object> actionMap = new HashMap<>();
+            List<Map<String, Object>> actions = new ArrayList<>();
 
-            if(indexA == index){
-                currentIndex = indexB;
-                exposeIndex = indexA;
-            }else{
-                currentIndex = indexA;
-                exposeIndex = indexB;
-            }
-
-            BoolQueryBuilder boolQuery = new BoolQueryBuilder();
-            boolQuery.must(new MatchQueryBuilder("jobType", "PROPAGATE"));
-            boolQuery.must(new MatchQueryBuilder("status", "SUCCESS"));
-
-            // 마지막 성공했던 인덱스를 적용 되어 있으면 바꾸기
-            QueryBuilder queryBuilder = boolQuery.should(new MatchQueryBuilder("index", indexA.getIndex()))
-                                                    .should(new MatchQueryBuilder("index", indexB.getIndex()))
-                                                    .minimumShouldMatch(1);
-
-            SearchRequest searchRequest = new SearchRequest()
-                    .indices(indexHistory)
-                    .source(new SearchSourceBuilder().query(queryBuilder).size(1).from(0).sort("endTime", SortOrder.DESC));
-            SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
-
-            SearchHit[] searchHits = searchResponse.getHits().getHits();
-            if (searchHits.length != 1) {
-                throw new IndexingJobFailureException("expose >> Not Matched");
-            }
-            Map<String, Object> source = searchHits[0].getSourceAsMap();
-            String lastExposedIndex = (String) source.get("index");
-
-            if(lastExposedIndex.equals(currentIndex.getIndex())){
+            if (indexA.getUuid() == null && indexB.getUuid() == null) {
+                logger.debug("empty index");
                 return;
+            } else if (indexA.getUuid() == null && indexB.getUuid() != null) {
+//                인덱스가 하나일 경우 고정
+                Map<String, Object> add = new HashMap<>();
+                add.put("index", indexB.getIndex());
+                add.put("alias", baseId);
+                actionMap.put("add", add);
+                actions.add(actionMap);
+            } else if (indexA.getUuid() != null && indexB.getUuid() == null) {
+//                인덱스가 하나일 경우 고정
+                Map<String, Object> add = new HashMap<>();
+                add.put("index", indexA.getIndex());
+                add.put("alias", baseId);
+                actionMap.put("add", add);
+                actions.add(actionMap);
+            } else {
+                // index_history 조회하여 마지막 인덱스, 전파 완료한 인덱스 검색.
+                QueryBuilder queryBuilder = new BoolQueryBuilder()
+                        .must(new MatchQueryBuilder("jobType", "PROPAGATE"))
+                        .must(new MatchQueryBuilder("status", "SUCCESS"))
+                        .should(new MatchQueryBuilder("index", indexA.getIndex()))
+                        .should(new MatchQueryBuilder("index", indexB.getIndex()))
+                        .minimumShouldMatch(1);
+                SearchRequest searchRequest = new SearchRequest()
+                        .indices(indexHistory)
+                        .source(new SearchSourceBuilder().query(queryBuilder)
+                                .size(1)
+                                .from(0)
+                                .sort("endTime", SortOrder.DESC)
+                        );
+                SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
+                SearchHit[] searchHits = searchResponse.getHits().getHits();
+
+                if (searchHits.length == 1) {
+//                index_history 조회하여 대상 찾음.
+                    Map<String, Object> source = searchHits[0].getSourceAsMap();
+                    String targetIndex = (String) source.get("index");
+
+                    if (indexA.getIndex().equals(targetIndex)) {
+                        addIndex = indexA;
+                        removeIndex = indexB;
+                    } else {
+                        addIndex = indexB;
+                        removeIndex = indexA;
+                    }
+
+                    if (addIndex.getUuid() != null) {
+                        Map<String, Object> add = new HashMap<>();
+                        add.put("index", addIndex.getIndex());
+                        add.put("alias", baseId);
+                        actionMap.put("add", add);
+                    }
+                    if (removeIndex.getUuid() != null) {
+                        Map<String, Object> remove = new HashMap<>();
+                        remove.put("index", removeIndex.getIndex());
+                        remove.put("alias", baseId);
+                        actionMap.put("remove", remove);
+                    }
+                    actions.add(actionMap);
+                }
+
+
             }
 
-            String setJson = "{ \n" +
-                    "\"actions\" : [" +
-                    "{\n" +
-                    "\"add\": {" +
-                    "\"index\": \"" + exposeIndex.getIndex() + "\", \n " +
-                    "\"alias\": \"" + baseId+ "\" \n" +
-                    "}\n" +
-                    "},\n" +
-                    "{\n" +
-                    "\"remove\" : {\n" +
-                    "\"index\" : \"" + currentIndex.getIndex() + "\", \n" +
-                    "\"alias\" : \"" + baseId+ "\"" +
-                    "}\n" +
-                    "}\n" +
-                    "]\n" + "}";
+            // 교체
+            Map<String, Object> aliases = new HashMap<>();
+            aliases.put("actions", actions);
 
             Request request = new Request("POST", "_aliases");
-            request.setJsonEntity(setJson);
-            restClient.performRequest(request);
+            request.setJsonEntity(new Gson().toJson(aliases));
+            client.getLowLevelClient().performRequest(request);
         }
     }
 
@@ -303,6 +325,18 @@ public class IndexingJobService {
         return convert;
     }
 
+    public void stopIndexing(String host, int port, String jobId) {
+        try {
+            restTemplate.exchange(new URI(String.format("http://%s:%d/async/stop?id=%s", host, port, jobId)),
+                    HttpMethod.PUT,
+                    new HttpEntity(new HashMap<>()),
+                    String.class
+            );
+        } catch (Exception e) {
+            logger.warn("", e);
+        }
+    }
+
     public Map<String, Object> getParams() {
         return params;
     }
@@ -326,4 +360,5 @@ public class IndexingJobService {
     public void setPropagate(Map<String, Object> propagate) {
         this.propagate = propagate;
     }
+
 }

@@ -76,7 +76,7 @@ public class CollectionController {
 
     @GetMapping("/{id}/job")
     public ResponseEntity<?> getJob(@RequestHeader(value = "cluster-id") UUID clusterId,
-                                    @PathVariable String id) throws IOException {
+                                    @PathVariable String id) {
         return new ResponseEntity<>(indexingJobManager.findById(id), HttpStatus.OK);
     }
 
@@ -118,6 +118,8 @@ public class CollectionController {
                     indexingJobManager.add(collection.getId(), indexingStatus);
                     response.put("indexingStatus", indexingStatus);
                     response.put("result", "success");
+                } else {
+                    response.put("result", "fail");
                 }
             }
         } else if ("indexing".equalsIgnoreCase(action)) {
@@ -129,6 +131,8 @@ public class CollectionController {
                     indexingJobManager.add(collection.getId(), indexingStatus);
                     response.put("indexingStatus", indexingStatus);
                     response.put("result", "success");
+                } else {
+                    response.put("result", "fail");
                 }
             }
         } else if ("propagate".equalsIgnoreCase(action)) {
@@ -138,21 +142,46 @@ public class CollectionController {
                     Collection collection = collectionService.findById(clusterId, id);
                     IndexingStatus indexingStatus = indexingJobService.propagate(clusterId, false, collection);
                     indexingJobManager.add(collection.getId(), indexingStatus);
-                    response.put("indexingStatus", indexingStatus);
                     response.put("result", "success");
+                } else {
+                    response.put("result", "fail");
                 }
             }
         } else if ("expose".equalsIgnoreCase(action)) {
             synchronized (obj) {
-                Collection collection = collectionService.findById(clusterId, id);
-                indexingJobService.expose(clusterId, collection);
-                response.put("result", "success");
+                IndexingStatus registerStatus = indexingJobManager.findById(id);
+                if (registerStatus == null) {
+                    Collection collection = collectionService.findById(clusterId, id);
+                    indexingJobService.expose(clusterId, collection);
+                    response.put("result", "success");
+                } else {
+                    response.put("result", "fail");
+                }
             }
         } else if ("stop_propagation".equalsIgnoreCase(action)) {
             synchronized (obj) {
-                Collection collection = collectionService.findById(clusterId, id);
-                indexingJobService.stopPropagation(clusterId, collection);
-                response.put("result", "success");
+                IndexingStatus registerStatus = indexingJobManager.findById(id);
+                if (registerStatus != null && registerStatus.getCurrentStep() == IndexStep.PROPAGATE) {
+                    Collection collection = collectionService.findById(clusterId, id);
+                    indexingJobService.stopPropagation(clusterId, collection);
+                    indexingJobManager.remove(id);
+                    response.put("result", "success");
+                } else {
+                    response.put("result", "fail");
+                }
+            }
+        } else if ("stop_indexing".equalsIgnoreCase(action)) {
+            synchronized (obj) {
+                IndexingStatus indexingStatus = indexingJobManager.findById(id);
+                if (indexingStatus != null && (indexingStatus.getCurrentStep() == IndexStep.FULL_INDEX || indexingStatus.getCurrentStep() == IndexStep.DYNAMIC_INDEX)) {
+                    Collection collection = collectionService.findById(clusterId, id);
+                    Collection.Launcher launcher = collection.getLauncher();
+                    indexingJobService.stopIndexing(launcher.getHost(), launcher.getPort(), indexingStatus.getIndexingJobId());
+                    response.put("indexingStatus", indexingStatus);
+                    response.put("result", "success");
+                } else {
+                    response.put("result", "fail");
+                }
             }
         }
         return new ResponseEntity<>(response, HttpStatus.OK);
