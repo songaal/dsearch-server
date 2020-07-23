@@ -213,6 +213,9 @@ public class IndexingJobService {
             Map<String, Object> source = searchHits[0].getSourceAsMap();
             String lastExposedIndex = (String) source.get("index");
 
+            logger.debug("{}", currentIndex.getIndex());
+            logger.debug("{}", exposeIndex.getIndex());
+            logger.debug("{}", lastExposedIndex);
             if(lastExposedIndex.equals(currentIndex.getIndex())){
                 return;
             }
@@ -239,16 +242,17 @@ public class IndexingJobService {
         }
     }
 
-    /*
+
+    /**
     * 전파 중지
     * */
-
     public void stopPropagation(UUID clusterId, Collection collection) throws IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Collection.Index indexA = collection.getIndexA();
             Collection.Index indexB = collection.getIndexB();
 //            1. 대상 인덱스 찾기.
             Collection.Index index = getTargetIndex(collection.getBaseId(), indexA, indexB);
+
 //            2. 인덱스 설정 변경.
             editPreparations(client, index);
             logger.info("stop propagation{}", index.getIndex());
@@ -324,5 +328,4 @@ public class IndexingJobService {
     public void setPropagate(Map<String, Object> propagate) {
         this.propagate = propagate;
     }
-
 }
