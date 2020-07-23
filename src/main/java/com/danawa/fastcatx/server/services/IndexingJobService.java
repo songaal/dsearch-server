@@ -93,7 +93,12 @@ public class IndexingJobService {
             Map<String, Object> body = convertRequestParams(launcher.getYaml());
             if (collection.getJdbcId() != null && !"".equals(collection.getJdbcId())) {
                 GetResponse getResponse = client.get(new GetRequest().index(jdbcSystemIndex).id(collection.getJdbcId()), RequestOptions.DEFAULT);
-                body.put("_jdbc", getResponse.getSourceAsMap());
+                Map<String, Object> jdbcSource = getResponse.getSourceAsMap();
+                jdbcSource.put("driverClassName", jdbcSource.get("driver"));
+                jdbcSource.put("url", jdbcSource.get("url"));
+                jdbcSource.put("user", jdbcSource.get("user"));
+                jdbcSource.put("password", jdbcSource.get("password"));
+                body.put("_jdbc", jdbcSource);
             }
             body.put("index", index.getIndex());
             body.put("_indexingSettings", indexing);
