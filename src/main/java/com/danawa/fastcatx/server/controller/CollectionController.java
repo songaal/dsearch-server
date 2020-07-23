@@ -23,9 +23,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @RestController
 @RequestMapping("/collections")
@@ -106,33 +104,57 @@ public class CollectionController {
     @PutMapping("/{id}/action")
     public ResponseEntity<?> indexing(@RequestHeader(value = "cluster-id") UUID clusterId,
                                       @PathVariable String id,
-                                      @RequestParam String action) throws IOException, IndexingJobFailureException {
-        if ("indexing".equalsIgnoreCase(action)) {
+                                      @RequestParam String action) throws IndexingJobFailureException, IOException {
+        Map<String, Object> response = new HashMap<>();
+        if ("all".equalsIgnoreCase(action)) {
+            synchronized (obj) {
+                IndexingStatus registerStatus = indexingJobManager.findById(id);
+                if (registerStatus == null) {
+                    Collection collection = collectionService.findById(clusterId, id);
+                    Queue<IndexStep> nextStep = new ArrayDeque<>();
+                    nextStep.add(IndexStep.PROPAGATE);
+                    nextStep.add(IndexStep.EXPOSE);
+                    IndexingStatus indexingStatus = indexingJobService.indexing(clusterId, collection, false, IndexStep.FULL_INDEX, nextStep);
+                    indexingJobManager.add(collection.getId(), indexingStatus);
+                    response.put("indexingStatus", indexingStatus);
+                    response.put("result", "success");
+                }
+            }
+        } else if ("indexing".equalsIgnoreCase(action)) {
             synchronized (obj) {
                 IndexingStatus registerStatus = indexingJobManager.findById(id);
                 if (registerStatus == null) {
                     Collection collection = collectionService.findById(clusterId, id);
                     IndexingStatus indexingStatus = indexingJobService.indexing(clusterId, collection, false, IndexStep.FULL_INDEX);
                     indexingJobManager.add(collection.getId(), indexingStatus);
+                    response.put("indexingStatus", indexingStatus);
+                    response.put("result", "success");
                 }
             }
         } else if ("propagate".equalsIgnoreCase(action)) {
             synchronized (obj) {
-                Collection collection = collectionService.findById(clusterId, id);
-                IndexingStatus indexingStatus = indexingJobService.propagate(clusterId, false, collection);
-                indexingJobManager.add(collection.getId(), indexingStatus);
+                IndexingStatus registerStatus = indexingJobManager.findById(id);
+                if (registerStatus == null) {
+                    Collection collection = collectionService.findById(clusterId, id);
+                    IndexingStatus indexingStatus = indexingJobService.propagate(clusterId, false, collection);
+                    indexingJobManager.add(collection.getId(), indexingStatus);
+                    response.put("indexingStatus", indexingStatus);
+                    response.put("result", "success");
+                }
             }
         } else if ("expose".equalsIgnoreCase(action)) {
             synchronized (obj) {
                 Collection collection = collectionService.findById(clusterId, id);
                 indexingJobService.expose(clusterId, collection);
+                response.put("result", "success");
             }
         } else if ("stop_propagation".equalsIgnoreCase(action)) {
             synchronized (obj) {
                 Collection collection = collectionService.findById(clusterId, id);
                 indexingJobService.stopPropagation(clusterId, collection);
+                response.put("result", "success");
             }
         }
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }

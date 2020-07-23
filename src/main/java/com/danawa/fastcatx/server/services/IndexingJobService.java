@@ -18,7 +18,6 @@ import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.MatchQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
@@ -45,7 +44,6 @@ public class IndexingJobService {
     private final ElasticsearchFactory elasticsearchFactory;
     private RestTemplate restTemplate;
 
-    private final String lastIndexStatusIndex = ".fastcatx_last_index_status";
     private final String indexHistory = ".fastcatx_index_history";
 
     private final String jdbcSystemIndex;
@@ -53,7 +51,6 @@ public class IndexingJobService {
     private Map<String, Object> params;
     private Map<String, Object> indexing;
     private Map<String, Object> propagate;
-    private Map<String, Object> stopPropagtion;
 
     public IndexingJobService(ElasticsearchFactory elasticsearchFactory,
                               @Value("${fastcatx.jdbc.setting}")String jdbcSystemIndex) {
