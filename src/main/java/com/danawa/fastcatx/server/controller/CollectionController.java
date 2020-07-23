@@ -129,4 +129,10 @@ public class CollectionController {
         }
         return new ResponseEntity<>(HttpStatus.OK);
     }
+
+    @GetMapping("/indexing")
+    public ResponseEntity<?> getRunningIndexingStatus(@RequestHeader(value = "cluster-id") UUID clusterId) throws IOException, IndexingJobFailureException {
+        System.out.println("indexing start");
+        return new ResponseEntity<>(indexingJobManager.getIndexingStatus(), HttpStatus.OK);
+    }
 }

@@ -258,8 +258,6 @@ public class IndexingJobService {
         }
     }
 
-
-
     private Collection.Index getTargetIndex(String baseId, Collection.Index indexA, Collection.Index indexB) {
         Collection.Index index = null;
         // 인덱스에 대한 alias를 확인
@@ -329,4 +327,5 @@ public class IndexingJobService {
     public void setPropagate(Map<String, Object> propagate) {
         this.propagate = propagate;
     }
+
 }

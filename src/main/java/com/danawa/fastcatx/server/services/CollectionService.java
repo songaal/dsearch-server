@@ -461,43 +461,4 @@ public class CollectionService {
             }
         }
     }
-
-    public Response changeIndex(UUID clusterId, ChangeIndexRequset changeIndexRequset) throws IOException{
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            RestClient restClient = client.getLowLevelClient();
-            String aliases = changeIndexRequset.getAliases();
-            String currentIndex = changeIndexRequset.getCurrentIndex();
-            String changeIndex = changeIndexRequset.getChangeIndex();
-            String setJson = "{ \n" +
-                    "\"actions\" : [" +
-                        "{\n" +
-                            "\"add\": {" +
-                                "\"index\": \"" + changeIndex + "\", \n " +
-                                "\"alias\": \"" + aliases + "\" \n" +
-                            "}\n" +
-                        "},\n" +
-                        "{\n" +
-                            "\"remove\" : {\n" +
-                                "\"index\" : \"" + currentIndex + "\", \n" +
-                                "\"alias\" : \"" + aliases + "\"" +
-                            "}\n" +
-                        "}\n" +
-                    "]\n" + "}";
-
-            Request request = new Request("POST", "_aliases");
-            request.setJsonEntity(setJson);
-
-            return restClient.performRequest(request);
-        }
-    }
-
-    public Response propagateIndex(UUID clusterId) throws IOException{
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            RestClient restClient = client.getLowLevelClient();
-
-            Request request = new Request("POST", "_aliases");
-
-            return restClient.performRequest(request);
-        }
-    }
 }

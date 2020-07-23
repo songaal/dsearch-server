@@ -142,6 +142,7 @@ public class IndexingJobManager {
         return jobs.get(collectionId);
     }
 
+
     /**
      * indexer 조회 후 상태 업데이트.
      * */
@@ -288,4 +289,21 @@ public class IndexingJobManager {
         }
     }
 
+    public Map<String, Object> getIndexingStatus(){
+        Map<String, Object> map = new HashMap<>();
+
+        for(String key : jobs.keySet()){
+            Map<String, Object> template = new HashMap<>();
+
+            /* 인덱서 조회 */
+            IndexingStatus status = jobs.get(key);
+            URI url = URI.create(String.format("http://%s:%d/async/status?id=%s", status.getHost(), status.getPort(), status.getIndexingJobId()));
+            ResponseEntity<Map> responseEntity = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(new HashMap<>()), Map.class);
+            template.put("indexer", responseEntity.getBody());
+            template.put("server", jobs.get(key));
+
+            map.put(key, template);
+        }
+        return map;
+    }
 }
