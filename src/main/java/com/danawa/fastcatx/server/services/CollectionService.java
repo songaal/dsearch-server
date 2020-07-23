@@ -377,6 +377,15 @@ public class CollectionService {
             Collection collection = findById(clusterId, id);
             Collection.Index indexA = collection.getIndexA();
             Collection.Index indexB = collection.getIndexB();
+
+            if (collection.isScheduled()) {
+                try {
+                    collection.setScheduled(false);
+                    editSchedule(clusterId, id, collection);
+                } catch (Exception e){
+                    logger.error("", e);
+                }
+            }
             if (indexA.getUuid() != null) {
                 try {
                     client.delete(new DeleteRequest().index(indexA.getIndex()), RequestOptions.DEFAULT);

@@ -2,6 +2,7 @@ package com.danawa.fastcatx.server.controller;
 
 import com.danawa.fastcatx.server.entity.Cluster;
 import com.danawa.fastcatx.server.entity.ClusterStatusResponse;
+import com.danawa.fastcatx.server.entity.Collection;
 import com.danawa.fastcatx.server.excpetions.NotFoundException;
 import com.danawa.fastcatx.server.services.*;
 import org.slf4j.Logger;
@@ -86,7 +87,21 @@ public class ClusterController {
     @DeleteMapping("/{id}")
     public ResponseEntity<?> remove(@PathVariable String id) throws IOException {
         try {
-            indicesService.delete(UUID.fromString(id), deletePrefix);
+            UUID clusterId = UUID.fromString(id);
+
+            List<Collection> collectionList = collectionService.findAll(clusterId);
+            for (int i = 0; i < collectionList.size(); i++) {
+                try {
+                    Collection collection = collectionList.get(i);
+                    if (collection.isScheduled()) {
+                        collection.setScheduled(false);
+                        collectionService.editSchedule(clusterId, collection.getId(), collection);
+                    }
+                } catch (Exception e){
+                    logger.error("", e);
+                }
+            }
+            indicesService.delete(clusterId, deletePrefix);
         } catch (Exception e) {
             logger.warn("fastcatx system index remove fail. {}", e.getMessage());
         }
