@@ -130,43 +130,51 @@ public class IndexingJobService {
     /**
      * 색인 샤드의 TAG 제약을 풀고 전체 클러스터로 확장시킨다.
      * */
-    public IndexingStatus propagate(UUID clusterId, boolean autoRun, Collection collection) throws IndexingJobFailureException, IOException {
-        return propagate(clusterId, autoRun, collection, new ArrayDeque<>());
+    public IndexingStatus propagate(UUID clusterId, boolean autoRun, Collection collection, String target) throws IndexingJobFailureException, IOException {
+        return propagate(clusterId, autoRun, collection, new ArrayDeque<>(), target);
     }
-    public IndexingStatus propagate(UUID clusterId, boolean autoRun, Collection collection, Queue<IndexStep> nextStep) throws IndexingJobFailureException, IOException {
+    public IndexingStatus propagate(UUID clusterId, boolean autoRun, Collection collection, Queue<IndexStep> nextStep, String target) throws IndexingJobFailureException, IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Collection.Index indexA = collection.getIndexA();
             Collection.Index indexB = collection.getIndexB();
 
-            BoolQueryBuilder boolQuery = new BoolQueryBuilder();
-            boolQuery.must(new MatchQueryBuilder("jobType", "FULL_INDEX"));
-            boolQuery.must(new MatchQueryBuilder("status", "SUCCESS"));
+            if (target == null) {
+                BoolQueryBuilder boolQuery = new BoolQueryBuilder();
+                boolQuery.must(new MatchQueryBuilder("jobType", IndexStep.FULL_INDEX.name()));
+                boolQuery.must(new MatchQueryBuilder("status", "SUCCESS"));
 
-            // 마지막 성공했던 인덱스를 적용 되어 있으면 바꾸기
-            QueryBuilder queryBuilder = boolQuery.should(new MatchQueryBuilder("index", indexA.getIndex()))
-                    .should(new MatchQueryBuilder("index", indexB.getIndex()))
-                    .minimumShouldMatch(1);
+                // 마지막 성공했던 인덱스를 적용 되어 있으면 바꾸기
+                QueryBuilder queryBuilder = boolQuery.should(new MatchQueryBuilder("index", indexA.getIndex()))
+                        .should(new MatchQueryBuilder("index", indexB.getIndex()))
+                        .minimumShouldMatch(1);
 
-            SearchRequest searchRequest = new SearchRequest()
-                    .indices(indexHistory)
-                    .source(new SearchSourceBuilder().query(queryBuilder).size(1).from(0).sort("endTime", SortOrder.DESC));
-            SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
+                SearchRequest searchRequest = new SearchRequest()
+                        .indices(indexHistory)
+                        .source(new SearchSourceBuilder().query(queryBuilder).size(1).from(0).sort("endTime", SortOrder.DESC));
+                SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
 
-            SearchHit[] searchHits = searchResponse.getHits().getHits();
-            if (searchHits.length != 1) {
-                throw new IndexingJobFailureException("propagate >> Not Matched");
+                SearchHit[] searchHits = searchResponse.getHits().getHits();
+                if (searchHits.length != 1) {
+                    throw new IndexingJobFailureException("propagate >> Not Matched");
+                }
+                Map<String, Object> source = searchHits[0].getSourceAsMap();
+//                String index = (String) source.get("index");
+                target = (String) source.get("index");
             }
-            Map<String, Object> source = searchHits[0].getSourceAsMap();
-            String index = (String) source.get("index");
 
-            client.indices().putSettings(new UpdateSettingsRequest().indices(index).settings(propagate), RequestOptions.DEFAULT);
+
+            client.indices().putSettings(new UpdateSettingsRequest().indices(target).settings(propagate), RequestOptions.DEFAULT);
             IndexingStatus indexingStatus = new IndexingStatus();
             indexingStatus.setClusterId(clusterId);
-            indexingStatus.setIndex(index);
+            indexingStatus.setIndex(target);
             indexingStatus.setStartTime(System.currentTimeMillis());
             indexingStatus.setAutoRun(autoRun);
             indexingStatus.setCurrentStep(IndexStep.PROPAGATE);
-            indexingStatus.setNextStep(nextStep);
+            if (nextStep == null) {
+                indexingStatus.setNextStep(new ArrayDeque<>());
+            } else {
+                indexingStatus.setNextStep(nextStep);
+            }
             indexingStatus.setRetry(50);
             indexingStatus.setCollection(collection);
             return indexingStatus;

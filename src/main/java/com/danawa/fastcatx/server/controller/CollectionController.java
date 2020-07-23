@@ -106,6 +106,7 @@ public class CollectionController {
                                       @PathVariable String id,
                                       @RequestParam String action) throws IndexingJobFailureException, IOException {
         Map<String, Object> response = new HashMap<>();
+        logger.debug("collection: {}, action: {}", id, action);
         if ("all".equalsIgnoreCase(action)) {
             synchronized (obj) {
                 IndexingStatus registerStatus = indexingJobManager.findById(id);
@@ -114,7 +115,7 @@ public class CollectionController {
                     Queue<IndexStep> nextStep = new ArrayDeque<>();
                     nextStep.add(IndexStep.PROPAGATE);
                     nextStep.add(IndexStep.EXPOSE);
-                    IndexingStatus indexingStatus = indexingJobService.indexing(clusterId, collection, false, IndexStep.FULL_INDEX, nextStep);
+                    IndexingStatus indexingStatus = indexingJobService.indexing(clusterId, collection, true, IndexStep.FULL_INDEX, nextStep);
                     indexingJobManager.add(collection.getId(), indexingStatus);
                     response.put("indexingStatus", indexingStatus);
                     response.put("result", "success");
@@ -140,7 +141,7 @@ public class CollectionController {
                 IndexingStatus registerStatus = indexingJobManager.findById(id);
                 if (registerStatus == null) {
                     Collection collection = collectionService.findById(clusterId, id);
-                    IndexingStatus indexingStatus = indexingJobService.propagate(clusterId, false, collection);
+                    IndexingStatus indexingStatus = indexingJobService.propagate(clusterId, false, collection, null);
                     indexingJobManager.add(collection.getId(), indexingStatus);
                     response.put("result", "success");
                 } else {
