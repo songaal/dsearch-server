@@ -127,6 +127,11 @@ public class CollectionController {
                 Collection collection = collectionService.findById(clusterId, id);
                 indexingJobService.expose(clusterId, collection);
             }
+        } else if ("stop_propagation".equalsIgnoreCase(action)) {
+            synchronized (obj) {
+                Collection collection = collectionService.findById(clusterId, id);
+                indexingJobService.stopPropagation(clusterId, collection);
+            }
         }
         return new ResponseEntity<>(HttpStatus.OK);
     }

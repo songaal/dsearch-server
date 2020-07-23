@@ -10,9 +10,12 @@ import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.client.Request;
 import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.indices.CreateIndexRequest;
+import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.MatchQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -42,11 +45,15 @@ public class IndexingJobService {
     private final ElasticsearchFactory elasticsearchFactory;
     private RestTemplate restTemplate;
 
+    private final String lastIndexStatusIndex = ".fastcatx_last_index_status";
+    private final String indexHistory = ".fastcatx_index_history";
+
     private final String jdbcSystemIndex;
 
     private Map<String, Object> params;
     private Map<String, Object> indexing;
     private Map<String, Object> propagate;
+    private Map<String, Object> stopPropagtion;
 
     public IndexingJobService(ElasticsearchFactory elasticsearchFactory,
                               @Value("${fastcatx.jdbc.setting}")String jdbcSystemIndex) {
@@ -131,11 +138,17 @@ public class IndexingJobService {
             Collection.Index indexA = collection.getIndexA();
             Collection.Index indexB = collection.getIndexB();
 
-            QueryBuilder queryBuilder = QueryBuilders.boolQuery().must(new MatchQueryBuilder("status", "SUCCESS"))
-                    .should(new MatchQueryBuilder("index", indexA.getIndex()))
-                    .should(new MatchQueryBuilder("index", indexB.getIndex()));
+            BoolQueryBuilder boolQuery = new BoolQueryBuilder();
+            boolQuery.must(new MatchQueryBuilder("jobType", "FULL_INDEX"));
+            boolQuery.must(new MatchQueryBuilder("status", "SUCCESS"));
+
+            // 마지막 성공했던 인덱스를 적용 되어 있으면 바꾸기
+            QueryBuilder queryBuilder = boolQuery.should(new MatchQueryBuilder("index", indexA.getIndex()))
+                    .should(new MatchQueryBuilder("index", indexB.getIndex()))
+                    .minimumShouldMatch(1);
 
             SearchRequest searchRequest = new SearchRequest()
+                    .indices(indexHistory)
                     .source(new SearchSourceBuilder().query(queryBuilder).size(1).from(0).sort("endTime", SortOrder.DESC));
             SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
 
@@ -148,7 +161,6 @@ public class IndexingJobService {
 
             client.indices().putSettings(new UpdateSettingsRequest().indices(index).settings(propagate), RequestOptions.DEFAULT);
             IndexingStatus indexingStatus = new IndexingStatus();
-//            indexingStatus.setCollectionId(collection.getId());
             indexingStatus.setClusterId(clusterId);
             indexingStatus.setIndex(index);
             indexingStatus.setStartTime(System.currentTimeMillis());
@@ -164,9 +176,89 @@ public class IndexingJobService {
     /**
      * 색인을 대표이름으로 alias 하고 노출한다.
      * */
-    public void expose(UUID clusterId, Collection collection) {
+    public void expose(UUID clusterId, Collection collection) throws IOException, IndexingJobFailureException {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            RestClient restClient = client.getLowLevelClient();
+            String baseId = collection.getBaseId();
+            Collection.Index indexA = collection.getIndexA();
+            Collection.Index indexB = collection.getIndexB();
 
+            Collection.Index index = getTargetIndex(collection.getBaseId(), indexA, indexB);
+            Collection.Index exposeIndex = null;
+            Collection.Index currentIndex = null;
+
+            if(indexA == index){
+                currentIndex = indexB;
+                exposeIndex = indexA;
+            }else{
+                currentIndex = indexA;
+                exposeIndex = indexB;
+            }
+
+            BoolQueryBuilder boolQuery = new BoolQueryBuilder();
+            boolQuery.must(new MatchQueryBuilder("jobType", "PROPAGATE"));
+            boolQuery.must(new MatchQueryBuilder("status", "SUCCESS"));
+
+            // 마지막 성공했던 인덱스를 적용 되어 있으면 바꾸기
+            QueryBuilder queryBuilder = boolQuery.should(new MatchQueryBuilder("index", indexA.getIndex()))
+                                                    .should(new MatchQueryBuilder("index", indexB.getIndex()))
+                                                    .minimumShouldMatch(1);
+
+            SearchRequest searchRequest = new SearchRequest()
+                    .indices(indexHistory)
+                    .source(new SearchSourceBuilder().query(queryBuilder).size(1).from(0).sort("endTime", SortOrder.DESC));
+            SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
+
+            SearchHit[] searchHits = searchResponse.getHits().getHits();
+            if (searchHits.length != 1) {
+                throw new IndexingJobFailureException("expose >> Not Matched");
+            }
+            Map<String, Object> source = searchHits[0].getSourceAsMap();
+            String lastExposedIndex = (String) source.get("index");
+
+            if(lastExposedIndex.equals(currentIndex.getIndex())){
+                return;
+            }
+
+            String setJson = "{ \n" +
+                    "\"actions\" : [" +
+                    "{\n" +
+                    "\"add\": {" +
+                    "\"index\": \"" + exposeIndex.getIndex() + "\", \n " +
+                    "\"alias\": \"" + baseId+ "\" \n" +
+                    "}\n" +
+                    "},\n" +
+                    "{\n" +
+                    "\"remove\" : {\n" +
+                    "\"index\" : \"" + currentIndex.getIndex() + "\", \n" +
+                    "\"alias\" : \"" + baseId+ "\"" +
+                    "}\n" +
+                    "}\n" +
+                    "]\n" + "}";
+
+            Request request = new Request("POST", "_aliases");
+            request.setJsonEntity(setJson);
+            restClient.performRequest(request);
+        }
     }
+
+    /*
+    * 전파 중지
+    * */
+
+    public void stopPropagation(UUID clusterId, Collection collection) throws IOException {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            Collection.Index indexA = collection.getIndexA();
+            Collection.Index indexB = collection.getIndexB();
+//            1. 대상 인덱스 찾기.
+            Collection.Index index = getTargetIndex(collection.getBaseId(), indexA, indexB);
+//            2. 인덱스 설정 변경.
+            editPreparations(client, index);
+            logger.info("stop propagation{}", index.getIndex());
+        }
+    }
+
+
 
     private Collection.Index getTargetIndex(String baseId, Collection.Index indexA, Collection.Index indexB) {
         Collection.Index index = null;
