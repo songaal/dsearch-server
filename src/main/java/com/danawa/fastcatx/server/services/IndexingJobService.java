@@ -194,14 +194,6 @@ public class IndexingJobService {
             Collection.Index removeIndex;
             IndicesAliasesRequest request = new IndicesAliasesRequest();
 
-            request.addAliasAction(new IndicesAliasesRequest.
-                    AliasActions(IndicesAliasesRequest.AliasActions.Type.REMOVE)
-                    .index(indexA.getIndex()).alias(baseId));
-            request.addAliasAction(new IndicesAliasesRequest.
-                    AliasActions(IndicesAliasesRequest.AliasActions.Type.REMOVE)
-                    .index(indexB.getIndex()).alias(baseId));
-
-
             if (indexA.getUuid() == null && indexB.getUuid() == null) {
                 logger.debug("empty index");
                 return;
@@ -246,18 +238,18 @@ public class IndexingJobService {
                         removeIndex = indexA;
                     }
 
-                    if (addIndex.getUuid() != null) {
-                        request.addAliasAction(new IndicesAliasesRequest.
-                                AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
-                                .index(addIndex.getIndex()).alias(baseId));
-                    }
-                } else {
+                    request.addAliasAction(new IndicesAliasesRequest.
+                            AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
+                            .index(addIndex.getIndex()).alias(baseId));
+                    request.addAliasAction(new IndicesAliasesRequest.
+                            AliasActions(IndicesAliasesRequest.AliasActions.Type.REMOVE)
+                            .index(removeIndex.getIndex()).alias(baseId));
 
+                } else {
                     // default
                     request.addAliasAction(new IndicesAliasesRequest.
                             AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
                             .index(indexA.getIndex()).alias(baseId));
-
                 }
             }
 
