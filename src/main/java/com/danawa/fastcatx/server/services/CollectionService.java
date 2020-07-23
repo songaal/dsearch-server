@@ -114,7 +114,7 @@ public class CollectionService {
                         }
                         indexingStatus.setAutoRun(true);
                         indexingStatus.setCurrentStep(step);
-//                        indexingStatus.setNextStep(nextStep);
+//                        indexingStatus.setNextStep();
                         indexingStatus.setRetry(50);
                         indexingStatus.setCollection(collection);
                         if(indexingJobManager.findById(collectionId) == null) {
@@ -149,7 +149,7 @@ public class CollectionService {
                                     } catch (IndexingJobFailureException e) {
                                         logger.error("[INIT ERROR] ", e);
                                     }
-                                }, new CronTrigger(cron + " *"))));
+                                }, new CronTrigger("0 " + cron))));
 
                             }
                         } catch (Exception e) {
@@ -241,10 +241,14 @@ public class CollectionService {
                 if (indexA != null) {
                     indexA.setAliases((Map) ((Map) aliasEntity.get(indexA.getIndex())).get("aliases"));
                     collection.setIndexA(indexA);
+                } else {
+                    collection.getIndexA().setAliases(new HashMap<>());
                 }
                 if (indexB != null) {
                     indexB.setAliases((Map) ((Map) aliasEntity.get(indexB.getIndex())).get("aliases"));
                     collection.setIndexB(indexB);
+                } else {
+                    collection.getIndexB().setAliases(new HashMap<>());
                 }
                 collectionList.add(collection);
             }
@@ -446,7 +450,7 @@ public class CollectionService {
                     } catch (IndexingJobFailureException e) {
                         logger.error("", e);
                     }
-                }, new CronTrigger(cron + " *"))));
+                }, new CronTrigger("0 " + cron))));
             } else {
                 ScheduledFuture<?> future = scheduled.get(scheduledKey);
                 if (future != null) {

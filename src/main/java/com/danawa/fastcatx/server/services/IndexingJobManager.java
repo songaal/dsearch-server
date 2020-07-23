@@ -1,6 +1,7 @@
 package com.danawa.fastcatx.server.services;
 
 import com.danawa.fastcatx.server.config.ElasticsearchFactory;
+import com.danawa.fastcatx.server.entity.Collection;
 import com.danawa.fastcatx.server.entity.IndexStep;
 import com.danawa.fastcatx.server.entity.IndexingStatus;
 import com.danawa.fastcatx.server.excpetions.IndexingJobFailureException;
@@ -65,15 +66,21 @@ public class IndexingJobManager {
             IndexStep step = indexingStatus.getCurrentStep();
             try {
                 if (step == null) {
-                    throw new Exception("Invalid Step");
+                    jobs.remove(id);
+                    logger.error("index: {}, NOT Matched Step..", indexingStatus.getIndex());
+                    throw new IndexingJobFailureException("STEP is Null");
                 } else if (step == IndexStep.FULL_INDEX || step == IndexStep.DYNAMIC_INDEX) {
                     // indexer한테 상태를 조회한다.
                     updateIndexerStatus(id, indexingStatus);
                 } else if (step == IndexStep.PROPAGATE) {
                     // elsticsearch한테 상태를 조회한다.
                     updateElasticsearchStatus(id, indexingStatus);
-                } else {
-                    logger.error("index: {}, NOT Matched Step.. {}", indexingStatus.getIndex(), step);
+                } else if (step == IndexStep.EXPOSE) {
+                    UUID clusterId = indexingStatus.getClusterId();
+                    Collection collection = indexingStatus.getCollection();
+                    indexingJobService.expose(clusterId, collection);
+                    jobs.remove(id);
+                    logger.debug("expose success. collection: {}", collection.getId());
                 }
             } catch (Exception e) {
                 if (indexingStatus.getRetry() > 0) {
@@ -99,6 +106,7 @@ public class IndexingJobManager {
                     } else if (step == IndexStep.PROPAGATE) {
                         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
                             jobs.remove(id);
+                            deleteLastIndexStatus(client, index, startTime);
                             addIndexHistory(client, index, jobType, startTime, endTime, autoRun, "0", "ERROR", "0");
                             logger.error("[remove job] retry.. {}", indexingStatus.getRetry());
                         } catch (Exception e1) {
@@ -217,7 +225,7 @@ public class IndexingJobManager {
                 }
             }
         }
-
+        logger.debug("Propagate Check.. index: {}, is success: {}", index, done);
         if (done) {
             try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
                 Map<String, Object> catIndex = catIndex(client, index);
@@ -226,7 +234,7 @@ public class IndexingJobManager {
                 long startTime = indexingStatus.getStartTime();
                 deleteLastIndexStatus(client, index, startTime);
                 addIndexHistory(client, index, step.name(), startTime, System.currentTimeMillis(), indexingStatus.isAutoRun(), docSize, "SUCCESS", store);
-                logger.info("전파 Success");
+                logger.info("PROPAGATE Success");
                 jobs.remove(id);
             }
         }
