@@ -79,7 +79,7 @@ public class IndexingJobManager {
 //                    EXPOSE
                     UUID clusterId = indexingStatus.getClusterId();
                     Collection collection = indexingStatus.getCollection();
-                    indexingJobService.expose(clusterId, collection);
+                    indexingJobService.expose(clusterId, collection, indexingStatus.getIndex());
                     jobs.remove(id);
                     logger.debug("expose success. collection: {}", collection.getId());
                 }
