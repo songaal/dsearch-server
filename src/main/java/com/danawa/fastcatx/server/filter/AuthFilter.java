@@ -2,13 +2,13 @@ package com.danawa.fastcatx.server.filter;
 
 import com.danawa.fastcatx.server.controller.AuthController;
 import com.danawa.fastcatx.server.entity.AuthUser;
+import com.danawa.fastcatx.server.excpetions.NotFoundUserException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
+import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
@@ -18,27 +18,28 @@ import java.util.Arrays;
 import java.util.List;
 
 @Component
-public class AuthFilter extends OncePerRequestFilter {
+public class AuthFilter implements Filter {
     private static Logger logger = LoggerFactory.getLogger(AuthFilter.class);
 
+    // 미인증 URI
     private static final List<String> bypassUri = Arrays.asList(
-            "/",
+            "/", "/info",
             "/auth/sign-in", "/auth/sign-out"
     );
-
     @Override
-    protected void doFilterInternal(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, FilterChain filterChain) throws ServletException, IOException {
-        HttpSession session = httpServletRequest.getSession();
-        String sessionId = session.getId();
+    public void doFilter(ServletRequest req, ServletResponse resp, FilterChain chain) throws IOException, ServletException {
+        HttpServletRequest request = (HttpServletRequest) req;
+        HttpServletResponse response = (HttpServletResponse) resp;
+
+        String uri = request.getRequestURI();
+        HttpSession session = request.getSession();
         AuthUser authUser = (AuthUser) session.getAttribute(AuthController.SESSION_KEY);
-//        logger.debug("sessionId: {}, isAuth: {}, URI: {}", sessionId, authUser != null, httpServletRequest.getRequestURI());
 
-        String uri = httpServletRequest.getRequestURI();
-        if (!bypassUri.contains(uri) && authUser == null) {
-            httpServletResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        if (!(bypassUri.contains(uri)) && (authUser == null || authUser.getUser() == null)) {
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+        } else {
+            chain.doFilter(req, resp);
         }
-        filterChain.doFilter(httpServletRequest, httpServletResponse);
     }
-
 
 }

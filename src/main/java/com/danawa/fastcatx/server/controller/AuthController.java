@@ -19,7 +19,7 @@ import java.util.UUID;
 public class AuthController {
     private static Logger logger = LoggerFactory.getLogger(AuthController.class);
 
-    private int maxInactiveInterval = 2 * (60 * 60);
+    public final static int maxInactiveInterval = 2 * (60 * 60);
     public static final String SESSION_KEY = "AUTH_USER";
 
     private final AuthService authService;
