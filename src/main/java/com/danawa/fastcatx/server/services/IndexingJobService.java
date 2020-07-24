@@ -220,6 +220,7 @@ public class IndexingJobService {
                     // 교체
                     client.indices().updateAliases(request, RequestOptions.DEFAULT);
                 } catch (Exception e) {
+                    request = new IndicesAliasesRequest();
                     request.addAliasAction(new IndicesAliasesRequest.
                             AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
                             .index(addIndex.getIndex()).alias(baseId));
