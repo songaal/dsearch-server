@@ -53,7 +53,7 @@ public class IndexingJobManager {
         restTemplate = new RestTemplate(factory);
     }
 
-    @Scheduled(cron = "*/2 * * * * *")
+    @Scheduled(fixedDelay = 500)
     private void fetchIndexingStatus() {
         if (jobs.size() == 0) {
             return;
@@ -167,7 +167,12 @@ public class IndexingJobManager {
         // check
         URI url = URI.create(String.format("http://%s:%d/async/status?id=%s", indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId()));
         ResponseEntity<Map> responseEntity = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(new HashMap<>()), Map.class);
-        String status = (String) responseEntity.getBody().get("status");
+        Map<String, Object> body = responseEntity.getBody();
+        if (body == null) {
+            jobs.remove(id);
+            return;
+        }
+        String status = (String) body.get("status");
         logger.debug("index: {}, status: {}", indexingStatus.getIndex(), status);
 
         if ("SUCCESS".equalsIgnoreCase(status) || "ERROR".equalsIgnoreCase(status) || "STOP".equalsIgnoreCase(status)) {
@@ -194,6 +199,8 @@ public class IndexingJobManager {
                 addLastIndexStatus(clusterId, indexingStatus.getCollection().getId(), index, indexingStatus.getStartTime(), "RUNNING", indexingStatus.getCurrentStep().name());
                 jobs.put(id, indexingStatus);
                 logger.debug("next Step >> {}", nextStep);
+            } else if ("ERROR".equalsIgnoreCase(status) || "STOP".equalsIgnoreCase(status)) {
+                indexingJobService.expose(clusterId, indexingStatus.getCollection());
             } else {
                 // 다음 작업이 없으면 제거.
                 jobs.remove(id);
