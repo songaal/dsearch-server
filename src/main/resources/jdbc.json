@@ -5,37 +5,37 @@
   },
   "mappings": {
     "properties": {
-      "ID" : {
+      "id" : {
         "type" : "text"
       },
-      "NAME" : {
+      "name" : {
         "type" : "text"
       },
-      "PROVIDER" : {
+      "provider" : {
         "type" : "text"
       },
-      "DRIVER" : {
+      "driver" : {
         "type" : "text"
       },
-      "ADDRESS" : {
+      "address" : {
         "type" : "text"
       },
-      "PORT" : {
+      "port" : {
         "type" : "text"
       },
-      "DB_NAME" : {
+      "db_name" : {
         "type" : "text"
       },
-      "USER" : {
+      "user" : {
         "type" : "text"
       },
-      "PASSWORD" : {
+      "password" : {
         "type" : "text"
       },
-      "PARAMS" : {
+      "params" : {
         "type" : "text"
       },
-      "URL" : {
+      "url" : {
         "type" : "text"
       }
     }
