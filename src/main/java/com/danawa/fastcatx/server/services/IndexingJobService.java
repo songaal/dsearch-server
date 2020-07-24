@@ -217,14 +217,15 @@ public class IndexingJobService {
                     request.addAliasAction(new IndicesAliasesRequest.
                             AliasActions(IndicesAliasesRequest.AliasActions.Type.REMOVE)
                             .index(removeIndex.getIndex()).alias(baseId));
+                    // 교체
+                    client.indices().updateAliases(request, RequestOptions.DEFAULT);
                 } catch (Exception e) {
                     request.addAliasAction(new IndicesAliasesRequest.
                             AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
                             .index(addIndex.getIndex()).alias(baseId));
+                    // 교체
+                    client.indices().updateAliases(request, RequestOptions.DEFAULT);
                 }
-                // 교체
-                client.indices().updateAliases(request, RequestOptions.DEFAULT);
-
             } else {
                 if (indexA.getUuid() == null && indexB.getUuid() == null) {
                     logger.debug("empty index");
@@ -293,8 +294,8 @@ public class IndexingJobService {
 
 
     /**
-    * 전파 중지
-    * */
+     * 전파 중지
+     * */
     public void stopPropagation(UUID clusterId, Collection collection) throws IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Collection.Index indexA = collection.getIndexA();
