@@ -125,7 +125,11 @@ public class CollectionService {
                         logger.error("[INIT ERROR] ", e);
                     }
                 });
+            } catch (Exception e) {
+                logger.error("[INIT ERROR]", e);
+            }
 
+            try {
 //                2. 컬렉션의 스케쥴이 enabled 이면 다시 스케쥴을 등록한다.
                 List<Collection> collectionList = findAll(cluster.getId());
                 if (collectionList != null) {
@@ -160,6 +164,7 @@ public class CollectionService {
             } catch (Exception e) {
                 logger.error("[INIT ERROR]", e);
             }
+
             logger.debug("init finished");
         }
     }
