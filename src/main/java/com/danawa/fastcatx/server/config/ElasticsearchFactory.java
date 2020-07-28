@@ -48,7 +48,7 @@ public class ElasticsearchFactory {
     public RestHighLevelClient getClient(String username, String password, HttpHost ...httpHost) {
         RestClientBuilder builder = RestClient.builder(httpHost)
                 .setRequestConfigCallback(requestConfigBuilder -> requestConfigBuilder
-                        .setConnectTimeout(5000)
+                        .setConnectTimeout(10000)
                         .setSocketTimeout(60000))
                 .setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder.setDefaultIOReactorConfig(
                         IOReactorConfig.custom()

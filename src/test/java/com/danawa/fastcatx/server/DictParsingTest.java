@@ -13,10 +13,16 @@ public class DictParsingTest {
     public static void main(String[] args) {
 //        데이터 확인후..
 //        curl -s -H "Content-Type: application/x-ndjson" -XPOST http://es1.danawa.io/.fastcatx_dict/_bulk --data-binary @user.json
-//        curl -s -H "Content-Type: application/x-ndjson" -XPOST http://es1.danawa.io/.fastcatx_dict/_bulk --data-binary @user.json
-        //        curl -s -H "Content-Type: application/x-ndjson" -XPOST http://es1.danawa.io/.fastcatx_dict/_bulk --data-binary @user.json
-        //        curl -s -H "Content-Type: application/x-ndjson" -XPOST http://es1.danawa.io/.fastcatx_dict/_bulk --data-binary @user.json
-        //        curl -s -H "Content-Type: application/x-ndjson" -XPOST http://es1.danawa.io/.fastcatx_dict/_bulk --data-binary @user.json
+//        curl -s -H "Content-Type: application/x-ndjson" -XPOST http://es1.danawa.io/.fastcatx_dict/_bulk --data-binary @synonym.json
+//        curl -s -H "Content-Type: application/x-ndjson" -XPOST http://es1.danawa.io/.fastcatx_dict/_bulk --data-binary @stop.json
+//        curl -s -H "Content-Type: application/x-ndjson" -XPOST http://es1.danawa.io/.fastcatx_dict/_bulk --data-binary @space.json
+//        curl -s -H "Content-Type: application/x-ndjson" -XPOST http://es1.danawa.io/.fastcatx_dict/_bulk --data-binary @compound.json
+//        curl -s -H "Content-Type: application/x-ndjson" -XPOST http://es1.danawa.io/.fastcatx_dict/_bulk --data-binary @unit.json
+//        curl -s -H "Content-Type: application/x-ndjson" -XPOST http://es1.danawa.io/.fastcatx_dict/_bulk --data-binary @unit_synonym.json
+//        curl -s -H "Content-Type: application/x-ndjson" -XPOST http://es1.danawa.io/.fastcatx_dict/_bulk --data-binary @maker.json
+//        curl -s -H "Content-Type: application/x-ndjson" -XPOST http://es1.danawa.io/.fastcatx_dict/_bulk --data-binary @brand.json
+//        curl -s -H "Content-Type: application/x-ndjson" -XPOST http://es1.danawa.io/.fastcatx_dict/_bulk --data-binary @category.json
+//        curl -s -H "Content-Type: application/x-ndjson" -XPOST http://es1.danawa.io/.fastcatx_dict/_bulk --data-binary @english.json
 
 
         String path = "C:\\Users\\admin\\Downloads\\Downloads";
