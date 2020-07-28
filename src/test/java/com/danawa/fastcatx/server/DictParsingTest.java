@@ -13,18 +13,25 @@ public class DictParsingTest {
     public static void main(String[] args) {
 //        데이터 확인후..
 //        curl -s -H "Content-Type: application/x-ndjson" -XPOST http://es1.danawa.io/.fastcatx_dict/_bulk --data-binary @user.json
+//        curl -s -H "Content-Type: application/x-ndjson" -XPOST http://es1.danawa.io/.fastcatx_dict/_bulk --data-binary @user.json
+        //        curl -s -H "Content-Type: application/x-ndjson" -XPOST http://es1.danawa.io/.fastcatx_dict/_bulk --data-binary @user.json
+        //        curl -s -H "Content-Type: application/x-ndjson" -XPOST http://es1.danawa.io/.fastcatx_dict/_bulk --data-binary @user.json
+        //        curl -s -H "Content-Type: application/x-ndjson" -XPOST http://es1.danawa.io/.fastcatx_dict/_bulk --data-binary @user.json
 
-        UserDict("C:\\Users\\devel\\Downloads\\user.txt", "C:\\Users\\devel\\Downloads\\user.json");
-        synonym("C:\\Users\\devel\\Downloads\\synonym.txt", "C:\\Users\\devel\\Downloads\\synonym.json");
-        stop("C:\\Users\\devel\\Downloads\\stop.txt", "C:\\Users\\devel\\Downloads\\stop.json");
-        space("C:\\Users\\devel\\Downloads\\space.txt", "C:\\Users\\devel\\Downloads\\space.json");
-        compound("C:\\Users\\devel\\Downloads\\compound.txt", "C:\\Users\\devel\\Downloads\\compound.json");
-        unit("C:\\Users\\devel\\Downloads\\unit.txt", "C:\\Users\\devel\\Downloads\\unit.json");
-        unitSynonym("C:\\Users\\devel\\Downloads\\unit_synonym.txt", "C:\\Users\\devel\\Downloads\\unit_synonym.json");
-        maker("C:\\Users\\devel\\Downloads\\maker.txt", "C:\\Users\\devel\\Downloads\\maker.json");
-        brand("C:\\Users\\devel\\Downloads\\brand.txt", "C:\\Users\\devel\\Downloads\\brand.json");
-        category("C:\\Users\\devel\\Downloads\\category.txt", "C:\\Users\\devel\\Downloads\\category.json");
-        english("C:\\Users\\devel\\Downloads\\english.txt", "C:\\Users\\devel\\Downloads\\english.json");
+
+        String path = "C:\\Users\\admin\\Downloads\\Downloads";
+
+        UserDict(path + "\\user.txt", path + "\\user.json");
+        synonym(path + "\\synonym.txt", path + "\\synonym.json");
+        stop(path + "\\stop.txt", path + "\\stop.json");
+        space(path + "\\space.txt", path + "\\space.json");
+        compound(path + "\\compound.txt", path + "\\compound.json");
+        unit(path + "\\unit.txt", path + "\\unit.json");
+        unitSynonym(path + "\\unit_synonym.txt", path + "\\unit_synonym.json");
+        maker(path + "\\maker.txt", path + "\\maker.json");
+        brand(path + "\\brand.txt", path + "\\brand.json");
+        category(path + "\\category.txt", path + "\\category.json");
+        english(path + "\\english.txt", path + "\\english.json");
 
 
     }
