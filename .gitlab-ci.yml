@@ -17,7 +17,7 @@ build:
   script:
     - sh mvnw clean
     - sh mvnw package -DskipTests
-    - export VERSION="$(sh mvnw --non-recursive help:evaluate -Dexpression=project.version | grep -v '\[.*')"
+    - export VERSION="$(grep -oPm2 "(?<=<version>)[^<]+" pom.xml | sed -n 2p)"
     - echo ${VERSION}
     - docker build -t ${IMAGE}:latest .
     - docker tag ${IMAGE}:latest ${IMAGE}:${VERSION}
