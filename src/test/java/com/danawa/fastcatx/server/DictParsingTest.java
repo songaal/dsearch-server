@@ -57,7 +57,7 @@ public class DictParsingTest {
                 String[] column = line.split("\t");
                 DictEntityTest dict = new DictEntityTest();
                 dict.setType(TYPE.ENGLISH.name());
-                dict.setKeyword(column[0]);
+                dict.setKeyword(column[0].trim());
                 writer.append(new Gson().toJson(metaLine) + "\r\n");
                 writer.append(new Gson().toJson(dict) + "\r\n");
             }
@@ -96,9 +96,9 @@ public class DictParsingTest {
                 String[] column = line.split("\t");
                 DictEntityTest dict = new DictEntityTest();
                 dict.setType(TYPE.CATEGORY.name());
-                dict.setId(column[0]);
-                dict.setKeyword(column[1]);
-                dict.setValue(column[2]);
+                dict.setId(column[0].trim());
+                dict.setKeyword(column[1].trim());
+                dict.setValue(column[2].trim());
                 writer.append(new Gson().toJson(metaLine) + "\r\n");
                 writer.append(new Gson().toJson(dict) + "\r\n");
             }
@@ -136,9 +136,9 @@ public class DictParsingTest {
                 String[] column = line.split("\t");
                 DictEntityTest dict = new DictEntityTest();
                 dict.setType(TYPE.BRAND.name());
-                dict.setId(column[0]);
-                dict.setKeyword(column[1]);
-                dict.setValue(column[2]);
+                dict.setId(column[0].trim());
+                dict.setKeyword(column[1].trim());
+                dict.setValue(column[2].trim());
                 writer.append(new Gson().toJson(metaLine) + "\r\n");
                 writer.append(new Gson().toJson(dict) + "\r\n");
             }
@@ -177,9 +177,9 @@ public class DictParsingTest {
                 String[] column = line.split("\t");
                 DictEntityTest dict = new DictEntityTest();
                 dict.setType(TYPE.MAKER.name());
-                dict.setId(column[0]);
-                dict.setKeyword(column[1]);
-                dict.setValue(column[2]);
+                dict.setId(column[0].trim());
+                dict.setKeyword(column[1].trim());
+                dict.setValue(column[2].trim());
                 writer.append(new Gson().toJson(metaLine) + "\r\n");
                 writer.append(new Gson().toJson(dict) + "\r\n");
             }
@@ -218,7 +218,7 @@ public class DictParsingTest {
                 String[] column = line.split("\t");
                 DictEntityTest dict = new DictEntityTest();
                 dict.setType(TYPE.UNIT_SYNONYM.name());
-                dict.setValue(column[0]);
+                dict.setValue(column[0].trim());
                 writer.append(new Gson().toJson(metaLine) + "\r\n");
                 writer.append(new Gson().toJson(dict) + "\r\n");
             }
@@ -257,7 +257,7 @@ public class DictParsingTest {
                 String[] column = line.split("\t");
                 DictEntityTest dict = new DictEntityTest();
                 dict.setType(TYPE.UNIT.name());
-                dict.setKeyword(column[0]);
+                dict.setKeyword(column[0].trim());
                 writer.append(new Gson().toJson(metaLine) + "\r\n");
                 writer.append(new Gson().toJson(dict) + "\r\n");
             }
@@ -296,8 +296,8 @@ public class DictParsingTest {
                 String[] column = line.split("\t");
                 DictEntityTest dict = new DictEntityTest();
                 dict.setType(TYPE.COMPOUND.name());
-                dict.setKeyword(column[0]);
-                dict.setValue(column[1]);
+                dict.setKeyword(column[0].trim());
+                dict.setValue(column[1].trim());
                 writer.append(new Gson().toJson(metaLine) + "\r\n");
                 writer.append(new Gson().toJson(dict) + "\r\n");
             }
@@ -336,7 +336,7 @@ public class DictParsingTest {
                 String[] column = line.split("\t");
                 DictEntityTest dict = new DictEntityTest();
                 dict.setType(TYPE.SPACE.name());
-                dict.setKeyword(column[0]);
+                dict.setKeyword(column[0].trim());
                 writer.append(new Gson().toJson(metaLine) + "\r\n");
                 writer.append(new Gson().toJson(dict) + "\r\n");
             }
@@ -375,7 +375,7 @@ public class DictParsingTest {
                 String[] column = line.split("\t");
                 DictEntityTest dict = new DictEntityTest();
                 dict.setType(TYPE.STOP.name());
-                dict.setKeyword(column[0]);
+                dict.setKeyword(column[0].trim());
                 writer.append(new Gson().toJson(metaLine) + "\r\n");
                 writer.append(new Gson().toJson(dict) + "\r\n");
             }
@@ -414,8 +414,8 @@ public class DictParsingTest {
                 String[] column = line.split("\t");
                 DictEntityTest dict = new DictEntityTest();
                 dict.setType(TYPE.SYNONYM.name());
-                dict.setKeyword(column[0]);
-                dict.setValue(column[1]);
+                dict.setKeyword(column[0].trim());
+                dict.setValue(column[1].trim());
                 writer.append(new Gson().toJson(metaLine) + "\r\n");
                 writer.append(new Gson().toJson(dict) + "\r\n");
             }
@@ -459,7 +459,7 @@ public class DictParsingTest {
                 String line = scanner.nextLine();
                 String[] column = line.split("\t");
                 DictEntityTest dict = new DictEntityTest();
-                dict.setKeyword(column[0]);
+                dict.setKeyword(column[0].trim());
                 dict.setType(TYPE.USER.name());
                 writer.append(new Gson().toJson(metaLine) + "\r\n");
                 writer.append(new Gson().toJson(dict) + "\r\n");
