@@ -155,7 +155,7 @@ POST /.fastcatx_dict_setting/_doc
     "columns": [
         {
             "type": "id",
-            "label": "BRANDID",
+            "label": "BRANDID"
         },
         {
             "type": "keyword",
@@ -179,7 +179,7 @@ POST /.fastcatx_dict_setting/_doc
     "columns": [
         {
             "type": "id",
-            "label": "CATEGORYID",
+            "label": "CATEGORYID"
         },
         {
             "type": "keyword",
