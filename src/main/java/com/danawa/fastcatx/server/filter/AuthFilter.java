@@ -34,11 +34,14 @@ public class AuthFilter implements Filter {
         String uri = request.getRequestURI();
         HttpSession session = request.getSession();
         AuthUser authUser = (AuthUser) session.getAttribute(AuthController.SESSION_KEY);
+        logger.info("session: {}, uri: {}", session.getId(), uri);
 
-        if (!(bypassUri.contains(uri)) && (authUser == null || authUser.getUser() == null)) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
-        } else {
+        if (authUser != null) {
             chain.doFilter(req, resp);
+        } else if (bypassUri.contains(uri)) {
+            chain.doFilter(req, resp);
+        } else {
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
         }
     }
 
