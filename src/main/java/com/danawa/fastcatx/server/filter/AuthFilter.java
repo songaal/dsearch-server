@@ -34,7 +34,7 @@ public class AuthFilter implements Filter {
         String uri = request.getRequestURI();
         HttpSession session = request.getSession();
         AuthUser authUser = (AuthUser) session.getAttribute(AuthController.SESSION_KEY);
-        logger.info("session: {}, uri: {}", session.getId(), uri);
+        logger.trace("session: {}, uri: {}", session.getId(), uri);
 
         if (authUser != null) {
             chain.doFilter(req, resp);

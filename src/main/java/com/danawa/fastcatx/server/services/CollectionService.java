@@ -7,6 +7,7 @@ import com.danawa.fastcatx.server.excpetions.DuplicateException;
 import com.danawa.fastcatx.server.excpetions.IndexingJobFailureException;
 import com.google.gson.Gson;
 import org.apache.http.util.EntityUtils;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.get.GetRequest;
@@ -356,7 +357,7 @@ public class CollectionService {
     private Collection.Index getIndex(UUID clusterId, String index) {
         Collection.Index tmpIndex = new Collection.Index();
         tmpIndex.setIndex(index);
-        logger.debug("getIndex >>> {}", index);
+//        logger.debug("getIndex >>> {}", index);
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Request indicesRequest = new Request("GET", "/_cat/indices/" + index);
             indicesRequest.addParameter("format", "json");
@@ -406,9 +407,32 @@ public class CollectionService {
                     logger.error("", e);
                 }
             }
-            client.indices().deleteTemplate(new DeleteIndexTemplateRequest(indexA.getIndex()), RequestOptions.DEFAULT);
-            client.indices().deleteTemplate(new DeleteIndexTemplateRequest(indexB.getIndex()), RequestOptions.DEFAULT);
-            client.delete(new DeleteRequest().index(collectionIndex).id(id), RequestOptions.DEFAULT);
+
+            try {
+                client.indices().delete(new DeleteIndexRequest(indexA.getIndex()), RequestOptions.DEFAULT);
+            } catch (Exception e) {
+                logger.warn("", e);
+            }
+            try {
+                client.indices().delete(new DeleteIndexRequest(indexB.getIndex()), RequestOptions.DEFAULT);
+            } catch (Exception e) {
+                logger.warn("", e);
+            }
+            try {
+                client.indices().deleteTemplate(new DeleteIndexTemplateRequest(indexA.getIndex()), RequestOptions.DEFAULT);
+            } catch (Exception e) {
+                logger.warn("", e);
+            }
+            try {
+                client.indices().deleteTemplate(new DeleteIndexTemplateRequest(indexB.getIndex()), RequestOptions.DEFAULT);
+            } catch (Exception e) {
+                logger.warn("", e);
+            }
+            try {
+                client.delete(new DeleteRequest().index(collectionIndex).id(id), RequestOptions.DEFAULT);
+            } catch (Exception e) {
+                logger.warn("", e);
+            }
         }
     }
 
