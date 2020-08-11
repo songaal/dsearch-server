@@ -4,12 +4,13 @@ elasticsearch기반 관리도구입니다.
 
 ## jar 실행방법
 
-1 소스를 다운로드 받습니다.
+1 실행가능한 jar를 다운받습니다.
 ```
 $ git clone https://github.com/danawalab/dsearch.git
 ```
 
-2 메이븐 빌드를 진행합니다.
+2 메이븐 빌드를 진행합니다. 빌드를 하게 되면 target 디렉토리가 생성됩니다.
+bin 디렉토리에 실행 스크립트가 존재하며, application.yml 파일의 설정으로 dsearch가 실행됩니다.
 ```
 $ mvn clean package
 ```
