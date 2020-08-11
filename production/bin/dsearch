@@ -17,13 +17,13 @@ print_option() {
 
 start_daemon() {
 	trap '' 1 2
-	${JAVA} -jar ${SERVER_HOME}/fastcatx-server.jar ${JVM_OPTS} ${JAVA_OPTS} ${SPRING_OPTS} > $OUTPUT_LOG 2>&1 &
+	${JAVA} -jar ${SERVER_HOME}/dsearch-server.jar ${JVM_OPTS} ${JAVA_OPTS} ${SPRING_OPTS} > $OUTPUT_LOG 2>&1 &
 	echo "start"
 	return 0
 }
 
 stop_daemon() {
-	PID="$(ps -ef| grep fastcatx-server.jar | grep -v grep |awk '{print $2}')"
+	PID="$(ps -ef| grep dsearch-server.jar | grep -v grep |awk '{print $2}')"
 	kill -9 ${PID}
 	echo "stop"
 	return 0

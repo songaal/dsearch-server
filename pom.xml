@@ -11,7 +11,7 @@
     <groupId>com.danawa</groupId>
     <artifactId>fastcatx-server</artifactId>
     <version>1.0.0</version>
-    <name>fastcatx-server</name>
+    <name>dsearch</name>
     <description>Elasticsearch</description>
 
     <repositories>
@@ -160,7 +160,7 @@
     </dependencies>
 
     <build>
-        <finalName>fastcatx-server</finalName>
+        <finalName>dsearch-server</finalName>
         <plugins>
             <plugin>
                 <artifactId>maven-resources-plugin</artifactId>
