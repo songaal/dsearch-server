@@ -1,0 +1,48 @@
+#!/bin/bash
+
+
+SERVER_HOME="${PWD}/../"
+
+JAVA="$(which java)"
+LOGS="${SERVER_HOME}/logs"
+OUTPUT_LOG=$LOGS/output.log
+
+JVM_OPTS="-Xms1g -Xmx1g -XX:+HeapDumpOnOutOfMemoryError"
+JAVA_OPTS="-server -Dfile.encoding=UTF-8"
+SPRING_OPTS="-Dspring.config.location=file:${SERVER_HOME}/application.yml"
+
+print_option() {
+	echo "usage: $0 | start | stop | restart "
+}
+
+start_daemon() {
+	trap '' 1 2
+	${JAVA} -jar ${SERVER_HOME}/fastcatx-server.jar ${JVM_OPTS} ${JAVA_OPTS} ${SPRING_OPTS} > $OUTPUT_LOG 2>&1 &
+	echo "start"
+	return 0
+}
+
+stop_daemon() {
+	PID="$(ps -ef| grep fastcatx-server.jar | grep -v grep |awk '{print $2}')"
+	kill -9 ${PID}
+	echo "stop"
+	return 0
+}
+
+
+if [ "$1" = "start" ] ; then
+	start_daemon
+elif [ "$1" = "stop" ] ; then
+	stop_daemon
+elif [ "$1" = "restart" ] ; then
+	stop_daemon
+	sleep 1
+	start_daemon
+elif [ -z "$1" ] ; then
+	print_option
+else
+	echo "Unknown command : $1"
+	print_option
+fi
+
+
