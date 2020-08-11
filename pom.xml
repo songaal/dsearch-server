@@ -163,23 +163,6 @@
         <finalName>fastcatx-server</finalName>
         <plugins>
             <plugin>
-                <artifactId>maven-install-plugin</artifactId>
-                <version>2.5.2</version>
-                <executions>
-                    <execution>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>install-file</goal>
-                        </goals>
-                        <configuration>
-                            <file>lib/Altibase.jar</file>
-                            <artifactId>Altibase</artifactId>
-                            <groupId>Altibase</groupId>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
                 <artifactId>maven-resources-plugin</artifactId>
                 <version>3.1.0</version>
                 <executions>

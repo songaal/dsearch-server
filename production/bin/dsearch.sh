@@ -1,23 +1,15 @@
 #!/bin/bash
 
 
-SERVER_HOME=
+SERVER_HOME="${PWD}/../"
 
-
-if [ -z "$java_path" ] ; then
-	java_path=java
-fi
-
+java_path=java
 LOGS="${SERVER_HOME}/logs"
 OUTPUT_LOG=$LOGS/output.log
 
 JVM_OPTS="-Xms1g -Xmx1g -XX:+HeapDumpOnOutOfMemoryError"
 JAVA_OPTS="-server -Dfile.encoding=UTF-8"
-SPRING_OPTS="--spring.config.location=${SERVER_HOME}/application.yml"
-
-
-java -jar ${$SERVER_HOME}/fastcatx-server.jar ${JVM_OPTS} ${JAVA_OPTS} ${SPRING_OPTS}
-
+SPRING_OPTS="-Dspring.config.location=file://${SERVER_HOME}/application.yml"
 
 print_option() {
 	echo "usage: $0 | start | stop | restart "
@@ -26,7 +18,7 @@ print_option() {
 start_daemon() {
 	# prevent killed by Hup, ctrl-c
 	trap '' 1 2
-	"$java_path" ${$SERVER_HOME}/fastcatx-server.jar ${JVM_OPTS} ${JAVA_OPTS} ${SPRING_OPTS} > $OUTPUT_LOG 2>&1 &
+	"$java_path" ${SERVER_HOME}/fastcatx-server.jar ${JVM_OPTS} ${JAVA_OPTS} ${SPRING_OPTS} > $OUTPUT_LOG 2>&1 &
                 	PID=`echo "$!"`
                 	sleep 1
                 	if ps -p $PID > /dev/null
@@ -34,7 +26,7 @@ start_daemon() {
 		echo $PID > ".pid"
 		echo "################################"
 		echo "Start server PID = $PID"
-		echo "$java_path ${$SERVER_HOME}/fastcatx-server.jar ${JVM_OPTS} ${JAVA_OPTS} ${SPRING_OPTS} > $OUTPUT_LOG 2>&1 &"
+		echo "$java_path ${SERVER_HOME}/fastcatx-server.jar ${JVM_OPTS} ${JAVA_OPTS} ${SPRING_OPTS} > $OUTPUT_LOG 2>&1 &"
 		echo "################################"
 		#tail can be got signal ctrl-c
 		trap - 2

@@ -1,3 +1,4 @@
+
 spring:
   h2:
     console:
@@ -59,4 +60,3 @@ fastcatx:
   build:
     name: @project.name@
     version: @project.version@
-

@@ -1,7 +1,9 @@
 spring:
   h2:
     console:
-      enabled: false
+      enabled: true
+      settings:
+        web-allow-others: true
   datasource:
     url: jdbc:h2:file:~/fileDB
     driver-class-name: org.h2.Driver
@@ -17,10 +19,10 @@ logging:
       root: info
     com:
       danawa:
-        fastcatx: info
+        fastcatx: debug
   file:
-    path: ./logs
-    name: ./logs/application.log
+    path: /var/log/fastcatx-server
+    name: /var/log/fastcatx-server/application.log
     max-history: 30
     max-size: 500MB
 fastcatx:
@@ -32,7 +34,7 @@ fastcatx:
   dictionary:
     setting: .fastcatx_dict_setting
     index: .fastcatx_dict
-#    index: .fastcatx_dictionary
+  #    index: .fastcatx_dictionary
   reference:
     index: .fastcatx_reference
   collection:
@@ -41,7 +43,7 @@ fastcatx:
     index-suffix-b: -b
     params:
       encoding: utf-8
-      bulkSize: 1000
+      bulkSize: 500
       reset: true
       threadSize: 1
     indexing:
