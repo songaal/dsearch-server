@@ -4,4 +4,3 @@ services:
     ports:
     - 8080:8080
     image: dnwlab/dsearch-server:1.0.0
-    
