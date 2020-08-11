@@ -2,6 +2,6 @@ FROM openjdk:8
 
 WORKDIR /app
 
-COPY target/fastcatx-server.jar .
+COPY target/dsearch-server.jar .
 
-CMD ["java", "-jar", "fastcatx-server.jar"]
+CMD ["java", "-jar", "dsearch-server.jar"]
