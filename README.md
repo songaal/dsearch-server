@@ -4,28 +4,25 @@ elasticsearch기반 관리도구입니다.
 
 ## jar 실행방법
 
-1 실행가능한 jar를 다운받습니다.
-```
-$ git clone https://github.com/danawalab/dsearch.git
-```
+1 최신 버전을 다운받습니다.
 
-2 메이븐 빌드를 진행합니다. 빌드를 하게 되면 target 디렉토리가 생성됩니다.
-bin 디렉토리에 실행 스크립트가 존재하며, application.yml 파일의 설정으로 dsearch가 실행됩니다.
+https://github.com/danawalab/dsearch/releases
+
+2 압축을 해제합니다.
+
 ```
-$ mvn clean package
+$ unzip dsearch-server-<version>.zip
 ```
 
 3 dsearch 실행합니다.
-
 ```
-$ cd target/bin
-$ sh dsearch start
+$ bin/dsearch start
 ```
 
 제공하는 명령어
-- sh dsearch start: dsearch 프로세스를 시작합니다.
-- sh dsearch stop: dsearch 프로세스를 종료합니다.
-- sh dsearch restart:  dsearch 프로세스를 재시작합니다.
+- dsearch start: dsearch 프로세스를 시작합니다.
+- dsearch stop: dsearch 프로세스를 종료합니다.
+- dsearch restart:  dsearch 프로세스를 재시작합니다.
 
 ## docker 실행방법
 

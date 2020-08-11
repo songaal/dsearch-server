@@ -160,7 +160,7 @@
     </dependencies>
 
     <build>
-        <finalName>dsearch-server</finalName>
+        <finalName>dsearch-server-${project.version}</finalName>
         <plugins>
             <plugin>
                 <artifactId>maven-resources-plugin</artifactId>
