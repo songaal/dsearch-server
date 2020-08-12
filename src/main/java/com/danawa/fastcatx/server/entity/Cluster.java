@@ -35,6 +35,10 @@ public class Cluster {
     @Column
     private String password;
 
+
+    @Column
+    private String autocompleteUrl;
+
     public UUID getId() {
         return id;
     }
@@ -121,5 +125,12 @@ public class Cluster {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getAutocompleteUrl() {
+        return this.autocompleteUrl;
+    }
+    public void setAutocompleteUrl(String autocompleteUrl) {
+        this.autocompleteUrl = autocompleteUrl;
     }
 }
