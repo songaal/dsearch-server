@@ -1,17 +1,23 @@
 package com.danawa.fastcatx.server.controller;
 
-import com.danawa.fastcatx.server.entity.ReferenceOrdersRequest;
-import com.danawa.fastcatx.server.entity.ReferenceResult;
-import com.danawa.fastcatx.server.entity.ReferenceTemp;
+import com.danawa.fastcatx.server.entity.*;
+import com.danawa.fastcatx.server.excpetions.NotFoundException;
+import com.danawa.fastcatx.server.services.ClusterService;
+import com.danawa.fastcatx.server.services.ProxyService;
 import com.danawa.fastcatx.server.services.ReferenceService;
+import org.apache.http.util.EntityUtils;
+import org.elasticsearch.client.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -20,9 +26,13 @@ public class ReferenceController {
     private static Logger logger = LoggerFactory.getLogger(ReferenceController.class);
 
     private ReferenceService referenceService;
+    private ClusterService clusterService;
+    private ProxyService proxyService ;
 
-    public ReferenceController(ReferenceService referenceService) {
+    public ReferenceController(ReferenceService referenceService, ClusterService clusterService,ProxyService proxyService ) {
         this.referenceService = referenceService;
+        this.clusterService = clusterService;
+        this.proxyService = proxyService;
     }
 
     @GetMapping
@@ -88,4 +98,45 @@ public class ReferenceController {
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
+    @PostMapping("/save/autocomplete")
+    public ResponseEntity<?> saveAutoCompleteURL(@RequestHeader(value = "cluster-id") UUID clusterId,
+                                                 @RequestBody AutoCompleteUrlRequest request) throws IOException, NotFoundException {
+        Cluster cluster = clusterService.find(clusterId);
+        Cluster saveCluster = clusterService.saveUrl(clusterId, cluster, request.getUrl());
+        Map<String, Object> result = new HashMap<>();
+        if(saveCluster != null){
+            result.put("isSuccess", true);
+            result.put("url", request.getUrl());
+        }else{
+            result.put("isSuccess", false);
+            result.put("url", request.getUrl());
+        }
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+    @GetMapping("/get/autocomplete")
+    public ResponseEntity<?> getAutoCompleteURL(@RequestHeader(value = "cluster-id") UUID clusterId) throws IOException, NotFoundException {
+        Cluster cluster = clusterService.find(clusterId);
+
+        Map<String, Object> result = new HashMap<>();
+            if(cluster.getAutocompleteUrl() == null || "".equals(cluster.getAutocompleteUrl())){
+                result.put("url", "");
+            }else{
+                result.put("url", cluster.getAutocompleteUrl());
+            }System.out.println(result.get("url"));
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @GetMapping("/autocomplete")
+    public ResponseEntity<?> getAutoComplete(HttpServletRequest request,
+                                             @RequestHeader(value = "cluster-id") UUID clusterId,
+                                             @RequestParam Map<String,String> queryStringMap) throws IOException, NotFoundException {
+        Cluster cluster = clusterService.find(clusterId);
+        String keyword = null;
+        for(String key: queryStringMap.keySet()){
+            keyword = key;
+            break;
+        }
+        ResponseEntity responseEntity = proxyService.proxy(cluster.getAutocompleteUrl(), keyword);
+        return responseEntity;
+    }
 }

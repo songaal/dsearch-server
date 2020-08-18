@@ -154,4 +154,21 @@ public class ClusterService {
         return responseBody;
     }
 
+    public Cluster saveUrl(UUID id, Cluster cluster, String url) throws NotFoundException {
+        Cluster registerCluster = clusterRepository.findById(id).get();
+        if (registerCluster == null) {
+            throw new NotFoundException("Not Found Cluster");
+        }
+        registerCluster.setName(cluster.getName());
+        registerCluster.setScheme(cluster.getScheme());
+        registerCluster.setHost(cluster.getHost());
+        registerCluster.setPort(cluster.getPort());
+        registerCluster.setUsername(cluster.getUsername());
+        registerCluster.setPassword(cluster.getPassword());
+        registerCluster.setTheme(cluster.getTheme());
+        registerCluster.setUpdateDate(LocalDateTime.now());
+        registerCluster.setKibana(cluster.getKibana());
+        registerCluster.setAutocompleteUrl(url);
+        return clusterRepository.save(registerCluster);
+    }
 }
