@@ -172,7 +172,7 @@ public class ReferenceService {
             ReferenceTemp temp = tempList.get(i);
             String query = temp.getQuery()
                     .replace("\"${keyword}\"", "\"" + keyword + "\"")
-                    .replace("${keyword}", "\"" + keyword + "\"");
+                    .replace("${keyword}", keyword);
             SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
             SearchModule searchModule = new SearchModule(Settings.EMPTY, false, Collections.emptyList());
 

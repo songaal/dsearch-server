@@ -19,7 +19,7 @@ build:
     - sh mvnw package -DskipTests
     - export VERSION="$(grep -oPm2 "(?<=<version>)[^<]+" pom.xml | sed -n 2p)"
     - echo "COPY target/dsearch-server-${VERSION}.jar ." >> Dockerfile
-    - echo "CMD ["java", "-jar", "dsearch-server-${VERSION}.jar"]" >> Dockerfile
+    - echo "CMD [\"java\", \"-jar\", \"dsearch-server-${VERSION}.jar\"]" >> Dockerfile
     - docker build -t ${IMAGE}:latest .
     - docker tag ${IMAGE}:latest ${IMAGE}:${VERSION}
     - docker push ${IMAGE}:latest
