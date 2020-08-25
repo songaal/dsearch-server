@@ -198,7 +198,7 @@ public class ReferenceService {
         ReferenceTemp temp = find(clusterId, id);
         String query = temp.getQuery()
                 .replace("\"${keyword}\"", "\"" + keyword + "\"")
-                .replace("${keyword}", "\"" + keyword + "\"");
+                .replace("${keyword}", keyword);
 
         if (!jsonUtils.validate(query)) {
             return result;
