@@ -22,6 +22,7 @@ import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StreamUtils;
@@ -40,6 +41,11 @@ public class IndicesService {
     private final String lastIndexStatusIndexJson = "last_index_status.json";
     private final String indexHistory = ".fastcatx_index_history";
     private final String indexHistoryJson = "index_history.json";
+
+    @Value("${fastcatx.collection.index-suffix-a}")
+    private String suffixA;
+    @Value("${fastcatx.collection.index-suffix-b}")
+    private String suffixB;
 
     public IndicesService(ElasticsearchFactory elasticsearchFactory) {
         this.elasticsearchFactory = elasticsearchFactory;
@@ -136,9 +142,35 @@ public class IndicesService {
         GetMappingsRequest getMappingsRequest = new GetMappingsRequest().indices(index);
         GetMappingsResponse response = client.indices().getMapping(getMappingsRequest, RequestOptions.DEFAULT);
         Map<String, MappingMetaData> mappings = response.mappings();
-        Map<String, Object> properties = (Map<String, Object>) mappings.get(index).getSourceAsMap().get("properties");
-        Map<String, Object> result = mappings.get(index).getSourceAsMap().get("properties") == null ? new HashMap<>() : properties;
-        return result;
+        Map<String, Object> properties = null;
+        boolean isPass = false;
+        if (!isPass) {
+            try {
+                properties = (Map<String, Object>) mappings.get(index).getSourceAsMap().get("properties");
+                isPass = true;
+            } catch (Exception e) {
+                isPass = false;
+            }
+        }
+        if (!isPass) {
+            try {
+                properties = (Map<String, Object>) mappings.get(index + suffixA).getSourceAsMap().get("properties");
+                isPass = true;
+            } catch (Exception e) {
+                isPass = false;
+            }
+        }
+        if (!isPass) {
+            try {
+                properties = (Map<String, Object>) mappings.get(index + suffixB).getSourceAsMap().get("properties");
+                isPass = true;
+            } catch (Exception e) {
+                isPass = false;
+            }
+        }
+
+//        Map<String, Object> result = mappings.get(index).getSourceAsMap().get("properties") == null ? new HashMap<>() : properties;
+        return isPass ? properties : new HashMap<>();
     }
 
     public List<AnalyzeResponse.AnalyzeToken> analyze(RestHighLevelClient client, String index, String analyzer, String text) throws IOException {
