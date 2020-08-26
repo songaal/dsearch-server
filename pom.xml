@@ -9,7 +9,7 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.danawa</groupId>
-    <artifactId>fastcatx-server</artifactId>
+    <artifactId>dsearch-server</artifactId>
     <version>1.0.0</version>
     <name>dsearch</name>
     <description>Elasticsearch</description>

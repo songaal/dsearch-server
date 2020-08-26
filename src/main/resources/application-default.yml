@@ -4,7 +4,7 @@ spring:
     console:
       enabled: true
   datasource:
-    url: jdbc:h2:file:~\fastcatx-server\fileDB
+    url: jdbc:h2:file:~\dsearchDB
     driver-class-name: org.h2.Driver
     username: sa
     password:
@@ -18,28 +18,26 @@ logging:
     level:
       root: info
     com:
-      danawa:
-        fastcatx: debug
+      danawa: debug
   file:
-    path: C:\\windows\\temp\\fastcatx-server
-    name: C:\\windows\\temp\\fastcatx-server\\system.log
+    path: C:\\windows\\temp
     max-history: 7
     clean-history-on-start: true
     max-size: 100MB
-fastcatx:
-  delete: .fastcatx*
+dsearch:
+  delete: .dsearch*
   admin:
     username: admin
     password: admin
     email: admin@example.com
   dictionary:
-    setting: .fastcatx_dict_setting
-    index: .fastcatx_dict
-#    index: .fastcatx_dictionary
+    setting: .dsearch_dict_setting
+    index: .dsearch_dict
+#    index: .dsearch_dictionary
   reference:
-    index: .fastcatx_reference
+    index: .dsearch_reference
   collection:
-    index: .fastcatx_collection
+    index: .dsearch_collection
     index-suffix-a: -a
     index-suffix-b: -b
     params:
@@ -48,15 +46,15 @@ fastcatx:
       reset: true
       threadSize: 1
     indexing:
-      "[index.routing.allocation.include._exclude]": search
+      "[index.routing.allocation.include._exclude]": search*
       "[index.number_of_replicas]": 0
       refresh_interval: "-1"
     propagate:
-      "[index.routing.allocation.include._exclude]": index
+      "[index.routing.allocation.include._exclude]": index*
       "[index.number_of_replicas]": 1
       refresh_interval: "1s"
   jdbc:
-    setting: .fastcatx_jdbc
+    setting: .dsearch_jdbc
   build:
     name: @project.name@
     version: @project.version@
