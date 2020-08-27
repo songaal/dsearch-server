@@ -123,6 +123,7 @@ public class IndexingJobService {
             indexingStatus.setCollection(collection);
         } catch (Exception e) {
             logger.error("", e);
+            // TODO history 남길지 여부...
             throw new IndexingJobFailureException(e);
         }
         return indexingStatus;

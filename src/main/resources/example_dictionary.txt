@@ -1,7 +1,7 @@
 패스트캣 PRODUCT 사전 설정 예제
 
 # 사용자 사전
-POST /.fastcatx_dict_setting/_doc
+POST /.dsearch_dict_setting/_doc
 {
     "id": "USER",
     "name": "사용자 사전",
@@ -17,7 +17,7 @@ POST /.fastcatx_dict_setting/_doc
 }
 
 # 유사어 사전
-POST /.fastcatx_dict_setting/_doc
+POST /.dsearch_dict_setting/_doc
 {
     "id": "SYNONYM",
     "name": "유사어 사전",
@@ -37,7 +37,7 @@ POST /.fastcatx_dict_setting/_doc
 }
 
 # 불용어 사전
-POST /.fastcatx_dict_setting/_doc
+POST /.dsearch_dict_setting/_doc
 {
     "id": "STOP",
     "name": "불용어 사전",
@@ -53,7 +53,7 @@ POST /.fastcatx_dict_setting/_doc
 }
 
 # 분리어 사전
-POST /.fastcatx_dict_setting/_doc
+POST /.dsearch_dict_setting/_doc
 {
     "id": "SPACE",
     "name": "분리어 사전",
@@ -69,7 +69,7 @@ POST /.fastcatx_dict_setting/_doc
 }
 
 # 복합명사 사전
-POST /.fastcatx_dict_setting/_doc
+POST /.dsearch_dict_setting/_doc
 {
     "id": "COMPOUND",
     "name": "복합명사 사전",
@@ -89,7 +89,7 @@ POST /.fastcatx_dict_setting/_doc
 }
 
 # 단위명 사전
-POST /.fastcatx_dict_setting/_doc
+POST /.dsearch_dict_setting/_doc
 {
     "id": "UNIT",
     "name": "단위명 사전",
@@ -105,7 +105,7 @@ POST /.fastcatx_dict_setting/_doc
 }
 
 # 단위명동의어 사전
-POST /.fastcatx_dict_setting/_doc
+POST /.dsearch_dict_setting/_doc
 {
     "id": "UNIT_SYNONYM",
     "name": "단위명동의어 사전",
@@ -121,7 +121,7 @@ POST /.fastcatx_dict_setting/_doc
 }
 
 # 제조사명 사전
-POST /.fastcatx_dict_setting/_doc
+POST /.dsearch_dict_setting/_doc
 {
     "id": "MAKER",
     "name": "제조사명 사전",
@@ -145,7 +145,7 @@ POST /.fastcatx_dict_setting/_doc
 }
 
 # 브랜드명 사전
-POST /.fastcatx_dict_setting/_doc
+POST /.dsearch_dict_setting/_doc
 {
     "id": "BRAND",
     "name": "브랜드명 사전",
@@ -169,7 +169,7 @@ POST /.fastcatx_dict_setting/_doc
 }
 
 # 카테고리키워드 사전
-POST /.fastcatx_dict_setting/_doc
+POST /.dsearch_dict_setting/_doc
 {
     "id": "CATEGORY",
     "name": "카테고리키워드사전",
@@ -193,7 +193,7 @@ POST /.fastcatx_dict_setting/_doc
 }
 
 # 영단어 사전
-POST /.fastcatx_dict_setting/_doc
+POST /.dsearch_dict_setting/_doc
 {
     "id": "ENGLISH",
     "name": "영단어 사전",

@@ -18,6 +18,15 @@ public class RestAPIExceptionHandler extends ResponseEntityExceptionHandler {
     private static Logger logger = LoggerFactory.getLogger(RestAPIExceptionHandler.class);
 
 
+    @ExceptionHandler(value = {ElasticQueryException.class})
+    protected ResponseEntity<Object> elasticsearchException(Exception ex, WebRequest request) {
+        return handleExceptionInternal(ex,
+                new ErrorResponse(ex.getMessage()),
+                new HttpHeaders(),
+                HttpStatus.BAD_REQUEST,
+                request);
+    }
+
     @ExceptionHandler(value = {PermissionException.class})
     protected ResponseEntity<Object> handlePermissionException(Exception ex, WebRequest request) {
         logger.error("[SYSTEM ERROR]", ex);
