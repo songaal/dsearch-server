@@ -2,6 +2,7 @@ package com.danawa.dsearch.server.controller;
 
 import com.danawa.dsearch.server.entity.ClusterStatusResponse;
 import com.danawa.dsearch.server.entity.ClusterStatusRequest;
+import com.danawa.dsearch.server.excpetions.ElasticQueryException;
 import com.danawa.dsearch.server.services.ClusterService;
 import com.danawa.dsearch.server.services.ElasticsearchProxyService;
 import org.apache.http.util.EntityUtils;
@@ -40,9 +41,13 @@ public class ElasticSearchController {
     public ResponseEntity<?> proxy(HttpServletRequest request,
                                    @RequestHeader(value = "cluster-id") UUID clusterId,
                                    @RequestParam Map<String,String> queryStringMap,
-                                   @RequestBody(required = false) byte[] body) throws IOException {
-        Response response = proxyService.proxy(clusterId, request, queryStringMap, body);
-        String responseBody = EntityUtils.toString(response.getEntity());
-        return new ResponseEntity<>(responseBody, HttpStatus.OK);
+                                   @RequestBody(required = false) byte[] body) throws ElasticQueryException {
+        try {
+            Response response = proxyService.proxy(clusterId, request, queryStringMap, body);
+            String responseBody = EntityUtils.toString(response.getEntity());
+            return new ResponseEntity<>(responseBody, HttpStatus.OK);
+        } catch (Exception e) {
+            throw new ElasticQueryException(e);
+        }
     }
 }
