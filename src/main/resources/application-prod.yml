@@ -16,27 +16,25 @@ logging:
     level:
       root: info
     com:
-      danawa:
-        fastcatx: info
+      danawa: info
   file:
-    path: ./logs
-    name: ./logs/application.log
+    path: /var/log
     max-history: 30
     max-size: 500MB
-fastcatx:
-  delete: .fastcatx*
+dsearch:
+  delete: .dsearch*
   admin:
     username: admin
     password: admin
     email: admin@example.com
   dictionary:
-    setting: .fastcatx_dict_setting
-    index: .fastcatx_dict
-#    index: .fastcatx_dictionary
+    setting: .dsearch_dict_setting
+    index: .dsearch_dict
+#    index: .dsearch_dictionary
   reference:
-    index: .fastcatx_reference
+    index: .dsearch_reference
   collection:
-    index: .fastcatx_collection
+    index: .dsearch_collection
     index-suffix-a: -a
     index-suffix-b: -b
     params:
@@ -53,7 +51,7 @@ fastcatx:
       "[index.number_of_replicas]": 1
       refresh_interval: 1s
   jdbc:
-    setting: .fastcatx_jdbc
+    setting: .dsearch_jdbc
   build:
     name: @project.name@
     version: @project.version@

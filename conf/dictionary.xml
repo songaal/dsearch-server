@@ -1,4 +1,4 @@
-<plugin id="Product" namespace="Analysis" class="org.fastcatsearch.plugin.analysis.product.ProductAnalysisPlugin">
+<plugin id="Product" namespace="Analysis" class="org.search.plugin.analysis.product.ProductAnalysisPlugin">
     <dictionary-list>
         <dictionary id="product" name="기초사전" type="SYSTEM" ignoreCase="true"></dictionary>
         <dictionary id="user" name="사▒~Z▒▒~^~P사전" type="SET" tokenType="MAX"  ignoreCase="true">
