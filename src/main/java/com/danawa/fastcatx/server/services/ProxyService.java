@@ -12,6 +12,7 @@ import org.elasticsearch.client.RestHighLevelClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
@@ -26,10 +27,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
-import java.util.Enumeration;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 
 @Service
@@ -41,8 +39,10 @@ public class ProxyService {
     }
 
     public ResponseEntity<byte[]> proxy(String url, String keyword) throws UnsupportedEncodingException {
-        ResponseEntity response= null;
+        ResponseEntity response = null;
         url += URLEncoder.encode(keyword, "UTF-8");
+        System.out.println(url);
+        logger.debug("{}", url);
         HttpEntity httpEntity = new HttpEntity<>(url);
         RestTemplate restTemplate = new RestTemplate();
         try {
@@ -50,6 +50,15 @@ public class ProxyService {
         } catch (RestClientException | URISyntaxException e) {
             logger.debug("proxy fail : {}", e);
         }
+
+        if(response == null){
+            Map<String, Object> map = new HashMap<>();
+            map.put("q", keyword);
+            map.put("result", new ArrayList<>());
+            map.put("action", "_all");
+            response = new ResponseEntity(map, HttpStatus.OK);
+        }
+
         return response;
     }
 
