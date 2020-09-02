@@ -441,7 +441,8 @@ public class CollectionService {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             GetResponse getResponse = client.get(new GetRequest().index(collectionIndex).id(id), RequestOptions.DEFAULT);
             Map<String, Object> sourceAsMap = getResponse.getSourceAsMap();
-            sourceAsMap.put("name", collection.getName());
+            if(collection.getName() != null && collection.getName().length() > 0)
+                sourceAsMap.put("name", collection.getName());
             sourceAsMap.put("cron", collection.getCron());
             sourceAsMap.put("sourceName", collection.getSourceName());
             sourceAsMap.put("jdbcId", collection.getJdbcId());
