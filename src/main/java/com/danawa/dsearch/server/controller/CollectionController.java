@@ -186,31 +186,31 @@ public class CollectionController {
     }
 
     @GetMapping("/idxp")
-    public ResponseEntity<?> idxp(@RequestParam String esHost,
-                                      @RequestParam String esPort,
-                                      @RequestParam String esCollectionName,
+    public ResponseEntity<?> idxp(@RequestParam String host,
+                                      @RequestParam String port,
+                                      @RequestParam String collectionName,
                                       @RequestParam String action) throws IndexingJobFailureException, IOException {
         Map<String, Object> response = new HashMap<>();
 
         // 에러 처리
-        if(esHost == null || esHost.equals("")){
-            response.put("message", "esHost is not correct");
+        if(host == null || host.equals("")){
+            response.put("message", "host is not correct");
             response.put("result", "fail");
             return new ResponseEntity<>(response, HttpStatus.OK);
         }
 
-        if(esPort == null || esPort.equals("")){
-            for(int i = 0; i < esPort.length(); i++){
-                if(!Character.isDigit(esPort.charAt(i))){
-                    response.put("message", "esPort is not correct");
+        if(port == null || port.equals("")){
+            for(int i = 0; i < port.length(); i++){
+                if(!Character.isDigit(port.charAt(i))){
+                    response.put("message", "port is not correct");
                     response.put("result", "fail");
                     return new ResponseEntity<>(response, HttpStatus.OK);
                 }
             }
         }
 
-        if(esCollectionName == null || esCollectionName.equals("")){
-            response.put("message", "esCollectionName is not correct");
+        if(collectionName == null || collectionName.equals("")){
+            response.put("message", "collectionName is not correct");
             response.put("result", "fail");
             return new ResponseEntity<>(response, HttpStatus.OK);
         }
@@ -221,9 +221,7 @@ public class CollectionController {
             return new ResponseEntity<>(response, HttpStatus.OK);
         }
 
-        int port = Integer.parseInt(esPort);
-
-        List<Cluster> clusterList = clusterService.findByHostAndPort(esHost, port);
+        List<Cluster> clusterList = clusterService.findByHostAndPort(host, Integer.parseInt(port));
         Cluster cluster = null;
         if(clusterList == null || clusterList.size() == 0){
             response.put("message", "Not Found Cluster");
@@ -235,7 +233,7 @@ public class CollectionController {
         // 즉, 아무거나 가져와도 됨
         cluster = clusterList.get(0);
 
-        Collection collection = collectionService.findByName(cluster.getId(), esCollectionName);
+        Collection collection = collectionService.findByName(cluster.getId(), collectionName);
         if(collection == null){
             response.put("message", "Not Found Collection Name");
             response.put("result", "fail");
@@ -325,36 +323,35 @@ public class CollectionController {
 
 
     @GetMapping("/idxp/status")
-    public ResponseEntity<?> getIdxpStatus(@RequestParam String esHost,
-                                  @RequestParam String esPort,
-                                  @RequestParam String esCollectionName) throws IndexingJobFailureException, IOException {
+    public ResponseEntity<?> getIdxpStatus(@RequestParam String host,
+                                  @RequestParam String port,
+                                  @RequestParam String collectionName) throws IndexingJobFailureException, IOException {
         Map<String, Object> response = new HashMap<>();
 
         // 에러 처리
-        if(esHost == null || esHost.equals("")){
-            response.put("message", "esHost is not correct");
+        if(host == null || host.equals("")){
+            response.put("message", "host is not correct");
             response.put("result", "fail");
             return new ResponseEntity<>(response, HttpStatus.OK);
         }
 
-        if(esPort == null || esPort.equals("")){
-            for(int i = 0; i < esPort.length(); i++){
-                if(!Character.isDigit(esPort.charAt(i))){
-                    response.put("message", "esPort is not correct");
+        if(port == null || port.equals("")){
+            for(int i = 0; i < port.length(); i++){
+                if(!Character.isDigit(port.charAt(i))){
+                    response.put("message", "port is not correct");
                     response.put("result", "fail");
                     return new ResponseEntity<>(response, HttpStatus.OK);
                 }
             }
         }
 
-        if(esCollectionName == null || esCollectionName.equals("")){
-            response.put("message", "esCollectionName is not correct");
+        if(collectionName == null || collectionName.equals("")){
+            response.put("message", "collectionName is not correct");
             response.put("result", "fail");
             return new ResponseEntity<>(response, HttpStatus.OK);
         }
 
-        int port = Integer.parseInt(esPort);
-        List<Cluster> clusterList = clusterService.findByHostAndPort(esHost, port);
+        List<Cluster> clusterList = clusterService.findByHostAndPort(host, Integer.parseInt(port));
         if(clusterList == null || clusterList.size() == 0){
             response.put("message", "Not Found Cluster");
             response.put("result", "fail");
@@ -362,7 +359,7 @@ public class CollectionController {
         }
 
         Cluster cluster = clusterList.get(0);
-        Collection collection = collectionService.findByName(cluster.getId(), esCollectionName);
+        Collection collection = collectionService.findByName(cluster.getId(), collectionName);
         if(collection == null){
             response.put("message", "Not Found Collection Name");
             response.put("result", "fail");
