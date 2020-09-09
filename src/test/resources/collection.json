@@ -1,0 +1,51 @@
+{
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0
+  },
+  "mappings": {
+    "properties": {
+      "name": {
+        "type": "keyword"
+      },
+      "baseId": {
+        "type": "keyword"
+      },
+      "indexA": {
+        "type": "keyword"
+      },
+      "indexB": {
+        "type": "keyword"
+      },
+      "scheduled": {
+        "type": "boolean"
+      },
+      "jdbcId": {
+        "type": "keyword"
+      },
+      "cron": {
+        "type": "keyword"
+      },
+      "sourceName": {
+        "type": "keyword"
+      },
+      "launcher": {
+        "type": "nested",
+        "properties": {
+          "path": {
+            "type": "keyword"
+          },
+          "yaml": {
+            "type": "keyword"
+          },
+          "host":  {
+            "type": "keyword"
+          },
+          "port":  {
+            "type": "keyword"
+          }
+        }
+      }
+    }
+  }
+}

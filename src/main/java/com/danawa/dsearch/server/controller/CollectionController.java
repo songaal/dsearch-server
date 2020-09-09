@@ -1,10 +1,12 @@
 package com.danawa.dsearch.server.controller;
 
+import com.danawa.dsearch.server.entity.Cluster;
 import com.danawa.dsearch.server.entity.Collection;
 import com.danawa.dsearch.server.entity.IndexStep;
 import com.danawa.dsearch.server.entity.IndexingStatus;
 import com.danawa.dsearch.server.excpetions.DuplicateException;
 import com.danawa.dsearch.server.excpetions.IndexingJobFailureException;
+import com.danawa.dsearch.server.services.ClusterService;
 import com.danawa.dsearch.server.services.CollectionService;
 import com.danawa.dsearch.server.services.IndexingJobManager;
 import com.danawa.dsearch.server.services.IndexingJobService;
@@ -26,19 +28,21 @@ public class CollectionController {
     private static Object obj = new Object();
     private final String indexSuffixA;
     private final String indexSuffixB;
+    private final ClusterService clusterService;
     private final CollectionService collectionService;
     private final IndexingJobService indexingJobService;
     private final IndexingJobManager indexingJobManager;
 
     public CollectionController(@Value("${dsearch.collection.index-suffix-a}") String indexSuffixA,
                                 @Value("${dsearch.collection.index-suffix-b}") String indexSuffixB,
-                                CollectionService collectionService,
+                                CollectionService collectionService, ClusterService clusterService,
                                 IndexingJobService indexingJobService, IndexingJobManager indexingJobManager) {
         this.indexSuffixA = indexSuffixA;
         this.indexSuffixB = indexSuffixB;
         this.collectionService = collectionService;
         this.indexingJobService = indexingJobService;
         this.indexingJobManager = indexingJobManager;
+        this.clusterService = clusterService;
     }
 
     @PostMapping
@@ -180,4 +184,210 @@ public class CollectionController {
         }
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
+
+    @GetMapping("/idxp")
+    public ResponseEntity<?> idxp(@RequestParam String esHost,
+                                      @RequestParam String esPort,
+                                      @RequestParam String esCollectionName,
+                                      @RequestParam String action) throws IndexingJobFailureException, IOException {
+        Map<String, Object> response = new HashMap<>();
+
+        // 에러 처리
+        if(esHost == null || esHost.equals("")){
+            response.put("message", "esHost is not correct");
+            response.put("result", "fail");
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        }
+
+        if(esPort == null || esPort.equals("")){
+            for(int i = 0; i < esPort.length(); i++){
+                if(!Character.isDigit(esPort.charAt(i))){
+                    response.put("message", "esPort is not correct");
+                    response.put("result", "fail");
+                    return new ResponseEntity<>(response, HttpStatus.OK);
+                }
+            }
+        }
+
+        if(esCollectionName == null || esCollectionName.equals("")){
+            response.put("message", "esCollectionName is not correct");
+            response.put("result", "fail");
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        }
+
+        if(action == null || action.equals("")){
+            response.put("message", "action is not correct");
+            response.put("result", "fail");
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        }
+
+        int port = Integer.parseInt(esPort);
+
+        List<Cluster> clusterList = clusterService.findByHostAndPort(esHost, port);
+        Cluster cluster = null;
+        if(clusterList == null || clusterList.size() == 0){
+            response.put("message", "Not Found Cluster");
+            response.put("result", "fail");
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        }
+
+        // 호스트명과 포트가 같으니 같은 ES이다
+        // 즉, 아무거나 가져와도 됨
+        cluster = clusterList.get(0);
+
+        Collection collection = collectionService.findByName(cluster.getId(), esCollectionName);
+        if(collection == null){
+            response.put("message", "Not Found Collection Name");
+            response.put("result", "fail");
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        }
+
+        UUID clusterId = cluster.getId();
+        String id = collection.getId();
+
+        if ("all".equalsIgnoreCase(action)) {
+            synchronized (obj) {
+                IndexingStatus registerStatus = indexingJobManager.findById(id);
+                if (registerStatus == null) {
+                    Queue<IndexStep> nextStep = new ArrayDeque<>();
+                    nextStep.add(IndexStep.PROPAGATE);
+                    nextStep.add(IndexStep.EXPOSE);
+                    IndexingStatus indexingStatus = indexingJobService.indexing(clusterId, collection, true, IndexStep.FULL_INDEX, nextStep);
+                    indexingJobManager.add(collection.getId(), indexingStatus);
+                    response.put("indexingStatus", indexingStatus);
+                    response.put("result", "success");
+                } else {
+                    response.put("result", "fail");
+                }
+            }
+        } else if ("indexing".equalsIgnoreCase(action)) {
+            synchronized (obj) {
+                IndexingStatus registerStatus = indexingJobManager.findById(id);
+                if (registerStatus == null) {
+                    IndexingStatus indexingStatus = indexingJobService.indexing(clusterId, collection, false, IndexStep.FULL_INDEX);
+                    indexingJobManager.add(collection.getId(), indexingStatus);
+                    response.put("indexingStatus", indexingStatus);
+                    response.put("result", "success");
+                } else {
+                    response.put("result", "fail");
+                }
+            }
+        } else if ("propagate".equalsIgnoreCase(action)) {
+            synchronized (obj) {
+                IndexingStatus registerStatus = indexingJobManager.findById(id);
+                if (registerStatus == null) {
+                    IndexingStatus indexingStatus = indexingJobService.propagate(clusterId, false, collection, null);
+                    indexingJobManager.add(collection.getId(), indexingStatus);
+                    response.put("result", "success");
+                } else {
+                    response.put("result", "fail");
+                }
+            }
+        } else if ("expose".equalsIgnoreCase(action)) {
+            synchronized (obj) {
+                IndexingStatus registerStatus = indexingJobManager.findById(id);
+                if (registerStatus == null) {
+                    indexingJobService.expose(clusterId, collection);
+                    response.put("result", "success");
+                } else {
+                    response.put("result", "fail");
+                }
+            }
+        } else if ("stop_propagation".equalsIgnoreCase(action)) {
+            synchronized (obj) {
+                IndexingStatus registerStatus = indexingJobManager.findById(id);
+                if (registerStatus != null && registerStatus.getCurrentStep() == IndexStep.PROPAGATE) {
+                    indexingJobService.stopPropagation(clusterId, collection);
+                    indexingJobManager.remove(id);
+                    response.put("result", "success");
+                } else {
+                    response.put("result", "fail");
+                }
+            }
+        } else if ("stop_indexing".equalsIgnoreCase(action)) {
+            synchronized (obj) {
+                IndexingStatus indexingStatus = indexingJobManager.findById(id);
+                if (indexingStatus != null && (indexingStatus.getCurrentStep() == IndexStep.FULL_INDEX || indexingStatus.getCurrentStep() == IndexStep.DYNAMIC_INDEX)) {
+                    Collection.Launcher launcher = collection.getLauncher();
+                    indexingJobService.stopIndexing(launcher.getHost(), launcher.getPort(), indexingStatus.getIndexingJobId());
+                    response.put("indexingStatus", indexingStatus);
+                    response.put("result", "success");
+                } else {
+                    response.put("result", "fail");
+                }
+            }
+        } else {
+            response.put("result", "success");
+        }
+
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+
+    @GetMapping("/idxp/status")
+    public ResponseEntity<?> getIdxpStatus(@RequestParam String esHost,
+                                  @RequestParam String esPort,
+                                  @RequestParam String esCollectionName) throws IndexingJobFailureException, IOException {
+        Map<String, Object> response = new HashMap<>();
+
+        // 에러 처리
+        if(esHost == null || esHost.equals("")){
+            response.put("message", "esHost is not correct");
+            response.put("result", "fail");
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        }
+
+        if(esPort == null || esPort.equals("")){
+            for(int i = 0; i < esPort.length(); i++){
+                if(!Character.isDigit(esPort.charAt(i))){
+                    response.put("message", "esPort is not correct");
+                    response.put("result", "fail");
+                    return new ResponseEntity<>(response, HttpStatus.OK);
+                }
+            }
+        }
+
+        if(esCollectionName == null || esCollectionName.equals("")){
+            response.put("message", "esCollectionName is not correct");
+            response.put("result", "fail");
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        }
+
+        int port = Integer.parseInt(esPort);
+        List<Cluster> clusterList = clusterService.findByHostAndPort(esHost, port);
+        if(clusterList == null || clusterList.size() == 0){
+            response.put("message", "Not Found Cluster");
+            response.put("result", "fail");
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        }
+
+        Cluster cluster = clusterList.get(0);
+        Collection collection = collectionService.findByName(cluster.getId(), esCollectionName);
+        if(collection == null){
+            response.put("message", "Not Found Collection Name");
+            response.put("result", "fail");
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        }
+
+        String id = collection.getId();
+        IndexingStatus indexingStatus = indexingJobManager.getIndexingStatus(id);
+        if(indexingStatus == null){
+            response.put("message", "Not Found Status (색인을 시작하지 않았습니다)");
+            response.put("result", "success");
+            response.put("info", "");
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        }
+
+        // KEY: collection id, value: Indexing status
+//        Map<String, Object> server = (Map<String, Object>) indexingStatus.get(id);
+//        response.put("info", server.get("server"));
+        response.put("message", "");
+        response.put("info",  indexingStatus);
+        response.put("result", "success");
+
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+
+
 }

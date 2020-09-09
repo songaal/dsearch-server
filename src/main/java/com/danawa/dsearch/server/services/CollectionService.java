@@ -58,7 +58,8 @@ public class CollectionService {
     private final String indexSuffixB;
     private final IndexingJobManager indexingJobManager;
 
-    public CollectionService(IndexingJobService indexingJobService, ClusterService clusterService, @Value("${dsearch.collection.index}") String collectionIndex,
+    public CollectionService(IndexingJobService indexingJobService, ClusterService clusterService,
+                             @Value("${dsearch.collection.index}") String collectionIndex,
                              @Value("${dsearch.collection.index-suffix-a}") String indexSuffixA,
                              @Value("${dsearch.collection.index-suffix-b}") String indexSuffixB,
                              ElasticsearchFactory elasticsearchFactory,
@@ -505,5 +506,17 @@ public class CollectionService {
                 }
             }
         }
+    }
+
+    public Collection findByName(UUID clusterId, String name) throws IOException {
+        List<Collection> list = findAll(clusterId);
+        Collection result = null;
+        for(Collection collection : list){
+            if(collection.getBaseId().equals(name)){
+                result = collection;
+                break;
+            }
+        }
+        return result;
     }
 }

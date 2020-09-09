@@ -42,6 +42,10 @@ public class ClusterService {
         return clusterList == null ? new ArrayList<>() : clusterList;
     }
 
+    public List<Cluster> findByHostAndPort(String host, int port) {
+        return clusterRepository.findByHostAndPort(host, port);
+    }
+
     public Cluster find(UUID id) {
         return clusterRepository.findById(id).get();
     }

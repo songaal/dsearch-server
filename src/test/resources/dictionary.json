@@ -1,0 +1,54 @@
+{
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0,
+    "analysis": {
+      "analyzer": {
+        "comma_analyzer": {
+          "tokenizer" : "comma_tokenizer",
+          "filter" : ["lowercase_filter"]
+        },
+        "keyword_analyzer": {
+          "tokenizer" : "keyword_tokenizer",
+          "filter" : ["lowercase_filter"]
+        }
+      },
+      "tokenizer": {
+        "comma_tokenizer": {
+          "type": "pattern",
+          "pattern": ","
+        },
+        "keyword_tokenizer": {
+          "type": "keyword"
+        }
+      },
+      "filter": {
+        "lowercase_filter": {
+          "type": "lowercase"
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "id": {
+        "type": "keyword"
+      },
+      "keyword": {
+        "type": "keyword"
+      },
+      "value": {
+        "type": "text",
+        "analyzer": "comma_analyzer",
+        "fields": {
+          "raw": {
+            "type": "keyword"
+          }
+        }
+      },
+      "type": {
+        "type": "keyword"
+      }
+    }
+  }
+}

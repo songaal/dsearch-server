@@ -19,6 +19,13 @@ public class CollectionTest {
     private ElasticsearchFactory elasticsearchFactory;
     @Autowired
     private CollectionService collectionService;
+
+    @Test
+    public void indexingTest(){
+
+    }
+
+
     @Test
     public void propagateTest() {
 //        UUID clusterId = UUID.fromString("a4ac402c-b18c-45b4-916a-88e09cc7165e");
@@ -49,5 +56,6 @@ public class CollectionTest {
 //            logger.error("", e);
 //        }
     }
+
 
 }

@@ -1,0 +1,209 @@
+패스트캣 PRODUCT 사전 설정 예제
+
+# 사용자 사전
+POST /.dsearch_dict_setting/_doc
+{
+    "id": "USER",
+    "name": "사용자 사전",
+    "type": "SET",
+    "tokenType": "MAX",
+    "ignoreCase": "true",
+    "columns": [
+        {
+            "type": "keyword",
+            "label": "단어"
+        }
+    ]
+}
+
+# 유사어 사전
+POST /.dsearch_dict_setting/_doc
+{
+    "id": "SYNONYM",
+    "name": "유사어 사전",
+    "type": "SYNONYM",
+    "tokenType": "MAX",
+    "ignoreCase": "true",
+    "columns": [
+        {
+            "type": "keyword",
+            "label": "키워드"
+        },
+        {
+            "type": "value",
+            "label": "유사어"
+        }
+    ]
+}
+
+# 불용어 사전
+POST /.dsearch_dict_setting/_doc
+{
+    "id": "STOP",
+    "name": "불용어 사전",
+    "type": "SET",
+    "tokenType": "MAX",
+    "ignoreCase": "true",
+    "columns": [
+        {
+            "type": "keyword",
+            "label": "단어"
+        }
+    ]
+}
+
+# 분리어 사전
+POST /.dsearch_dict_setting/_doc
+{
+    "id": "SPACE",
+    "name": "분리어 사전",
+    "type": "SPACE",
+    "tokenType": "MIN",
+    "ignoreCase": "true",
+    "columns": [
+        {
+            "type": "keyword",
+            "label": "단어"
+        }
+    ]
+}
+
+# 복합명사 사전
+POST /.dsearch_dict_setting/_doc
+{
+    "id": "COMPOUND",
+    "name": "복합명사 사전",
+    "type": "COMPOUND",
+    "tokenType": "MID",
+    "ignoreCase": "true",
+    "columns": [
+        {
+            "type": "keyword",
+            "label": "단어"
+        },
+        {
+            "type": "value",
+            "label": "값"
+        }
+    ]
+}
+
+# 단위명 사전
+POST /.dsearch_dict_setting/_doc
+{
+    "id": "UNIT",
+    "name": "단위명 사전",
+    "type": "SET",
+    "tokenType": "HIGH",
+    "ignoreCase": "true",
+    "columns": [
+        {
+            "type": "keyword",
+            "label": "단어"
+        }
+    ]
+}
+
+# 단위명동의어 사전
+POST /.dsearch_dict_setting/_doc
+{
+    "id": "UNIT_SYNONYM",
+    "name": "단위명동의어 사전",
+    "type": "SYNONYM_2WAY",
+    "tokenType": "HIGH",
+    "ignoreCase": "true",
+    "columns": [
+        {
+            "type": "value",
+            "label": "유사어"
+        }
+    ]
+}
+
+# 제조사명 사전
+POST /.dsearch_dict_setting/_doc
+{
+    "id": "MAKER",
+    "name": "제조사명 사전",
+    "type": "CUSTOM",
+    "tokenType": "NONE",
+    "ignoreCase": "true",
+    "columns": [
+        {
+            "type": "id",
+            "label": "MAKERID"
+        },
+        {
+            "type": "keyword",
+            "label": "KEYWORD"
+        },
+        {
+            "type": "value",
+            "label": "VALUE"
+        }
+    ]
+}
+
+# 브랜드명 사전
+POST /.dsearch_dict_setting/_doc
+{
+    "id": "BRAND",
+    "name": "브랜드명 사전",
+    "type": "CUSTOM",
+    "tokenType": "NONE",
+    "ignoreCase": "true",
+    "columns": [
+        {
+            "type": "id",
+            "label": "BRANDID"
+        },
+        {
+            "type": "keyword",
+            "label": "KEYWORD"
+        },
+        {
+            "type": "value",
+            "label": "VALUE"
+        }
+    ]
+}
+
+# 카테고리키워드 사전
+POST /.dsearch_dict_setting/_doc
+{
+    "id": "CATEGORY",
+    "name": "카테고리키워드사전",
+    "type": "CUSTOM",
+    "tokenType": "NONE",
+    "ignoreCase": "true",
+    "columns": [
+        {
+            "type": "id",
+            "label": "CATEGORYID"
+        },
+        {
+            "type": "keyword",
+            "label": "KEYWORD"
+        },
+        {
+            "type": "value",
+            "label": "VALUE"
+        }
+    ]
+}
+
+# 영단어 사전
+POST /.dsearch_dict_setting/_doc
+{
+    "id": "ENGLISH",
+    "name": "영단어 사전",
+    "type": "SET",
+    "tokenType": "MAX",
+    "ignoreCase": "true",
+    "columns": [
+        {
+            "type": "keyword",
+            "label": "KEYWORD"
+        }
+    ]
+}

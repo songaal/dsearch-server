@@ -1,0 +1,53 @@
+{
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0
+  },
+  "mappings": {
+    "properties": {
+      "name": {
+        "type": "keyword"
+      },
+      "indices": {
+        "type": "keyword"
+      },
+      "query": {
+        "type": "keyword"
+      },
+      "title": {
+        "type": "keyword"
+      },
+      "clickUrl": {
+        "type": "keyword"
+      },
+      "thumbnails": {
+        "type": "keyword"
+      },
+      "order": {
+        "type": "integer"
+      },
+      "fields": {
+        "type": "nested",
+        "properties": {
+          "label": {
+            "type": "keyword"
+          },
+          "value": {
+            "type": "keyword"
+          }
+        }
+      },
+      "aggs": {
+        "type": "nested",
+        "properties": {
+          "label": {
+            "type": "keyword"
+          },
+          "value": {
+            "type": "keyword"
+          }
+        }
+      }
+    }
+  }
+}

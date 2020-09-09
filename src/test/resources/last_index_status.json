@@ -1,0 +1,28 @@
+{
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0
+  },
+  "mappings": {
+    "properties": {
+      "collectionId": {
+        "type": "keyword"
+      },
+      "index": {
+        "type": "keyword"
+      },
+      "startTime": {
+        "type": "date"
+      },
+      "status": {
+        "type": "keyword"
+      },
+      "step": {
+        "type": "keyword"
+      },
+      "jobId": {
+        "type": "keyword"
+      }
+    }
+  }
+}

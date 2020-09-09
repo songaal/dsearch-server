@@ -29,7 +29,12 @@ public class ClusterController {
     private final JdbcService jdbcService;
     private final IndicesService indicesService;
 
-    public ClusterController(@Value("${dsearch.delete}") String deletePrefix, ClusterService clusterService, DictionaryService dictionaryService, ReferenceService referenceService, CollectionService collectionService, IndicesService indicesService, JdbcService jdbcService) {
+    public ClusterController(@Value("${dsearch.delete}") String deletePrefix,
+                             ClusterService clusterService,
+                             DictionaryService dictionaryService,
+                             ReferenceService referenceService,
+                             CollectionService collectionService,
+                             IndicesService indicesService, JdbcService jdbcService) {
         this.deletePrefix = deletePrefix;
         this.clusterService = clusterService;
         this.dictionaryService = dictionaryService;

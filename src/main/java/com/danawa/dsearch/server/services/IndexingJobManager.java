@@ -43,6 +43,7 @@ public class IndexingJobManager {
 
     // KEY: collection id, value: Indexing status
     private ConcurrentHashMap<String, IndexingStatus> jobs = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<String, IndexingStatus> indexingProcessQueue = new ConcurrentHashMap<>();
 
     public IndexingJobManager(IndexingJobService indexingJobService, ElasticsearchFactory elasticsearchFactory) {
         this.indexingJobService = indexingJobService;
@@ -203,6 +204,9 @@ public class IndexingJobManager {
                 indexingJobService.expose(clusterId, indexingStatus.getCollection());
             } else {
                 // 다음 작업이 없으면 제거.
+                IndexingStatus idxStat = jobs.get(id);
+                idxStat.setStatus(status);
+                indexingProcessQueue.put(id, idxStat);
                 jobs.remove(id);
                 logger.debug("empty next status : {} Step >> {}", status, id);
             }
@@ -324,11 +328,8 @@ public class IndexingJobManager {
         }
     }
 
-
-
     public Map<String, Object> getIndexingStatus(){
         Map<String, Object> map = new HashMap<>();
-
         for(String key : jobs.keySet()){
             Map<String, Object> template = new HashMap<>();
             template.put("server", jobs.get(key));
@@ -336,5 +337,20 @@ public class IndexingJobManager {
             map.put(key, template);
         }
         return map;
+    }
+
+    public IndexingStatus getIndexingStatus(String collectionId){
+
+        if(jobs.get(collectionId) != null){
+            IndexingStatus indexingStatus = jobs.get(collectionId);
+            return indexingStatus;
+        }
+
+        if(indexingProcessQueue.get(collectionId) != null){
+            IndexingStatus indexingStatus = indexingProcessQueue.get(collectionId);
+            return indexingStatus;
+        }
+
+        return null;
     }
 }

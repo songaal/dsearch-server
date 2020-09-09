@@ -1,0 +1,57 @@
+spring:
+  h2:
+    console:
+      enabled: false
+  datasource:
+    url: jdbc:h2:file:~/fileDB
+    driver-class-name: org.h2.Driver
+    username: admin
+    password: admin
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+logging:
+  level:
+    level:
+      root: info
+    com:
+      danawa: info
+  file:
+    path: /var/log
+    max-history: 30
+    max-size: 500MB
+dsearch:
+  delete: .dsearch*
+  admin:
+    username: admin
+    password: admin
+    email: admin@example.com
+  dictionary:
+    setting: .dsearch_dict_setting
+    index: .dsearch_dict
+#    index: .dsearch_dictionary
+  reference:
+    index: .dsearch_reference
+  collection:
+    index: .dsearch_collection
+    index-suffix-a: -a
+    index-suffix-b: -b
+    params:
+      encoding: utf-8
+      bulkSize: 1000
+      reset: true
+      threadSize: 1
+    indexing:
+      "[index.routing.allocation.include._exclude]": search*
+      "[index.number_of_replicas]": 0
+      refresh_interval: -1
+    propagate:
+      "[index.routing.allocation.include._exclude]": index*
+      "[index.number_of_replicas]": 1
+      refresh_interval: 1s
+  jdbc:
+    setting: .dsearch_jdbc
+  build:
+    name: @project.name@
+    version: @project.version@
