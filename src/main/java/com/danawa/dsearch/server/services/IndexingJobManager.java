@@ -206,6 +206,7 @@ public class IndexingJobManager {
                 // 다음 작업이 없으면 제거.
                 IndexingStatus idxStat = jobs.get(id);
                 idxStat.setStatus(status);
+                idxStat.setEndTime(System.currentTimeMillis());
                 indexingProcessQueue.put(id, idxStat);
                 jobs.remove(id);
                 logger.debug("empty next status : {} Step >> {}", status, id);
@@ -264,6 +265,10 @@ public class IndexingJobManager {
                     jobs.put(id, indexingStatus);
                     logger.debug("add next job : {} ", nextStep.name());
                 } else {
+                    IndexingStatus idxStat = jobs.get(id);
+                    idxStat.setStatus("SUCCESS");
+                    idxStat.setEndTime(System.currentTimeMillis());
+                    indexingProcessQueue.put(id, idxStat);
                     jobs.remove(id);
                     logger.debug("empty next status : {} ", id);
                 }
