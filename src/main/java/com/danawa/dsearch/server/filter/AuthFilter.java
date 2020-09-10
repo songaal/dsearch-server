@@ -24,7 +24,7 @@ public class AuthFilter implements Filter {
     // 미인증 URI
     private static final List<String> bypassUri = Arrays.asList(
             "/", "/info",
-            "/collections/idxp", "/collections/idxp/status",// 전체색인용
+            "/collections/idxp", "/collections/idxp/status",// IndexProcess용
             "/auth/sign-in", "/auth/sign-out"
     );
     @Override

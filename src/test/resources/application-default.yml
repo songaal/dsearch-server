@@ -56,5 +56,5 @@ dsearch:
   jdbc:
     setting: .dsearch_jdbc
   build:
-    name: @project.name@
-    version: @project.version@
+    name: dsearch
+    version: 1.0.0

@@ -192,13 +192,14 @@ public class CollectionController {
                                       @RequestParam String action) throws IndexingJobFailureException, IOException {
         Map<String, Object> response = new HashMap<>();
 
-        // 에러 처리
+        // Host 에러 처리
         if(host == null || host.equals("")){
             response.put("message", "host is not correct");
             response.put("result", "fail");
             return new ResponseEntity<>(response, HttpStatus.OK);
         }
 
+        // Port 에러 처리
         if(port == null || port.equals("")){
             for(int i = 0; i < port.length(); i++){
                 if(!Character.isDigit(port.charAt(i))){
@@ -209,12 +210,14 @@ public class CollectionController {
             }
         }
 
+        // CollectionName 에러 처리
         if(collectionName == null || collectionName.equals("")){
             response.put("message", "collectionName is not correct");
             response.put("result", "fail");
             return new ResponseEntity<>(response, HttpStatus.OK);
         }
 
+        // action 에러 처리
         if(action == null || action.equals("")){
             response.put("message", "action is not correct");
             response.put("result", "fail");
@@ -224,6 +227,7 @@ public class CollectionController {
         List<Cluster> clusterList = clusterService.findByHostAndPort(host, Integer.parseInt(port));
         Cluster cluster = null;
         if(clusterList == null || clusterList.size() == 0){
+            // 클러스터가 없을때
             response.put("message", "Not Found Cluster");
             response.put("result", "fail");
             return new ResponseEntity<>(response, HttpStatus.OK);
@@ -235,6 +239,7 @@ public class CollectionController {
 
         Collection collection = collectionService.findByName(cluster.getId(), collectionName);
         if(collection == null){
+            //컬렉션이 없을때
             response.put("message", "Not Found Collection Name");
             response.put("result", "fail");
             return new ResponseEntity<>(response, HttpStatus.OK);
@@ -253,6 +258,7 @@ public class CollectionController {
                     IndexingStatus indexingStatus = indexingJobService.indexing(clusterId, collection, true, IndexStep.FULL_INDEX, nextStep);
                     indexingJobManager.add(collection.getId(), indexingStatus);
                     response.put("indexingStatus", indexingStatus);
+                    indexingStatus.setStatus("RUNNING");
                     response.put("result", "success");
                 } else {
                     response.put("result", "fail");
@@ -264,6 +270,8 @@ public class CollectionController {
                 if (registerStatus == null) {
                     IndexingStatus indexingStatus = indexingJobService.indexing(clusterId, collection, false, IndexStep.FULL_INDEX);
                     indexingJobManager.add(collection.getId(), indexingStatus);
+                    indexingStatus.setAction(action);
+                    indexingStatus.setStatus("RUNNING");
                     response.put("indexingStatus", indexingStatus);
                     response.put("result", "success");
                 } else {
@@ -275,8 +283,13 @@ public class CollectionController {
                 IndexingStatus registerStatus = indexingJobManager.findById(id);
                 if (registerStatus == null) {
                     IndexingStatus indexingStatus = indexingJobService.propagate(clusterId, false, collection, null);
+
+//                    indexingStatus.setHost(host);
+//                    indexingStatus.setPort(Integer.parseInt(port));
                     indexingStatus.setStatus("RUNNING");
+                    indexingStatus.setAction(action);
                     indexingJobManager.add(collection.getId(), indexingStatus);
+
                     response.put("indexingStatus", indexingStatus);
                     response.put("result", "success");
                 } else {
@@ -373,7 +386,9 @@ public class CollectionController {
         if(indexingStatus == null){
             response.put("message", "Not Found Status (색인을 시작하지 않았습니다)");
             response.put("result", "success");
-            response.put("info", "");
+            Map<String, String> map = new HashMap<>();
+            map.put("status", "NOT_STARTED");
+            response.put("info", map);
             return new ResponseEntity<>(response, HttpStatus.OK);
         }
 
