@@ -22,6 +22,7 @@ import org.elasticsearch.client.indices.PutIndexTemplateRequest;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.query.MatchAllQueryBuilder;
 import org.elasticsearch.index.query.MatchQueryBuilder;
+import org.elasticsearch.index.query.TermQueryBuilder;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
@@ -178,7 +179,7 @@ public class CollectionService {
     public void add(UUID clusterId, Collection collection) throws IOException, DuplicateException {
         try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             SearchRequest searchRequest = new SearchRequest().indices(collectionIndex);
-            searchRequest.source(new SearchSourceBuilder().query(new MatchQueryBuilder("baseId", collection.getBaseId())));
+            searchRequest.source(new SearchSourceBuilder().query(new TermQueryBuilder("baseId", collection.getBaseId())));
             SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
             if (searchResponse.getHits().getTotalHits().value > 0) {
                 throw new DuplicateException("duplicate baseId");
