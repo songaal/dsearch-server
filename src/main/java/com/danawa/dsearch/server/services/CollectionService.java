@@ -20,9 +20,7 @@ import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.*;
 import org.elasticsearch.client.indices.PutIndexTemplateRequest;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.index.query.MatchAllQueryBuilder;
-import org.elasticsearch.index.query.MatchQueryBuilder;
-import org.elasticsearch.index.query.TermQueryBuilder;
+import org.elasticsearch.index.query.*;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
@@ -179,7 +177,17 @@ public class CollectionService {
     public void add(UUID clusterId, Collection collection) throws IOException, DuplicateException {
         try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             SearchRequest searchRequest = new SearchRequest().indices(collectionIndex);
-            searchRequest.source(new SearchSourceBuilder().query(new TermQueryBuilder("baseId", collection.getBaseId())));
+
+            BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
+            boolQueryBuilder = boolQueryBuilder.minimumShouldMatch(1);
+            List<QueryBuilder> list = boolQueryBuilder.should();
+            list.add(QueryBuilders.termQuery("baseId", collection.getBaseId()));
+            list.add(QueryBuilders.termQuery("baseId.keyword", collection.getBaseId()));
+
+            searchRequest.source(new SearchSourceBuilder().query(boolQueryBuilder));
+
+            //추후 변경 예정
+//            searchRequest.source(new SearchSourceBuilder().query(new TermQueryBuilder("baseId", collection.getBaseId())));
             SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
             if (searchResponse.getHits().getTotalHits().value > 0) {
                 throw new DuplicateException("duplicate baseId");
