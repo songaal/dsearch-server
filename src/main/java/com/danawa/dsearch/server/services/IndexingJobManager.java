@@ -199,6 +199,12 @@ public class IndexingJobManager {
                 indexingStatus = indexingJobService.propagate(clusterId, true, indexingStatus.getCollection(), indexingStatus.getNextStep(), index);
                 addLastIndexStatus(clusterId, indexingStatus.getCollection().getId(), index, indexingStatus.getStartTime(), "RUNNING", indexingStatus.getCurrentStep().name());
                 jobs.put(id, indexingStatus);
+
+                IndexingStatus idxStat = jobs.get(id);
+                idxStat.setStatus(status);
+                idxStat.setEndTime(System.currentTimeMillis());
+                indexingProcessQueue.put(id, idxStat);
+
                 logger.debug("next Step >> {}", nextStep);
             } else if ("ERROR".equalsIgnoreCase(status) || "STOP".equalsIgnoreCase(status)) {
                 indexingJobService.expose(clusterId, indexingStatus.getCollection());
@@ -263,6 +269,11 @@ public class IndexingJobManager {
                     indexingStatus.setRetry(50);
                     indexingStatus.setAutoRun(true);
                     jobs.put(id, indexingStatus);
+
+                    IndexingStatus idxStat = jobs.get(id);
+                    idxStat.setStatus("SUCCESS");
+                    idxStat.setEndTime(System.currentTimeMillis());
+                    indexingProcessQueue.put(id, idxStat);
                     logger.debug("add next job : {} ", nextStep.name());
                 } else {
                     IndexingStatus idxStat = jobs.get(id);
