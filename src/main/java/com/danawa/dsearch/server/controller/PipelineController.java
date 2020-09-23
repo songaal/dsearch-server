@@ -16,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.*;
 
 @RestController
@@ -29,7 +30,7 @@ public class PipelineController {
     public PipelineController() { }
 
     @GetMapping("/list")
-    public ResponseEntity<?> getPipeLineLists(@RequestHeader(value = "cluster-id") UUID clusterId) throws Exception {
+    public ResponseEntity<?> getPipeLineLists(@RequestHeader(value = "cluster-id") UUID clusterId) throws IOException {
         Response pluginResponse = pipelineService.getPipeLineLists(clusterId);
         return new ResponseEntity<>(EntityUtils.toString(pluginResponse.getEntity()), HttpStatus.OK);
     }
@@ -46,7 +47,6 @@ public class PipelineController {
                                          @PathVariable String name,
                                          @RequestBody HashMap<String, Object> body) throws Exception {
         ObjectMapper mapper = new ObjectMapper();
-
         Response response = pipelineService.setPipeLine(clusterId, name, mapper.writeValueAsString(body));
         return new ResponseEntity<>(EntityUtils.toString(response.getEntity()), HttpStatus.OK);
     }

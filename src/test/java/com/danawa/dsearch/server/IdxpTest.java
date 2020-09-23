@@ -32,14 +32,11 @@ public class IdxpTest {
     protected MockHttpSession session;
 
     private MockMvc mockMvc;
-//    @Autowired
-//    MockMvc mockMvc;
 
     @Before
     public void setUp() throws Exception{
         session = new MockHttpSession();
     }
-
 
     @After
     public void clean(){

@@ -225,7 +225,6 @@ public class CollectionController {
         }
 
         List<Cluster> clusterList = clusterService.findByHostAndPort(host, Integer.parseInt(port));
-        Cluster cluster = null;
         if(clusterList == null || clusterList.size() == 0){
             // 클러스터가 없을때
             response.put("message", "Not Found Cluster");
@@ -235,8 +234,7 @@ public class CollectionController {
 
         // 호스트명과 포트가 같으니 같은 ES이다
         // 즉, 아무거나 가져와도 됨
-        cluster = clusterList.get(0);
-
+        Cluster cluster = clusterList.get(0);
         Collection collection = collectionService.findByName(cluster.getId(), collectionName);
         if(collection == null){
             //컬렉션이 없을때
@@ -283,9 +281,6 @@ public class CollectionController {
                 IndexingStatus registerStatus = indexingJobManager.findById(id);
                 if (registerStatus == null) {
                     IndexingStatus indexingStatus = indexingJobService.propagate(clusterId, false, collection, null);
-
-//                    indexingStatus.setHost(host);
-//                    indexingStatus.setPort(Integer.parseInt(port));
                     indexingStatus.setStatus("RUNNING");
                     indexingStatus.setAction(action);
                     indexingJobManager.add(collection.getId(), indexingStatus);
@@ -330,6 +325,7 @@ public class CollectionController {
                 }
             }
         } else {
+            response.put("message", "Not Found Action. Please Select Action in this list (all / indexing / propagate / expose / stop_indexing / stop_propagation)");
             response.put("result", "success");
         }
 
@@ -384,10 +380,10 @@ public class CollectionController {
         String id = collection.getId();
         IndexingStatus indexingStatus = indexingJobManager.getIndexingStatus(id);
         if(indexingStatus == null){
-            response.put("message", "Not Found Status (색인을 시작하지 않았습니다)");
-            response.put("result", "success");
             Map<String, String> map = new HashMap<>();
             map.put("status", "NOT_STARTED");
+            response.put("message", "Not Found Status (색인을 시작하지 않았습니다)");
+            response.put("result", "success");
             response.put("info", map);
             return new ResponseEntity<>(response, HttpStatus.OK);
         }
