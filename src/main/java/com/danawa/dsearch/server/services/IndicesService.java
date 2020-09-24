@@ -11,7 +11,7 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.indices.*;
-import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.MatchAllQueryBuilder;
@@ -141,7 +141,7 @@ public class IndicesService {
     public Map<String, Object> getFields(RestHighLevelClient client, String index) throws IOException {
         GetMappingsRequest getMappingsRequest = new GetMappingsRequest().indices(index);
         GetMappingsResponse response = client.indices().getMapping(getMappingsRequest, RequestOptions.DEFAULT);
-        Map<String, MappingMetaData> mappings = response.mappings();
+        Map<String, MappingMetadata> mappings = response.mappings();
         Map<String, Object> properties = null;
         boolean isPass = false;
         if (!isPass) {

@@ -10,8 +10,8 @@ import org.elasticsearch.client.indices.AnalyzeRequest;
 import org.elasticsearch.client.indices.AnalyzeResponse;
 import org.elasticsearch.client.indices.GetMappingsRequest;
 import org.elasticsearch.client.indices.GetMappingsResponse;
-import org.elasticsearch.cluster.metadata.MappingMetaData;
 
+import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.*;
 import org.elasticsearch.search.SearchModule;
@@ -63,7 +63,7 @@ public class RankingTuningService {
             String index = rankingTuningRequest.getIndex();
             GetMappingsRequest getMappingsRequest = new GetMappingsRequest().indices(index);
             GetMappingsResponse response = client.indices().getMapping(getMappingsRequest, RequestOptions.DEFAULT);
-            Map<String, MappingMetaData> mappings = response.mappings();
+            Map<String, MappingMetadata> mappings = response.mappings();
             for(String key: mappings.keySet()){
                 System.out.println(key);
             }
@@ -73,12 +73,12 @@ public class RankingTuningService {
         }
     }
 
-    public Map<String, MappingMetaData> getMultipleMappings(UUID clusterId, RankingTuningRequest rankingTuningRequest) throws IOException {
+    public Map<String, MappingMetadata> getMultipleMappings(UUID clusterId, RankingTuningRequest rankingTuningRequest) throws IOException {
         try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             String index = rankingTuningRequest.getIndex();
             GetMappingsRequest getMappingsRequest = new GetMappingsRequest().indices(index);
             GetMappingsResponse response = client.indices().getMapping(getMappingsRequest, RequestOptions.DEFAULT);
-            Map<String, MappingMetaData> mappings = response.mappings();
+            Map<String, MappingMetadata> mappings = response.mappings();
 //            Map<String, Object> properties = (Map<String, Object>) mappings.get(index).getSourceAsMap().get("properties");
 //            Map<String, Object> result = mappings.get(index).getSourceAsMap().get("properties") == null ? new HashMap<>() : properties;
             return mappings;

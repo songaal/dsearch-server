@@ -9,7 +9,7 @@ import org.elasticsearch.client.indices.AnalyzeRequest;
 import org.elasticsearch.client.indices.AnalyzeResponse;
 import org.elasticsearch.client.indices.GetMappingsRequest;
 import org.elasticsearch.client.indices.GetMappingsResponse;
-import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -59,7 +59,7 @@ public class AnalyzeTest {
             Map<String, Object> analyzers = new LinkedHashMap<String, Object>();
             GetMappingsRequest getMappingsRequest = new GetMappingsRequest().indices(index);
             GetMappingsResponse response = client.indices().getMapping(getMappingsRequest, RequestOptions.DEFAULT);
-            Map<String, MappingMetaData> mappings = response.mappings();
+            Map<String, MappingMetadata> mappings = response.mappings();
 
             /* analyzer 뽑기 */
 

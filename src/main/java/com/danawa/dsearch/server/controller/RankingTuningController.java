@@ -6,7 +6,7 @@ import com.danawa.dsearch.server.excpetions.ElasticQueryException;
 import com.danawa.dsearch.server.services.RankingTuningService;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.indices.AnalyzeResponse;
-import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.search.SearchHit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,7 +52,8 @@ public class RankingTuningController {
             if(rankingTuningRequest.getIsMultiple()){
                 /* 1. index mapping 테이블 가져오기 */
                 Map<String, Object> analyzers = new LinkedHashMap<String, Object>();
-                Map<String, MappingMetaData> mappings = rankingTuningService.getMultipleMappings(clusterId, rankingTuningRequest);
+
+                Map<String, MappingMetadata> mappings = rankingTuningService.getMultipleMappings(clusterId, rankingTuningRequest);
 
                 // key: index, value: property
                 for(String _index : mappings.keySet()){
