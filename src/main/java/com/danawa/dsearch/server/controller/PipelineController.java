@@ -1,14 +1,9 @@
 package com.danawa.dsearch.server.controller;
 
-import com.danawa.dsearch.server.services.JdbcService;
 import com.danawa.dsearch.server.services.PipelineService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jdk.nashorn.internal.parser.JSONParser;
 import org.apache.http.util.EntityUtils;
-import org.apache.lucene.queryparser.flexible.core.util.StringUtils;
 import org.elasticsearch.client.Response;
-import org.json.JSONObject;
-import org.json.JSONWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/pipeline")
