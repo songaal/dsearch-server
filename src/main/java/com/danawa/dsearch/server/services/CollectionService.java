@@ -207,8 +207,11 @@ public class CollectionService {
                             .source(build(collection))
                     , RequestOptions.DEFAULT);
 
-            client.indices().putTemplate(new PutIndexTemplateRequest(indexNameA).patterns(Arrays.asList(indexNameA)), RequestOptions.DEFAULT);
-            client.indices().putTemplate(new PutIndexTemplateRequest(indexNameB).patterns(Arrays.asList(indexNameB)), RequestOptions.DEFAULT);
+            client.indices()
+                    .putTemplate(new PutIndexTemplateRequest(collection.getBaseId()).patterns(Arrays.asList(indexNameA, indexNameB)), RequestOptions.DEFAULT);
+
+//            client.indices().putTemplate(new PutIndexTemplateRequest(indexNameA).patterns(Arrays.asList(indexNameA)), RequestOptions.DEFAULT);
+//            client.indices().putTemplate(new PutIndexTemplateRequest(indexNameB).patterns(Arrays.asList(indexNameB)), RequestOptions.DEFAULT);
         }
     }
 
