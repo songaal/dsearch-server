@@ -56,12 +56,12 @@ public class AuthFilter implements Filter {
         for(String header: headers){
             if(firstHeader){
 //                response.setHeader(HttpHeaders.SET_COOKIE, String.format("%s; Secure; %s", header, "SameSite=None"));
-                response.setHeader(HttpHeaders.SET_COOKIE, String.format("%s; %s", header, "HttpOnly;Secure;SameSite=None"));
+                response.setHeader(HttpHeaders.SET_COOKIE, String.format("%s; %s", header, "Secure;SameSite=None"));
                 firstHeader = false;
                 continue;
             }else{
 //                response.addHeader(HttpHeaders.SET_COOKIE, String.format("%s; Secure; %s", header, "SameSite=None"));
-                response.addHeader(HttpHeaders.SET_COOKIE, String.format("%s; %s", header, "HttpOnly;Secure;SameSite=None"));
+                response.addHeader(HttpHeaders.SET_COOKIE, String.format("%s; %s", header, "Secure;SameSite=None"));
             }
         }
     }
