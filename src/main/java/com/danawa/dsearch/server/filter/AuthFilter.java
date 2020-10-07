@@ -5,6 +5,7 @@ import com.danawa.dsearch.server.entity.AuthUser;
 import com.danawa.dsearch.server.excpetions.NotFoundUserException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -15,6 +16,7 @@ import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 @Component
@@ -36,13 +38,29 @@ public class AuthFilter implements Filter {
         HttpSession session = request.getSession();
         AuthUser authUser = (AuthUser) session.getAttribute(AuthController.SESSION_KEY);
         logger.trace("session: {}, uri: {}", session.getId(), uri);
-
         if (authUser != null) {
             chain.doFilter(req, resp);
+            addSameSite(response);
         } else if (bypassUri.contains(uri)) {
             chain.doFilter(req, resp);
+            addSameSite(response);
         } else {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+        }
+    }
+
+    /* for SameSite=None */
+    private void addSameSite(HttpServletResponse response){
+        boolean firstHeader= true;
+        Collection<String> headers = response.getHeaders(HttpHeaders.SET_COOKIE);
+        for(String header: headers){
+            if(firstHeader){
+                response.setHeader(HttpHeaders.SET_COOKIE, String.format("%s; Secure; %s", header, "SameSite=None"));
+                firstHeader = false;
+                continue;
+            }else{
+                response.addHeader(HttpHeaders.SET_COOKIE, String.format("%s; Secure; %s", header, "SameSite=None"));
+            }
         }
     }
 
