@@ -40,10 +40,10 @@ public class AuthFilter implements Filter {
         logger.trace("session: {}, uri: {}", session.getId(), uri);
         if (authUser != null) {
             chain.doFilter(req, resp);
-            addSameSite(response);
+//            addSameSite(response);
         } else if (bypassUri.contains(uri)) {
             chain.doFilter(req, resp);
-            addSameSite(response);
+//            addSameSite(response);
         } else {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
         }
