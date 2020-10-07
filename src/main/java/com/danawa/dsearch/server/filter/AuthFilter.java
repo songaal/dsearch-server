@@ -40,28 +40,26 @@ public class AuthFilter implements Filter {
         logger.trace("session: {}, uri: {}", session.getId(), uri);
         if (authUser != null) {
             chain.doFilter(req, resp);
-//            addSameSite(response);
+            addSameSite(response);
         } else if (bypassUri.contains(uri)) {
             chain.doFilter(req, resp);
-//            addSameSite(response);
+            addSameSite(response);
         } else {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
         }
     }
 
     /* for SameSite=None */
-    private void addSameSite(HttpServletResponse response){
-        boolean firstHeader= true;
+    private void addSameSite(HttpServletResponse response) {
+        boolean firstHeader = true;
         Collection<String> headers = response.getHeaders(HttpHeaders.SET_COOKIE);
-        for(String header: headers){
-            if(firstHeader){
-//                response.setHeader(HttpHeaders.SET_COOKIE, String.format("%s; Secure; %s", header, "SameSite=None"));
-                response.setHeader(HttpHeaders.SET_COOKIE, String.format("%s; %s", header, "Secure;SameSite=None"));
+        for (String header : headers) {
+            if (firstHeader) {
+                response.setHeader(HttpHeaders.SET_COOKIE, String.format("%s; %s", header, "Secure; SameSite=None"));
                 firstHeader = false;
                 continue;
-            }else{
-//                response.addHeader(HttpHeaders.SET_COOKIE, String.format("%s; Secure; %s", header, "SameSite=None"));
-                response.addHeader(HttpHeaders.SET_COOKIE, String.format("%s; %s", header, "Secure;SameSite=None"));
+            } else {
+                response.addHeader(HttpHeaders.SET_COOKIE, String.format("%s; %s", header, "Secure; SameSite=None"));
             }
         }
     }
