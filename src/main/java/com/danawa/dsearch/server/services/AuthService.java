@@ -1,10 +1,14 @@
 package com.danawa.dsearch.server.services;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.interfaces.Claim;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.danawa.dsearch.server.entity.AuthUser;
 import com.danawa.dsearch.server.entity.Role;
 import com.danawa.dsearch.server.entity.User;
 import com.danawa.dsearch.server.entity.UserRoles;
 import com.danawa.dsearch.server.excpetions.NotFoundUserException;
+import com.danawa.dsearch.server.utils.JWTUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,6 +23,7 @@ public class AuthService {
     private static Logger logger = LoggerFactory.getLogger(AuthService.class);
 
     private PasswordEncoder encoder = PasswordEncoderFactories.createDelegatingPasswordEncoder();
+    private JWTUtils jwtUtils;
 
     private final String SYSTEM_MANAGER_ROLE = "SYSTEM_MANAGER";
     private String username;
@@ -32,6 +37,8 @@ public class AuthService {
     public AuthService(@Value("${dsearch.admin.username}") String username,
                        @Value("${dsearch.admin.password}") String password,
                        @Value("${dsearch.admin.email}") String email,
+                       @Value("${dsearch.auth.secret}") String secret,
+                       @Value("${dsearch.auth.expiration-time-millis}") Long expirationTimeMillis,
                        UserService userService,
                        RoleService roleService,
                        UserRolesService userRolesService) {
@@ -41,6 +48,7 @@ public class AuthService {
         this.userService = userService;
         this.roleService = roleService;
         this.userRolesService = userRolesService;
+        this.jwtUtils = new JWTUtils(secret, expirationTimeMillis);
     }
 
     @PostConstruct
@@ -61,11 +69,9 @@ public class AuthService {
             userRolesService.add(new UserRoles(systemManagerUser.getId(), systemManagerRole.getId()));
             logger.debug("CREATED USER INFO: {}, ROLE INFO: {}", systemManagerUser, systemManagerRole);
         }
-
-
     }
 
-    public AuthUser signIn(String sessionId, User loginUser) throws NotFoundUserException {
+    public AuthUser signIn(User loginUser) throws NotFoundUserException {
         User registerUser = userService.findByEmail(loginUser.getEmail());
         if (registerUser == null) {
             throw new NotFoundUserException("Not Found User");
@@ -75,7 +81,21 @@ public class AuthService {
         }
         UserRoles userRoles = userRolesService.findByUserId(registerUser.getId());
         Role role = roleService.find(userRoles.getRoleId());
-        AuthUser authUser = new AuthUser(sessionId, registerUser, role);
+        AuthUser authUser = new AuthUser(registerUser, role);
+        authUser.getUser().setPassword(null);
+        authUser.setToken(jwtUtils.sign(authUser));
+        return authUser;
+    }
+
+    public AuthUser findAuthUserByToken(String token) {
+        Claim userIdClaim = jwtUtils.getClaims(token, "user.id");
+        if (userIdClaim == null) {
+            return null;
+        }
+        User registerUser = userService.find(userIdClaim.asLong());
+        UserRoles userRoles = userRolesService.findByUserId(registerUser.getId());
+        Role role = roleService.find(userRoles.getRoleId());
+        AuthUser authUser = new AuthUser(registerUser, role);
         authUser.getUser().setPassword(null);
         return authUser;
     }

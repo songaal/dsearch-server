@@ -7,8 +7,10 @@ import com.danawa.dsearch.server.services.AuthService;
 import com.danawa.dsearch.server.services.ClusterService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpSession;
@@ -18,9 +20,6 @@ import java.util.UUID;
 @RequestMapping("/auth")
 public class AuthController {
     private static Logger logger = LoggerFactory.getLogger(AuthController.class);
-
-    public final static int maxInactiveInterval = 2 * (60 * 60);
-    public static final String SESSION_KEY = "AUTH_USER";
 
     private final AuthService authService;
     private final ClusterService clusterService;
@@ -32,31 +31,28 @@ public class AuthController {
 
     @GetMapping
     public ResponseEntity<?> getAuth(@RequestHeader(required = false, value = "cluster-id") String clusterId,
-                                     HttpSession session) throws NotFoundUserException {
-        AuthUser authuser = (AuthUser) session.getAttribute(SESSION_KEY);
-        if (authuser == null) {
+                                     @RequestHeader(value = "x-bearer-token") String token) throws NotFoundUserException {
+        AuthUser authUser = authService.findAuthUserByToken(token);
+        if (authUser == null) {
             throw new NotFoundUserException("Not Found User");
         }
         if (clusterId != null && !"".equalsIgnoreCase(clusterId)) {
-            authuser.setCluster(clusterService.find(UUID.fromString(clusterId)));
+            authUser.setCluster(clusterService.find(UUID.fromString(clusterId)));
         }
-        return new ResponseEntity<>(authuser, HttpStatus.OK);
+        return new ResponseEntity<>(authUser, HttpStatus.OK);
     }
 
     @PostMapping("/sign-in")
-    public ResponseEntity<?> signIn(HttpSession session,
-                                   @RequestBody User user) throws NotFoundUserException {
-        AuthUser authUser = authService.signIn(session.getId(), user);
-        session.setAttribute(SESSION_KEY, authUser);
-        session.setMaxInactiveInterval(maxInactiveInterval);
+    public ResponseEntity<?> signIn(@RequestBody User user) throws NotFoundUserException {
+        AuthUser authUser = authService.signIn(user);
         return new ResponseEntity<>(authUser, HttpStatus.OK);
     }
 
     @PostMapping("/sign-out")
-    public ResponseEntity<?> signOut(HttpSession session) {
-        session.setMaxInactiveInterval(0);
-        session.invalidate();
-        return new ResponseEntity<>(HttpStatus.OK);
+    public ResponseEntity<?> signOut() {
+        MultiValueMap<String, String> headers = new HttpHeaders();
+        headers.set("x-bearer-token", null);
+        return new ResponseEntity<>(headers, HttpStatus.OK);
     }
 
 }

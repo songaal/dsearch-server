@@ -1,5 +1,6 @@
 package com.danawa.dsearch.server.config;
 
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -26,8 +27,11 @@ public class WebMvcConfig {
                                 HttpMethod.HEAD.name()
                                 )
                         .allowCredentials(true)
+                        .exposedHeaders("x-bearer-token")
                         .maxAge(3600);
             }
         };
     }
+
+
 }

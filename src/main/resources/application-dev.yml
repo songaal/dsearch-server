@@ -24,6 +24,9 @@ logging:
     max-history: 30
     max-size: 500MB
 dsearch:
+  auth:
+    secret: dsearch-secret
+    expiration-time-millis: 7200
   delete: .dsearch*
   admin:
     username: admin

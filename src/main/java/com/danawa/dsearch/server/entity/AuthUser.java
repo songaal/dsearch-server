@@ -4,26 +4,28 @@ import java.io.Serializable;
 
 public class AuthUser implements Serializable {
 
-    private String sessionId;
+    private String token;
     private User user;
     private Role role;
     private Cluster cluster;
 
-    public AuthUser(String sessionId, User user, Role role) {
-        this.sessionId = sessionId;
+    public AuthUser(User user, Role role) {
         this.user = user;
         this.role = role;
     }
 
-    public AuthUser(String sessionId, User user, Role role, Cluster cluster) {
-        this.sessionId = sessionId;
+    public AuthUser(User user, Role role, Cluster cluster) {
         this.user = user;
         this.role = role;
         this.cluster = cluster;
     }
 
-    public String getSessionId() {
-        return sessionId;
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
     }
 
     public User getUser() {
