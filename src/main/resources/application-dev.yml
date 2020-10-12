@@ -26,7 +26,7 @@ logging:
 dsearch:
   auth:
     secret: dsearch-secret
-    expiration-time-millis: 7200
+    expiration-time-millis: 7200000
   delete: .dsearch*
   admin:
     username: admin
