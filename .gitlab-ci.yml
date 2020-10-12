@@ -1,38 +1,38 @@
-image: dcr.danawa.io/alpine-k8s-java:8
-
-stages:
-  - build
-  - deploy
-
-cache:
-  key: ${CI_COMMIT_REF_SLUG}
-  paths:
-    - /root/.m2/
-
-before_script:
-  - export IMAGE="${REGISTRY}/${CI_PROJECT_TITLE}"
-
-build:
-  stage: build
-  script:
-    - sh mvnw clean
-    - sh mvnw package -DskipTests
-    - export VERSION="$(grep -oPm2 "(?<=<version>)[^<]+" pom.xml | sed -n 2p)"
-    - echo "COPY target/dsearch-server-${VERSION}.jar dsearch-server.jar" >> Dockerfile
-    - echo "CMD [\"java\", \"-jar\", \"dsearch-server.jar\"]" >> Dockerfile
-    - cat Dockerfile
-    - docker build -t ${IMAGE}:latest .
-    - docker tag ${IMAGE}:latest ${IMAGE}:${VERSION}
-    - docker push ${IMAGE}:latest
-    - docker push ${IMAGE}:${VERSION}
-
-
-deploy:
-  stage: deploy
-  cache: {}
-  script:
-    - kubectl patch deployment fastcatx-server -n fastcatx -p "{\"spec\":{\"template\":{\"metadata\":{\"labels\":{\"date\":\"`date +'%s'`\"}},\"spec\":{\"containers\":[{\"name\":\"fastcatx-server\",\"image\":\"${IMAGE}:latest\"}]}}}}"
-    - sleep 5
-    - kubectl get pod -n fastcatx -o wide
-
-
+#image: dcr.danawa.io/alpine-k8s-java:8
+#
+#stages:
+#  - build
+#  - deploy
+#
+#cache:
+#  key: ${CI_COMMIT_REF_SLUG}
+#  paths:
+#    - /root/.m2/
+#
+#before_script:
+#  - export IMAGE="${REGISTRY}/${CI_PROJECT_TITLE}"
+#
+#build:
+#  stage: build
+#  script:
+#    - sh mvnw clean
+#    - sh mvnw package -DskipTests
+#    - export VERSION="$(grep -oPm2 "(?<=<version>)[^<]+" pom.xml | sed -n 2p)"
+#    - echo "COPY target/dsearch-server-${VERSION}.jar dsearch-server.jar" >> Dockerfile
+#    - echo "CMD [\"java\", \"-jar\", \"dsearch-server.jar\"]" >> Dockerfile
+#    - cat Dockerfile
+#    - docker build -t ${IMAGE}:latest .
+#    - docker tag ${IMAGE}:latest ${IMAGE}:${VERSION}
+#    - docker push ${IMAGE}:latest
+#    - docker push ${IMAGE}:${VERSION}
+#
+#
+#deploy:
+#  stage: deploy
+#  cache: {}
+#  script:
+#    - kubectl patch deployment fastcatx-server -n fastcatx -p "{\"spec\":{\"template\":{\"metadata\":{\"labels\":{\"date\":\"`date +'%s'`\"}},\"spec\":{\"containers\":[{\"name\":\"fastcatx-server\",\"image\":\"${IMAGE}:latest\"}]}}}}"
+#    - sleep 5
+#    - kubectl get pod -n fastcatx -o wide
+#
+#
