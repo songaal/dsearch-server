@@ -2,12 +2,12 @@ server:
   port: 443
   ssl:
     enabled: true
-    key-alias: dsearch
-    key-store: dsearchstore.pkcs12
+    key-store: Wildcard.danawa.io.jks
     key-store-password: ${DSEARCH_PASSWORD:''}
     key-password: ${DSEARCH_PASSWORD:''}
-    trust-store: dsearch.pkcs12
-    trust-store-password: ${DSEARCH_PASSWORD:''}
+#    key-alias: dsearch
+#    trust-store: dsearch.pkcs12
+#    trust-store-password: ${DSEARCH_PASSWORD:''}
 spring:
   h2:
     console:

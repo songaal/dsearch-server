@@ -34,3 +34,4 @@ build/
 *.db
 
 *.pkcs12
+*.jks
