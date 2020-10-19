@@ -25,6 +25,21 @@ public class WebMvcConfig {
                                 HttpMethod.OPTIONS.name(),
                                 HttpMethod.PATCH.name(),
                                 HttpMethod.HEAD.name()
+                        )
+                        .allowCredentials(true)
+                        .exposedHeaders("x-bearer-token")
+                        .maxAge(3600);
+
+                registry.addMapping("/**")
+                        .allowedOrigins("*")
+                        .allowedMethods(
+                                HttpMethod.GET.name(),
+                                HttpMethod.POST.name(),
+                                HttpMethod.PUT.name(),
+                                HttpMethod.DELETE.name(),
+                                HttpMethod.OPTIONS.name(),
+                                HttpMethod.PATCH.name(),
+                                HttpMethod.HEAD.name()
                                 )
                         .allowCredentials(true)
                         .exposedHeaders("x-bearer-token")
