@@ -302,6 +302,7 @@ public class IndexingJobService {
             Collection.Index index = getTargetIndex(collection.getBaseId(), indexA, indexB);
 
 //            2. 인덱스 설정 변경.
+            index.setStatus("STOP");
             editPreparations(client, index);
             logger.info("stop propagation{}", index.getIndex());
         }

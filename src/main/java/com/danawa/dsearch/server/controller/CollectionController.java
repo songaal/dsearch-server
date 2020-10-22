@@ -160,6 +160,7 @@ public class CollectionController {
             synchronized (obj) {
                 IndexingStatus registerStatus = indexingJobManager.findById(id);
                 if (registerStatus != null && registerStatus.getCurrentStep() == IndexStep.PROPAGATE) {
+                    registerStatus.setStatus("STOP");
                     Collection collection = collectionService.findById(clusterId, id);
                     indexingJobService.stopPropagation(clusterId, collection);
                     indexingJobManager.remove(id);
@@ -172,6 +173,7 @@ public class CollectionController {
             synchronized (obj) {
                 IndexingStatus indexingStatus = indexingJobManager.findById(id);
                 if (indexingStatus != null && (indexingStatus.getCurrentStep() == IndexStep.FULL_INDEX || indexingStatus.getCurrentStep() == IndexStep.DYNAMIC_INDEX)) {
+                    indexingStatus.setStatus("STOP");
                     Collection collection = collectionService.findById(clusterId, id);
                     Collection.Launcher launcher = collection.getLauncher();
                     indexingJobService.stopIndexing(launcher.getHost(), launcher.getPort(), indexingStatus.getIndexingJobId());
