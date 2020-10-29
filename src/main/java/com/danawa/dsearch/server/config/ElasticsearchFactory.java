@@ -15,7 +15,10 @@ import org.apache.http.util.EntityUtils;
 import org.elasticsearch.client.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.util.List;
@@ -24,11 +27,17 @@ import java.util.UUID;
 
 @Component
 public class ElasticsearchFactory {
-    private static Logger logger = LoggerFactory.getLogger(ElasticsearchFactory.class);
+    private static final Logger logger = LoggerFactory.getLogger(ElasticsearchFactory.class);
     private final ClusterService clusterService;
+    private final RestTemplate restTemplate;
 
     public ElasticsearchFactory(ClusterService clusterService) {
         this.clusterService = clusterService;
+
+        HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory();
+        factory.setConnectTimeout(3 * 1000);
+        factory.setReadTimeout(3 * 1000);
+        this.restTemplate = new RestTemplate(factory);
     }
 
     public RestHighLevelClient getClient(UUID id) {
@@ -69,29 +78,41 @@ public class ElasticsearchFactory {
 
     private HttpHost[] getHttpHostList(String username, String password, HttpHost httpHost) {
         HttpHost[] httpHosts = null;
-//        try {
-////            TODO 도커 컨테이너 환경에선 연결이 안되어 솔루션 필요.
-////            Request request = new Request("GET", "/_cat/nodes");
-////            request.addParameter("format", "json");
-////            request.addParameter("h", "http");
-////            Response response = getClient(username, password, httpHost)
-////                    .getLowLevelClient()
-////                    .performRequest(request);
-////            String responseBody = EntityUtils.toString(response.getEntity());
-////            List HostList = new Gson().fromJson(responseBody, List.class);
-////            httpHosts = new HttpHost[HostList.size() + 1];
-////            httpHosts[0] = httpHost;
-////            for (int i = 0; i < HostList.size(); i++) {
-////                Map<String, Object> hostMap = (Map<String, Object>) HostList.get(i);
-////                String[] host = ((String) hostMap.get("http")).split(":");
-////                httpHosts[i + 1] = new HttpHost(host[0], Integer.parseInt(host[1]), httpHost.getSchemeName());
-////            }
-//        } catch (IOException e) {
-//            logger.error("", e);
-//        }
+        try {
+//            TODO 도커 컨테이너 환경에선 연결이 안되어 솔루션 필요.
+            Request request = new Request("GET", "/_cat/nodes");
+            request.addParameter("format", "json");
+            request.addParameter("h", "http");
+            Response response = getClient(username, password, httpHost)
+                    .getLowLevelClient()
+                    .performRequest(request);
+            String responseBody = EntityUtils.toString(response.getEntity());
+            List HostList = new Gson().fromJson(responseBody, List.class);
+            httpHosts = new HttpHost[HostList.size()];
+            httpHosts[0] = httpHost;
 
-        httpHosts = new HttpHost[1];
-        httpHosts[0] = httpHost;
+            for (int i = 0; i < HostList.size(); i++) {
+                Map<String, Object> hostMap = (Map<String, Object>) HostList.get(i);
+                String nodeInfo = (String) hostMap.get("http");
+                String[] hostAndPort = nodeInfo.split(":");
+                try {
+                    if (httpHost.toHostString().equals(nodeInfo)) {
+                        continue;
+                    }
+                    ResponseEntity<String> responseEntity = this.restTemplate.getForEntity(nodeInfo, String.class);
+                    if (responseEntity.getStatusCode().is2xxSuccessful()) {
+                        httpHosts[i + 1] = new HttpHost(hostAndPort[0], Integer.parseInt(hostAndPort[1]), httpHost.getSchemeName());
+                        logger.info("discovery node: {}", nodeInfo);
+                    }
+                } catch (Exception e) {
+                    logger.trace("connection timeout: {}", nodeInfo);
+                }
+            }
+        } catch (IOException e) {
+            logger.error("", e);
+        }
+//        httpHosts = new HttpHost[1];
+//        httpHosts[0] = httpHost;
         return httpHosts;
     }
 

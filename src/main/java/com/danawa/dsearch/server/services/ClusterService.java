@@ -120,8 +120,17 @@ public class ClusterService {
             Map<String, Object> state = new Gson().fromJson(stateResponse, Map.class);
 
             state.put("shards", ((Map)state.get("_shards")).get("total"));
-            state.put("store", ((Map)((Map)((Map)state.get("_all")).get("total")).get("store")).get("size"));
-            state.put("indices", ((Map) state.get("indices")).size());
+            if (state.get("_all") != null) {
+                state.put("store", ((Map)((Map)((Map)state.get("_all")).get("total")).get("store")).get("size"));
+            } else {
+                state.put("store", "0");
+            }
+            if (state.get("indices") != null) {
+                state.put("indices", ((Map) state.get("indices")).size());
+            } else {
+                state.put("indices", "0");
+            }
+
             state.remove("_all");
             state.remove("_shards");
             status = new ClusterStatusResponse(true, nodes, state);
