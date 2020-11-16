@@ -201,7 +201,7 @@ public class IndexingJobManager {
                 jobs.put(id, indexingStatus);
 
                 IndexingStatus idxStat = jobs.get(id);
-                idxStat.setStatus("RUNNING");
+                idxStat.setStatus(status);
                 idxStat.setEndTime(System.currentTimeMillis());
                 indexingProcessQueue.put(id, idxStat);
 
@@ -359,8 +359,21 @@ public class IndexingJobManager {
     public IndexingStatus getIndexingStatus(String collectionId){
 
         if(jobs.get(collectionId) != null){
-            IndexingStatus indexingStatus = jobs.get(collectionId);
-            return indexingStatus;
+            IndexingStatus currentStatus = jobs.get(collectionId);
+            IndexingStatus idxStatus = new IndexingStatus();
+            idxStatus.setAction(currentStatus.getAction());
+            idxStatus.setClusterId(currentStatus.getClusterId());
+            idxStatus.setCurrentStep(currentStatus.setCurrentStep());
+            idxStatus.setCollection(currentStatus.getCollection());
+            idxStatus.setEndTime(currentStatus.getEndTime());
+            idxStatus.setError(currentStatus.getError());
+            idxStatus.setHost(currentStatus.getHost());
+            idxStatus.setIndexingJobId(currentStatus.getIndexingJobId());
+            idxStatus.setNextStep(currentStatus.getNextStep());
+            idxStatus.setPort(currentStatus.getPort());
+            idxStatus.setStartTime(currentStatus.getStartTime());
+            idxStatus.setStatus("RUNNING");
+            return idxStatus;
         }
 
         if(indexingProcessQueue.get(collectionId) != null){
