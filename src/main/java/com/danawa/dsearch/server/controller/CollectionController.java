@@ -395,6 +395,7 @@ public class CollectionController {
 //        response.put("info", server.get("server"));
         response.put("message", "");
         response.put("info",  indexingStatus);
+        response.put("step",  indexingStatus.getCurrentStep());
         response.put("result", "success");
 
         return new ResponseEntity<>(response, HttpStatus.OK);

@@ -201,7 +201,7 @@ public class IndexingJobManager {
                 jobs.put(id, indexingStatus);
 
                 IndexingStatus idxStat = jobs.get(id);
-                idxStat.setStatus(status);
+                idxStat.setStatus("RUNNING");
                 idxStat.setEndTime(System.currentTimeMillis());
                 indexingProcessQueue.put(id, idxStat);
 
@@ -249,6 +249,7 @@ public class IndexingJobManager {
                 }
             }
         }
+
         logger.debug("Propagate Check.. index: {}, is success: {}", index, done);
         if (done) {
             try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
@@ -271,7 +272,7 @@ public class IndexingJobManager {
                     jobs.put(id, indexingStatus);
 
                     IndexingStatus idxStat = jobs.get(id);
-                    idxStat.setStatus("SUCCESS");
+                    idxStat.setStatus("RUNNING");
                     idxStat.setEndTime(System.currentTimeMillis());
                     indexingProcessQueue.put(id, idxStat);
                     logger.debug("add next job : {} ", nextStep.name());
