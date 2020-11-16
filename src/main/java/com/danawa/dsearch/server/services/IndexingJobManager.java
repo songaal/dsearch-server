@@ -81,6 +81,10 @@ public class IndexingJobManager {
                     UUID clusterId = indexingStatus.getClusterId();
                     Collection collection = indexingStatus.getCollection();
                     indexingJobService.expose(clusterId, collection, indexingStatus.getIndex());
+                    IndexingStatus idxStat = jobs.get(id);
+                    idxStat.setStatus("SUCCESS");
+                    idxStat.setEndTime(System.currentTimeMillis());
+                    indexingProcessQueue.put(id, idxStat);
                     jobs.remove(id);
                     logger.debug("expose success. collection: {}", collection.getId());
                 }
