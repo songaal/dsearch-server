@@ -363,7 +363,7 @@ public class IndexingJobManager {
             IndexingStatus idxStatus = new IndexingStatus();
             idxStatus.setAction(currentStatus.getAction());
             idxStatus.setClusterId(currentStatus.getClusterId());
-            idxStatus.setCurrentStep(currentStatus.setCurrentStep());
+            idxStatus.setCurrentStep(currentStatus.getCurrentStep());
             idxStatus.setCollection(currentStatus.getCollection());
             idxStatus.setEndTime(currentStatus.getEndTime());
             idxStatus.setError(currentStatus.getError());
