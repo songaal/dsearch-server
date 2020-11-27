@@ -181,7 +181,7 @@ public class CollectionService {
             BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
             boolQueryBuilder = boolQueryBuilder.minimumShouldMatch(1);
             List<QueryBuilder> list = boolQueryBuilder.should();
-            list.add(QueryBuilders.termQuery("baseId", collection.getBaseId()));
+//            list.add(QueryBuilders.termQuery("baseId", collection.getBaseId()));
             list.add(QueryBuilders.termQuery("baseId.keyword", collection.getBaseId()));
 
             searchRequest.source(new SearchSourceBuilder().query(boolQueryBuilder));
