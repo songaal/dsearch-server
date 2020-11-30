@@ -170,6 +170,7 @@ public class CollectionController {
                     registerStatus.setStatus("STOP");
                     Collection collection = collectionService.findById(clusterId, id);
                     indexingJobService.stopPropagation(clusterId, collection);
+                    indexingJobManager.setStopStatus(id, "STOP"); // 추가
                     indexingJobManager.remove(id);
                     response.put("result", "success");
                 } else {
@@ -184,6 +185,7 @@ public class CollectionController {
                     Collection collection = collectionService.findById(clusterId, id);
                     Collection.Launcher launcher = collection.getLauncher();
                     indexingJobService.stopIndexing(launcher.getHost(), launcher.getPort(), indexingStatus.getIndexingJobId());
+                    indexingJobManager.setStopStatus(id, "STOP"); // 추가
                     response.put("indexingStatus", indexingStatus);
                     response.put("result", "success");
                 } else {
