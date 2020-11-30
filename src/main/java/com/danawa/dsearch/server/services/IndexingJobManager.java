@@ -358,6 +358,14 @@ public class IndexingJobManager {
         return map;
     }
 
+    public void setIndexingStatus(String collectionId, String status){
+        if(jobs.get(collectionId) != null){
+            IndexingStatus currentStatus = jobs.get(collectionId);
+            currentStatus.setStatus(status);
+            jobs.replace(collectionId, currentStatus);
+        }
+    }
+
     public IndexingStatus getIndexingStatus(String collectionId){
 
         if(jobs.get(collectionId) != null){
