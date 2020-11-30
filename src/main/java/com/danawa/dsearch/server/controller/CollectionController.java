@@ -10,9 +10,11 @@ import com.danawa.dsearch.server.services.ClusterService;
 import com.danawa.dsearch.server.services.CollectionService;
 import com.danawa.dsearch.server.services.IndexingJobManager;
 import com.danawa.dsearch.server.services.IndexingJobService;
+import org.hibernate.annotations.GeneratorType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -32,9 +34,11 @@ public class CollectionController {
     private final CollectionService collectionService;
     private final IndexingJobService indexingJobService;
     private final IndexingJobManager indexingJobManager;
+    private String refresh_interval ;
 
     public CollectionController(@Value("${dsearch.collection.index-suffix-a}") String indexSuffixA,
                                 @Value("${dsearch.collection.index-suffix-b}") String indexSuffixB,
+                                @Value("${dsearch.collection.propagate.refresh_interval}") String refresh_interval,
                                 CollectionService collectionService, ClusterService clusterService,
                                 IndexingJobService indexingJobService, IndexingJobManager indexingJobManager) {
         this.indexSuffixA = indexSuffixA;
@@ -43,6 +47,7 @@ public class CollectionController {
         this.indexingJobService = indexingJobService;
         this.indexingJobManager = indexingJobManager;
         this.clusterService = clusterService;
+        this.refresh_interval = refresh_interval;
     }
 
     @PostMapping
@@ -401,6 +406,21 @@ public class CollectionController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
+    @GetMapping("/set_interval")
+    public ResponseEntity<?> setRefreshInterval(@RequestParam String refresh_interval) {
 
+        if(refresh_interval.lastIndexOf("s") != refresh_interval.length()-1){
+            return new ResponseEntity<>(HttpStatus.NOT_ACCEPTABLE);
+        }
 
+        indexingJobManager.setRefreshInterval(refresh_interval);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @GetMapping("/get_interval")
+    public ResponseEntity<?> getRefreshInterval() {
+        Map<String, Object> response = new HashMap<>();
+        response.put("refresh_interval", indexingJobManager.getRefreshInterval());
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
 }

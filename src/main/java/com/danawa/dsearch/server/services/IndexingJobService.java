@@ -389,4 +389,12 @@ public class IndexingJobService {
     public void setPropagate(Map<String, Object> propagate) {
         this.propagate = propagate;
     }
+
+    public void setRefreshInterval(String refresh_interval) {
+        this.propagate.put("refresh_interval", refresh_interval);
+    }
+
+    public String getRefreshInterval() {
+        return (String) this.propagate.get("refresh_interval");
+    }
 }

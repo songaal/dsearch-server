@@ -385,4 +385,12 @@ public class IndexingJobManager {
 
         return null;
     }
+
+    public void setRefreshInterval(String refresh_interval){
+        this.indexingJobService.setRefreshInterval(refresh_interval);
+    }
+
+    public String getRefreshInterval(){
+        return this.indexingJobService.getRefreshInterval();
+    }
 }
