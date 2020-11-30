@@ -315,8 +315,7 @@ public class CollectionController {
                 IndexingStatus registerStatus = indexingJobManager.findById(id);
                 if (registerStatus != null && registerStatus.getCurrentStep() == IndexStep.PROPAGATE) {
                     indexingJobService.stopPropagation(clusterId, collection);
-
-                    indexingJobManager.setIndexingStatus(id, "STOP"); // 추가 
+                    indexingJobManager.setStopStatus(id, "STOP"); // 추가
                     indexingJobManager.remove(id);
                     response.put("result", "success");
                 } else {
@@ -329,10 +328,9 @@ public class CollectionController {
                 if (indexingStatus != null && (indexingStatus.getCurrentStep() == IndexStep.FULL_INDEX || indexingStatus.getCurrentStep() == IndexStep.DYNAMIC_INDEX)) {
                     Collection.Launcher launcher = collection.getLauncher();
                     indexingJobService.stopIndexing(launcher.getHost(), launcher.getPort(), indexingStatus.getIndexingJobId());
-
-                    indexingJobManager.setIndexingStatus(id, "STOP"); // 추가
                     response.put("indexingStatus", indexingStatus);
                     response.put("result", "success");
+                    indexingJobManager.setStopStatus(id, "STOP"); // 추가
                 } else {
                     response.put("result", "fail");
                 }

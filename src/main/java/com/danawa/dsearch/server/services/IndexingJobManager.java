@@ -358,11 +358,17 @@ public class IndexingJobManager {
         return map;
     }
 
-    public void setIndexingStatus(String collectionId, String status){
+    public void setStopStatus(String collectionId, String status){
         if(jobs.get(collectionId) != null){
             IndexingStatus currentStatus = jobs.get(collectionId);
-            currentStatus.setStatus(status);
-            jobs.replace(collectionId, currentStatus);
+            currentStatus.setStatus("STOP");
+            indexingProcessQueue.put(collectionId, currentStatus);
+        }
+
+        if(indexingProcessQueue.get(collectionId) != null){
+            IndexingStatus indexingStatus = indexingProcessQueue.get(collectionId);
+            indexingStatus.setStatus("STOP");
+            indexingProcessQueue.replace(collectionId, indexingStatus);
         }
     }
 
