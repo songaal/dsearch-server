@@ -21,6 +21,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @RestController
 @RequestMapping("/collections")
@@ -408,8 +410,10 @@ public class CollectionController {
 
     @GetMapping("/set_interval")
     public ResponseEntity<?> setRefreshInterval(@RequestParam String refresh_interval) {
+        Pattern pattern = Pattern.compile("^(-)?[0-9]+s$");
+        Matcher matcher = pattern.matcher(refresh_interval);
 
-        if(refresh_interval.lastIndexOf("s") != refresh_interval.length()-1){
+        if(!matcher.find()){
             return new ResponseEntity<>(HttpStatus.NOT_ACCEPTABLE);
         }
 
