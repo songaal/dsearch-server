@@ -414,4 +414,11 @@ public class IndexingJobManager {
         settings.put("propagate", this.indexingJobService.getPropagateSettings());
         return settings;
     }
+    public void setSettings(String type, Map<String, Object> settings){
+        if(type.equals("indexing")){
+            this.indexingJobService.setIndexingSettings(settings);
+        }else if(type.equals("propagate")){
+            this.indexingJobService.setPropagateSettings(settings);
+        }
+    }
 }

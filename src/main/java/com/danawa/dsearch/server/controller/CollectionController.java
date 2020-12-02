@@ -436,4 +436,20 @@ public class CollectionController {
     public ResponseEntity<?> getSettings() {
         return new ResponseEntity<>(indexingJobManager.getSettings(), HttpStatus.OK);
     }
+
+    @PostMapping(value = "/setSettings")
+    public ResponseEntity<?> setSettings(@RequestParam String type, @RequestBody Map<String, Object> settings) {
+        System.out.println(type);
+        System.out.println(settings);
+        if(type.equals("indexing")){
+            indexingJobManager.setSettings("indexing", settings);
+            return new ResponseEntity<>(HttpStatus.OK);
+        }else if(type.equals("propagate")){
+            indexingJobManager.setSettings("propagate", settings);
+            return new ResponseEntity<>(HttpStatus.OK);
+        }else{
+            return new ResponseEntity<>(HttpStatus.NOT_ACCEPTABLE);
+        }
+
+    }
 }

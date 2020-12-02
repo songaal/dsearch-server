@@ -405,4 +405,12 @@ public class IndexingJobService {
     public Map<String,Object> getIndexingSettings() {
         return this.indexing;
     }
+
+    public void setPropagateSettings(Map<String, Object> settings) {
+        this.propagate = settings;
+    }
+
+    public void setIndexingSettings(Map<String, Object> settings) {
+        this.indexing = settings;
+    }
 }
