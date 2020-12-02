@@ -431,4 +431,9 @@ public class CollectionController {
         response.put("refresh_interval", indexingJobManager.getRefreshInterval());
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
+
+    @GetMapping("/getSettings")
+    public ResponseEntity<?> getSettings() {
+        return new ResponseEntity<>(indexingJobManager.getSettings(), HttpStatus.OK);
+    }
 }

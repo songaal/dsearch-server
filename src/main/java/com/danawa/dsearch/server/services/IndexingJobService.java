@@ -397,4 +397,12 @@ public class IndexingJobService {
     public String getRefreshInterval() {
         return (String) this.propagate.get("refresh_interval");
     }
+
+    public Map<String,Object> getPropagateSettings() {
+        return this.propagate;
+    }
+
+    public Map<String,Object> getIndexingSettings() {
+        return this.indexing;
+    }
 }

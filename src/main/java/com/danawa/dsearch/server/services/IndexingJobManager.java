@@ -407,4 +407,11 @@ public class IndexingJobManager {
     public String getRefreshInterval(){
         return this.indexingJobService.getRefreshInterval();
     }
+
+    public Map<String, Object> getSettings(){
+        Map<String, Object> settings = new HashMap<>();
+        settings.put("indexing", this.indexingJobService.getIndexingSettings());
+        settings.put("propagate", this.indexingJobService.getPropagateSettings());
+        return settings;
+    }
 }
