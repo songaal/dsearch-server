@@ -11,6 +11,12 @@
       "baseId": {
         "type": "keyword"
       },
+      "replicas": {
+        "type": "integer"
+      },
+      "refresh_interval": {
+        "type": "integer"
+      },
       "indexA": {
         "type": "keyword"
       },

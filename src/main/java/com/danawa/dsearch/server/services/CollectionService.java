@@ -459,6 +459,8 @@ public class CollectionService {
             sourceAsMap.put("cron", collection.getCron());
             sourceAsMap.put("sourceName", collection.getSourceName());
             sourceAsMap.put("jdbcId", collection.getJdbcId());
+            sourceAsMap.put("refresh_interval", collection.getRefresh_interval());
+            sourceAsMap.put("replicas", collection.getReplicas());
             Map<String, Object> launcherSourceAsMap = (Map<String, Object>) sourceAsMap.get("launcher");
             if (launcherSourceAsMap == null) {
                 launcherSourceAsMap = new HashMap<>();

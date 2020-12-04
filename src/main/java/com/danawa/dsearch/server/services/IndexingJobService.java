@@ -164,6 +164,15 @@ public class IndexingJobService {
                 target = (String) source.get("index");
             }
 
+            if(collection.getRefresh_interval() != null && collection.getRefresh_interval() != 0){
+                propagate.replace("refresh_interval", collection.getRefresh_interval());
+            }
+
+            if(collection.getReplicas() != null && collection.getReplicas() != 0){
+                propagate.replace("index.number_of_replicas",collection.getReplicas());
+            }
+            
+            logger.info("propagate 시 셋팅 : {}", propagate);
 
             client.indices().putSettings(new UpdateSettingsRequest().indices(target).settings(propagate), RequestOptions.DEFAULT);
             IndexingStatus indexingStatus = new IndexingStatus();

@@ -16,6 +16,8 @@ public class Collection implements Serializable {
     private Index indexA;
     private Index indexB;
     private boolean autoRun;
+    private Integer replicas;
+    private Integer refresh_interval;
 
     public boolean isAutoRun() {
         return autoRun;
@@ -165,6 +167,22 @@ public class Collection implements Serializable {
         public void setYaml(String yaml) {
             this.yaml = yaml;
         }
+    }
+
+    public Integer getRefresh_interval() {
+        return refresh_interval;
+    }
+
+    public Integer getReplicas() {
+        return replicas;
+    }
+
+    public void setRefresh_interval(Integer refresh_interval) {
+        this.refresh_interval = refresh_interval;
+    }
+
+    public void setReplicas(Integer replicas) {
+        this.replicas = replicas;
     }
 
     public String getSourceName() {
