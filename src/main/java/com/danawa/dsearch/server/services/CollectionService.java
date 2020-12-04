@@ -283,8 +283,17 @@ public class CollectionService {
         collection.setId(id);
         collection.setName(String.valueOf(source.get("name")));
         collection.setBaseId(String.valueOf(source.get("baseId")));
-        collection.setRefresh_interval(Integer.parseInt(String.valueOf(source.get("refresh_interval"))));
-        collection.setReplicas(Integer.parseInt(String.valueOf(source.get("replicas"))));
+        if(source.get("replicas") != null){
+            collection.setReplicas(Integer.parseInt(String.valueOf(source.get("replicas"))));
+        }else{
+            collection.setReplicas(1);
+        }
+        if(source.get("refresh_interval") != null){
+            collection.setReplicas(Integer.parseInt(String.valueOf(source.get("refresh_interval"))));
+        }else{
+            collection.setReplicas(1);
+        }
+
         collection.setCron(String.valueOf(source.get("cron")));
         collection.setSourceName(String.valueOf(source.get("sourceName")));
         collection.setAutoRun(Boolean.valueOf(String.valueOf(source.get("autoRun"))));
