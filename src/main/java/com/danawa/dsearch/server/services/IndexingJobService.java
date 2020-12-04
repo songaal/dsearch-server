@@ -165,7 +165,7 @@ public class IndexingJobService {
             }
 
             if(collection.getRefresh_interval() != null && collection.getRefresh_interval() != 0){
-                propagate.replace("refresh_interval", collection.getRefresh_interval());
+                propagate.replace("refresh_interval", collection.getRefresh_interval() + "s");
             }
 
             if(collection.getReplicas() != null && collection.getReplicas() != 0){
