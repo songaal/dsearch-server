@@ -289,9 +289,9 @@ public class CollectionService {
             collection.setReplicas(1);
         }
         if(source.get("refresh_interval") != null){
-            collection.setReplicas(Integer.parseInt(String.valueOf(source.get("refresh_interval"))));
+            collection.setRefresh_interval(Integer.parseInt(String.valueOf(source.get("refresh_interval"))));
         }else{
-            collection.setReplicas(1);
+            collection.setRefresh_interval(1);
         }
 
         collection.setCron(String.valueOf(source.get("cron")));
