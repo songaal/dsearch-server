@@ -283,6 +283,8 @@ public class CollectionService {
         collection.setId(id);
         collection.setName(String.valueOf(source.get("name")));
         collection.setBaseId(String.valueOf(source.get("baseId")));
+        collection.setRefresh_interval(Integer.parseInt(String.valueOf(source.get("refresh_interval"))));
+        collection.setReplicas(Integer.parseInt(String.valueOf(source.get("replicas"))));
         collection.setCron(String.valueOf(source.get("cron")));
         collection.setSourceName(String.valueOf(source.get("sourceName")));
         collection.setAutoRun(Boolean.valueOf(String.valueOf(source.get("autoRun"))));
@@ -461,6 +463,9 @@ public class CollectionService {
             sourceAsMap.put("jdbcId", collection.getJdbcId());
             sourceAsMap.put("refresh_interval", collection.getRefresh_interval());
             sourceAsMap.put("replicas", collection.getReplicas());
+
+            logger.info("collection 내용 : {}", collection);
+
             Map<String, Object> launcherSourceAsMap = (Map<String, Object>) sourceAsMap.get("launcher");
             if (launcherSourceAsMap == null) {
                 launcherSourceAsMap = new HashMap<>();
