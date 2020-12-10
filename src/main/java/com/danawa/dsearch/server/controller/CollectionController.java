@@ -36,11 +36,9 @@ public class CollectionController {
     private final CollectionService collectionService;
     private final IndexingJobService indexingJobService;
     private final IndexingJobManager indexingJobManager;
-    private String refresh_interval ;
 
     public CollectionController(@Value("${dsearch.collection.index-suffix-a}") String indexSuffixA,
                                 @Value("${dsearch.collection.index-suffix-b}") String indexSuffixB,
-                                @Value("${dsearch.collection.propagate.refresh_interval}") String refresh_interval,
                                 CollectionService collectionService, ClusterService clusterService,
                                 IndexingJobService indexingJobService, IndexingJobManager indexingJobManager) {
         this.indexSuffixA = indexSuffixA;
@@ -49,7 +47,6 @@ public class CollectionController {
         this.indexingJobService = indexingJobService;
         this.indexingJobManager = indexingJobManager;
         this.clusterService = clusterService;
-        this.refresh_interval = refresh_interval;
     }
 
     @PostMapping

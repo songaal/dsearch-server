@@ -17,6 +17,7 @@ import org.elasticsearch.index.query.MatchQueryBuilder;
 import org.elasticsearch.index.reindex.DeleteByQueryRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
@@ -45,7 +46,8 @@ public class IndexingJobManager {
     private ConcurrentHashMap<String, IndexingStatus> jobs = new ConcurrentHashMap<>();
     private ConcurrentHashMap<String, IndexingStatus> indexingProcessQueue = new ConcurrentHashMap<>();
 //    private long timeout = 8 * 60 * 60 * 1000;
-    private long timeout = 8 * 60 * 60 * 1000;
+    @Value("${dsearch.timeout}")
+    private long timeout;
 
     public IndexingJobManager(IndexingJobService indexingJobService, ElasticsearchFactory elasticsearchFactory) {
         this.indexingJobService = indexingJobService;
