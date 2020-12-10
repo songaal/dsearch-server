@@ -23,7 +23,7 @@ public class AuthFilter implements Filter {
     // 미인증 URI
     private static final List<String> bypassUri = Arrays.asList(
             "/", "/info",
-            "/collections/idxp", "/collections/idxp/status", "/collections/set_interval", "/collections/get_interval",
+            "/collections/idxp", "/collections/idxp/status", "/collections/setTimeout",
             "/collections/getSettings", "/collections/setSettings", // IndexProcess용
             "/auth/sign-in", "/auth/sign-out"
     );
