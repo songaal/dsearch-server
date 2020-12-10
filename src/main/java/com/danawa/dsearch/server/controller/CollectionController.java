@@ -412,24 +412,10 @@ public class CollectionController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
-    @GetMapping("/set_interval")
-    public ResponseEntity<?> setRefreshInterval(@RequestParam String refresh_interval) {
-        Pattern pattern = Pattern.compile("^(-)?[0-9]+s$");
-        Matcher matcher = pattern.matcher(refresh_interval);
-
-        if(!matcher.find()){
-            return new ResponseEntity<>(HttpStatus.NOT_ACCEPTABLE);
-        }
-
-        indexingJobManager.setRefreshInterval(refresh_interval);
+    @GetMapping("/setTimeout")
+    public ResponseEntity<?> setRefreshInterval(@RequestParam String timeout) {
+        indexingJobManager.setTimeout(Long.parseLong(timeout));
         return new ResponseEntity<>(HttpStatus.OK);
-    }
-
-    @GetMapping("/get_interval")
-    public ResponseEntity<?> getRefreshInterval() {
-        Map<String, Object> response = new HashMap<>();
-        response.put("refresh_interval", indexingJobManager.getRefreshInterval());
-        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @GetMapping("/getSettings")

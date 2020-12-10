@@ -44,6 +44,8 @@ public class IndexingJobManager {
     // KEY: collection id, value: Indexing status
     private ConcurrentHashMap<String, IndexingStatus> jobs = new ConcurrentHashMap<>();
     private ConcurrentHashMap<String, IndexingStatus> indexingProcessQueue = new ConcurrentHashMap<>();
+//    private long timeout = 8 * 60 * 60 * 1000;
+    private long timeout = 8 * 60 * 60 * 1000;
 
     public IndexingJobManager(IndexingJobService indexingJobService, ElasticsearchFactory elasticsearchFactory) {
         this.indexingJobService = indexingJobService;
@@ -88,6 +90,22 @@ public class IndexingJobManager {
                     jobs.remove(id);
                     logger.debug("expose success. collection: {}", collection.getId());
                 }
+
+                if (System.currentTimeMillis() - indexingStatus.getStartTime() >= timeout){
+                    IndexingStatus status = jobs.get(id);
+                    status.setStatus("STOP");
+                    status.setEndTime(System.currentTimeMillis());
+                    jobs.remove(id);
+                    logger.error("index: {}, Timeout 8 hours..", status.getIndex());
+                    UUID clusterId = status.getClusterId();
+                    try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+                        indexingJobService.stopIndexing(indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId());
+                        deleteLastIndexStatus(client, status.getIndex(), status.getStartTime());
+                        addIndexHistory(client, status.getIndex(),  step.name(), status.getStartTime(), status.getEndTime(), status.isAutoRun(), "0", "ERROR", "0");
+                    }catch (Exception e1){
+                        logger.error("", e1);
+                    }
+                }
             } catch (Exception e) {
                 logger.error("", e);
                 if (indexingStatus.getRetry() > 0) {
@@ -99,7 +117,17 @@ public class IndexingJobManager {
                     long startTime = indexingStatus.getStartTime();
                     long endTime = System.currentTimeMillis();
                     boolean autoRun = indexingStatus.isAutoRun();
-                    if (step == IndexStep.FULL_INDEX || step == IndexStep.DYNAMIC_INDEX) {
+
+                    if(indexingStatus.getStatus() == "STOP"){
+                        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+                            jobs.remove(id);
+                            indexingJobService.stopIndexing(indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId());
+                            deleteLastIndexStatus(client, index, startTime);
+                            addIndexHistory(client, index, jobType, startTime, endTime, autoRun, "0", "ERROR", "0");
+                        }catch (Exception e1){
+                            logger.error("", e1);
+                        }
+                    }else if (step == IndexStep.FULL_INDEX || step == IndexStep.DYNAMIC_INDEX) {
                         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
                             jobs.remove(id);
                             deleteLastIndexStatus(client, index, startTime);
@@ -400,14 +428,6 @@ public class IndexingJobManager {
         return null;
     }
 
-    public void setRefreshInterval(String refresh_interval){
-        this.indexingJobService.setRefreshInterval(refresh_interval);
-    }
-
-    public String getRefreshInterval(){
-        return this.indexingJobService.getRefreshInterval();
-    }
-
     public Map<String, Object> getSettings(){
         Map<String, Object> settings = new HashMap<>();
         settings.put("indexing", this.indexingJobService.getIndexingSettings());
@@ -420,5 +440,9 @@ public class IndexingJobManager {
         }else if(type.equals("propagate")){
             this.indexingJobService.setPropagateSettings(settings);
         }
+    }
+
+    public void setTimeout(long timeout){
+        this.timeout = timeout;
     }
 }
