@@ -333,9 +333,11 @@ public class IndexingJobManager {
 
         if ("ERROR".equalsIgnoreCase(status)) {
             if ("FULL_INDEX".equalsIgnoreCase(jobType) || "DYNAMIC_INDEX".equalsIgnoreCase(jobType)) {
-                NoticeHandler.send("%s 인덱스의 색인이 실패하였습니다.");
+                NoticeHandler.send(String.format("%s 인덱스의 색인이 실패하였습니다.", index));
             } else if ("PROPAGATE".equalsIgnoreCase(jobType)) {
-                NoticeHandler.send("%s 인덱스의 전파가 실패하였습니다.");
+                NoticeHandler.send(String.format("%s 인덱스의 전파가 실패하였습니다.", index));
+            } else {
+                NoticeHandler.send(String.format("%s 인덱스의 %s가 실패하였습니다.", index, jobType));
             }
         }
 
