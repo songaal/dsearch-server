@@ -31,6 +31,7 @@ public class NoticeHandler {
             telegramBody = new HashMap<>();
             telegramBody.put("chat_id", telegram.getChat());
             logger.info("텔레그램이 활성화 되었습니다.");
+            send("[전송 테스트] DSearch 시작하였습니다.");
         }
     }
 
