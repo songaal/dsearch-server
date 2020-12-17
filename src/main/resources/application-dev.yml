@@ -67,4 +67,4 @@ dsearch:
   build:
     name: @project.name@
     version: @project.version@
-  timedout: 28800000
+  timeout: 28800000
