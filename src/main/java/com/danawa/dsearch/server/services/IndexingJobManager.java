@@ -46,10 +46,11 @@ public class IndexingJobManager {
     private ConcurrentHashMap<String, IndexingStatus> jobs = new ConcurrentHashMap<>();
     private ConcurrentHashMap<String, IndexingStatus> indexingProcessQueue = new ConcurrentHashMap<>();
 //    private long timeout = 8 * 60 * 60 * 1000;
-    @Value("${dsearch.timeout}")
     private long timeout;
 
-    public IndexingJobManager(IndexingJobService indexingJobService, ElasticsearchFactory elasticsearchFactory) {
+    public IndexingJobManager(IndexingJobService indexingJobService, ElasticsearchFactory elasticsearchFactory,
+                              @Value("${dsearch.timeout}") long timeout) {
+        this.timeout = timeout;
         this.indexingJobService = indexingJobService;
         this.elasticsearchFactory = elasticsearchFactory;
         HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory();
@@ -455,7 +456,8 @@ public class IndexingJobManager {
         }
     }
 
-    public void setTimeout(long timeout){
+
+    public void setTimeout(long timeout) {
         this.timeout = timeout;
     }
 }
