@@ -1,7 +1,7 @@
 package com.danawa.dsearch.server.entity;
 
 public class Telegram {
-    private boolean enabled;
+    private String enabled;
     private String bot;
     private String chat;
 
@@ -22,10 +22,14 @@ public class Telegram {
     }
 
     public boolean isEnabled() {
+        return "true".equalsIgnoreCase(enabled);
+    }
+
+    public String getEnabled() {
         return enabled;
     }
 
-    public void setEnabled(boolean enabled) {
+    public void setEnabled(String enabled) {
         this.enabled = enabled;
     }
 

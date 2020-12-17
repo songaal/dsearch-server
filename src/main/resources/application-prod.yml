@@ -34,6 +34,11 @@ logging:
     max-history: 30
     max-size: 500MB
 dsearch:
+  notice:
+    telegram:
+      enabled:
+      bot:
+      chat:
   auth:
     secret: dsearch-secret
     expiration-time-millis: 7200000

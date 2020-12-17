@@ -26,6 +26,11 @@ logging:
     max-size: 100MB
 dsearch:
   timeout: 7200000
+  notice:
+    telegram:
+      enabled:
+      bot:
+      chat:
   auth:
     secret: dsearch-secret
     expiration-time-millis: 7200000

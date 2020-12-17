@@ -330,6 +330,15 @@ public class IndexingJobManager {
     }
 
     public void addIndexHistory(RestHighLevelClient client, String index, String jobType, long startTime, long endTime, boolean autoRun, String docSize, String status, String store) {
+
+        if ("ERROR".equalsIgnoreCase(status)) {
+            if ("FULL_INDEX".equalsIgnoreCase(jobType) || "DYNAMIC_INDEX".equalsIgnoreCase(jobType)) {
+                NoticeHandler.send("%s 인덱스의 색인이 실패하였습니다.");
+            } else if ("PROPAGATE".equalsIgnoreCase(jobType)) {
+                NoticeHandler.send("%s 인덱스의 전파가 실패하였습니다.");
+            }
+        }
+
         try {
             Map<String, Object> source = new HashMap<>();
             source.put("index", index);
