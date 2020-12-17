@@ -120,7 +120,7 @@ public class IndexingJobManager {
                     long endTime = System.currentTimeMillis();
                     boolean autoRun = indexingStatus.isAutoRun();
 
-                    if(indexingStatus.getStatus() == "STOP"){
+                    if("STOP".equalsIgnoreCase(indexingStatus.getStatus())){
                         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
                             jobs.remove(id);
                             indexingJobService.stopIndexing(indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId());
