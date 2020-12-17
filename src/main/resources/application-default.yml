@@ -25,7 +25,6 @@ logging:
     clean-history-on-start: true
     max-size: 100MB
 dsearch:
-  timeout: 7200000
   notice:
     telegram:
       enabled:
