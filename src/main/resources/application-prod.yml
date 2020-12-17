@@ -36,9 +36,9 @@ logging:
 dsearch:
   notice:
     telegram:
-      enabled:
-      bot:
-      chat:
+      enabled: ${DSEARCH_NOTICE_TELEGRAM_ENABLED:'false'}
+      bot: ${DSEARCH_NOTICE_TELEGRAM_BOT:''}
+      chat: ${DSEARCH_NOTICE_TELEGRAM_CHAT:''}
   auth:
     secret: dsearch-secret
     expiration-time-millis: 7200000
