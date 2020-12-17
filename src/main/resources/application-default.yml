@@ -25,6 +25,7 @@ logging:
     clean-history-on-start: true
     max-size: 100MB
 dsearch:
+  timeout: 7200000
   auth:
     secret: dsearch-secret
     expiration-time-millis: 7200000
