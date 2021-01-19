@@ -177,11 +177,15 @@ public class DictionaryService {
             BoolQueryBuilder queryBuilder = new BoolQueryBuilder()
                     .filter(new MatchQueryBuilder("type", document.getType()));
 
-            if (document.getId() != null) {
+            if (document.getId() != null && !"".equals(document.getId())) {
                 queryBuilder.must(new MatchQueryBuilder("id", document.getId()));
             }
-            if (document.getKeyword() != null) {
+            if (document.getKeyword() != null && !"".equals(document.getKeyword())) {
                 queryBuilder.must(new MatchQueryBuilder("keyword", document.getKeyword()));
+            }
+
+            if (document.getValue() != null && !"".equals(document.getValue())) {
+                queryBuilder.must(new TermQueryBuilder("value", document.getValue()));
             }
 
             SearchResponse response = client.search(new SearchRequest()
@@ -189,6 +193,7 @@ public class DictionaryService {
                             .source(new SearchSourceBuilder().query(queryBuilder))
                     , RequestOptions.DEFAULT);
 
+            logger.info("{}", response.getHits().getHits());
             if (response.getHits().getTotalHits().value > 0) {
                 throw new ServiceException("Duplicate Exception");
             }
