@@ -26,6 +26,11 @@ public class TokenFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, FilterChain filterChain) throws ServletException, IOException {
+        if (AuthFilter.bypassUri.contains(httpServletRequest.getRequestURI())) {
+            filterChain.doFilter(httpServletRequest, httpServletResponse);
+            return;
+        }
+
         String validToken = jwtUtils.refresh(httpServletRequest.getHeader("x-bearer-token"));
 
         if (validToken != null) {

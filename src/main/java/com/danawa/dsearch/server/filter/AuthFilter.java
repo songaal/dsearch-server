@@ -21,7 +21,7 @@ public class AuthFilter implements Filter {
     private JWTUtils jwtUtils;
 
     // 미인증 URI
-    private static final List<String> bypassUri = Arrays.asList(
+    public static final List<String> bypassUri = Arrays.asList(
             "/", "/info",
             "/collections/idxp", "/collections/idxp/status", "/collections/setTimeout",
             "/collections/getSettings", "/collections/setSettings", // IndexProcess용

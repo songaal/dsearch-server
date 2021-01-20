@@ -90,25 +90,27 @@ public class ClusterController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> remove(@PathVariable String id) throws IOException {
-        try {
-            UUID clusterId = UUID.fromString(id);
+    public ResponseEntity<?> remove(@PathVariable String id, @RequestParam(required = false, defaultValue = "false") String disconnect) throws IOException {
+        if ("false".equalsIgnoreCase(disconnect)) {
+            try {
+                UUID clusterId = UUID.fromString(id);
 
-            List<Collection> collectionList = collectionService.findAll(clusterId);
-            for (int i = 0; i < collectionList.size(); i++) {
-                try {
-                    Collection collection = collectionList.get(i);
-                    if (collection.isScheduled()) {
-                        collection.setScheduled(false);
-                        collectionService.editSchedule(clusterId, collection.getId(), collection);
+                List<Collection> collectionList = collectionService.findAll(clusterId);
+                for (int i = 0; i < collectionList.size(); i++) {
+                    try {
+                        Collection collection = collectionList.get(i);
+                        if (collection.isScheduled()) {
+                            collection.setScheduled(false);
+                            collectionService.editSchedule(clusterId, collection.getId(), collection);
+                        }
+                    } catch (Exception e){
+                        logger.error("", e);
                     }
-                } catch (Exception e){
-                    logger.error("", e);
                 }
+                indicesService.delete(clusterId, deletePrefix);
+            } catch (Exception e) {
+                logger.warn("dsearch system index remove fail. {}", e.getMessage());
             }
-            indicesService.delete(clusterId, deletePrefix);
-        } catch (Exception e) {
-            logger.warn("dsearch system index remove fail. {}", e.getMessage());
         }
         Cluster removeCluster = clusterService.remove(UUID.fromString(id));
         return new ResponseEntity<>(removeCluster, HttpStatus.OK);

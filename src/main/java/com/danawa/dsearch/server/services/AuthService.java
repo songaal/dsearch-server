@@ -88,7 +88,7 @@ public class AuthService {
     }
 
     public AuthUser findAuthUserByToken(String token) {
-        Claim userIdClaim = jwtUtils.getClaims(token, "user.id");
+        Claim userIdClaim = jwtUtils.getClaims(token, JWTUtils.USER_ID);
         if (userIdClaim == null) {
             return null;
         }

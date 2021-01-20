@@ -10,11 +10,7 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.danawa.dsearch.server.entity.AuthUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.core.parameters.P;
 
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -27,6 +23,7 @@ public class JWTUtils {
     private final Long expirationTimeMillis;
     private Map<String, Object> headerClaims = new HashMap<>();
 
+    public static final String USER_ID = "user_id";
 
     public JWTUtils(String secret, Long expirationTimeMillis) {
         this.secret = secret;
@@ -42,7 +39,7 @@ public class JWTUtils {
         try {
             token = JWT.create()
                     .withIssuer(ISSUER)
-                    .withClaim("user.id", authUser.getUser().getId())
+                    .withClaim(USER_ID, authUser.getUser().getId())
                     .withHeader(headerClaims)
                     .withExpiresAt(new Date(System.currentTimeMillis() + expirationTimeMillis))
                     .sign(algorithm);
@@ -81,7 +78,7 @@ public class JWTUtils {
             if (System.currentTimeMillis() >= refreshDate) {
                 validToken = JWT.create()
                         .withIssuer(ISSUER)
-                        .withClaim("user.id", jwt.getClaim("user.id").asString())
+                        .withClaim(USER_ID, jwt.getClaim(USER_ID).asLong())
                         .withHeader(headerClaims)
                         .withExpiresAt(new Date(System.currentTimeMillis() + expirationTimeMillis))
                         .sign(algorithm);
