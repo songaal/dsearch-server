@@ -105,6 +105,10 @@ public class ClusterService {
             client = new RestHighLevelClient(builder);
             restClient = client.getLowLevelClient();
 
+            if (!restClient.isRunning()) {
+                return new ClusterStatusResponse();
+            }
+
             Request nodesRequest = new Request("GET", "/_nodes");
             nodesRequest.addParameter("format", "json");
             nodesRequest.addParameter("human", "true");

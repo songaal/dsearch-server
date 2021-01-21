@@ -90,8 +90,9 @@ public class ClusterController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> remove(@PathVariable String id, @RequestParam(required = false, defaultValue = "false") String disconnect) throws IOException {
-        if ("false".equalsIgnoreCase(disconnect)) {
+    public ResponseEntity<?> remove(@PathVariable String id, @RequestParam(required = false, defaultValue = "false") String isRemoveData) throws IOException {
+        if ("true".equalsIgnoreCase(isRemoveData)) {
+            logger.info("클러스터의 시스템인덱스를 삭제합니다., {}", id);
             try {
                 UUID clusterId = UUID.fromString(id);
 
