@@ -293,6 +293,11 @@ public class CollectionService {
         }else{
             collection.setRefresh_interval(1);
         }
+        if(source.get("ignoreRoleYn") != null){
+            collection.setIgnoreRoleYn(String.valueOf(source.get("ignoreRoleYn")));
+        }else{
+            collection.setIgnoreRoleYn("N");
+        }
 
         collection.setCron(String.valueOf(source.get("cron")));
         collection.setSourceName(String.valueOf(source.get("sourceName")));
