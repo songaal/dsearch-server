@@ -390,7 +390,7 @@ public class IndexingJobService {
                 tmp.remove("index.routing.allocation.include.role");
                 tmp.remove("index.routing.allocation.exclude.role");
 
-                isAcknowledged = client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
+                isAcknowledged = client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(tmp), RequestOptions.DEFAULT).isAcknowledged();
             }else{
 
                 isAcknowledged = client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
