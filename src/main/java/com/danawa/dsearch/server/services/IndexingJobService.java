@@ -184,7 +184,7 @@ public class IndexingJobService {
 //                propagate.replace("index.number_of_replicas",collection.getReplicas());
             }
             
-            logger.info("propagate 시 셋팅 : {}", tmp);
+            logger.info("propagate 시 셋팅 : {}, collection {}", tmp, collection);
 
             client.indices().putSettings(new UpdateSettingsRequest().indices(target).settings(tmp), RequestOptions.DEFAULT);
             IndexingStatus indexingStatus = new IndexingStatus();
