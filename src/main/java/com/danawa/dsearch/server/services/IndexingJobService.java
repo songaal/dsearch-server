@@ -163,6 +163,12 @@ public class IndexingJobService {
 //                String index = (String) source.get("index");
                 target = (String) source.get("index");
             }
+            
+            //설정 무시 옵션 있을시 전파시 role 설정 제거
+            if(collection.getIgnoreRoleYn() != null && collection.getIgnoreRoleYn().equals("Y")) {
+                propagate.remove("index.routing.allocation.include.role");
+                propagate.remove("index.routing.allocation.exclude.role");
+            }
 
             if(collection.getRefresh_interval() != null && collection.getRefresh_interval() != 0){
                 propagate.replace("refresh_interval", collection.getRefresh_interval() + "s");
@@ -348,6 +354,49 @@ public class IndexingJobService {
             logger.debug("edit settings : {} ", isAcknowledged);
         }
     }
+
+
+    private void editPreparations(RestHighLevelClient client, Collection collection, Collection.Index index) throws IOException {
+        logger.debug("indexing settings >>> {}", indexing);
+
+        // 인덱스 존재하지 않기 때문에 생성해주기.
+        // 인덱스 템플릿이 존재하기 때문에 맵핑 설정 패쓰
+        // 셋팅무시 설정이 있을시 indexing 맵에서 role 제거
+
+        if (index.getUuid() == null) {
+            boolean isAcknowledged = false;
+            if(collection.getIgnoreRoleYn() != null &&  collection.getIgnoreRoleYn().equals("Y")){
+                Map<String, Object> tmp = indexing;
+                tmp.remove("index.routing.allocation.include.role");
+                tmp.remove("index.routing.allocation.exclude.role");
+                isAcknowledged = client.indices().create(new CreateIndexRequest(index.getIndex()).settings(tmp), RequestOptions.DEFAULT).isAcknowledged();
+            }else{
+                isAcknowledged = client.indices().create(new CreateIndexRequest(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
+            }
+
+
+            logger.debug("create settings : {} ", isAcknowledged);
+        } else {
+            // 기존 인덱스가 존재하기 때문에 셋팅 설정만 변경함.
+            // settings에 index.routing.allocation.include._exclude=search* 호출
+            // refresh interval: -1로 변경. 색인도중 검색노출하지 않음. 성능향상목적.
+            // 셋팅무시 설정이 있을시 indexing 맵에서 role 제거
+
+            boolean isAcknowledged = false;
+            if(collection.getIgnoreRoleYn() != null &&  collection.getIgnoreRoleYn().equals("Y")){
+                Map<String, Object> tmp = indexing;
+                tmp.remove("index.routing.allocation.include.role");
+                tmp.remove("index.routing.allocation.exclude.role");
+
+                isAcknowledged = client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
+            }else{
+
+                isAcknowledged = client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
+            }
+            logger.debug("edit settings : {} ", isAcknowledged);
+        }
+    }
+
     private Map<String, Object> convertRequestParams(String yamlStr) throws IndexingJobFailureException {
         Map<String, Object> convert = new HashMap<>();
 //        default param mixed
