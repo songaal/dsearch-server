@@ -80,7 +80,8 @@ public class IndexingJobService {
             Collection.Index index = getTargetIndex(collection.getBaseId(), indexA, indexB);
 
 //            2. 인덱스 설정 변경.
-            editPreparations(client, index);
+//            editPreparations(client, index); // 이전버전
+            editPreparations(client, collection, index);
 
 //            3. 런처 파라미터 변환작업
             Collection.Launcher launcher = collection.getLauncher();
@@ -318,7 +319,8 @@ public class IndexingJobService {
 
 //            2. 인덱스 설정 변경.
             index.setStatus("STOP");
-            editPreparations(client, index);
+//            editPreparations(client, index); // 이전버전
+            editPreparations(client, collection, index);
             logger.info("stop propagation{}", index.getIndex());
         }
     }

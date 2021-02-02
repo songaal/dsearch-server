@@ -472,6 +472,7 @@ public class CollectionService {
             sourceAsMap.put("jdbcId", collection.getJdbcId());
             sourceAsMap.put("refresh_interval", collection.getRefresh_interval());
             sourceAsMap.put("replicas", collection.getReplicas());
+            sourceAsMap.put("ignoreRoleYn", collection.getIgnoreRoleYn());
 
             logger.info("collection 내용 : {}", collection);
 
