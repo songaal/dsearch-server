@@ -140,7 +140,7 @@ public class IndexingJobService {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Collection.Index indexA = collection.getIndexA();
             Collection.Index indexB = collection.getIndexB();
-
+            Map<String, Object> tmp = propagate ;
             if (target == null) {
                 BoolQueryBuilder boolQuery = new BoolQueryBuilder();
                 boolQuery.must(new MatchQueryBuilder("jobType", IndexStep.FULL_INDEX.name()));
@@ -167,21 +167,26 @@ public class IndexingJobService {
             
             //설정 무시 옵션 있을시 전파시 role 설정 제거
             if(collection.getIgnoreRoleYn() != null && collection.getIgnoreRoleYn().equals("Y")) {
-                propagate.remove("index.routing.allocation.include.role");
-                propagate.remove("index.routing.allocation.exclude.role");
+//                propagate.remove("index.routing.allocation.include.role");
+//                propagate.remove("index.routing.allocation.exclude.role");
+
+                tmp.replace("index.routing.allocation.include.role", null);
+                tmp.replace("index.routing.allocation.exclude.role", null);
             }
 
             if(collection.getRefresh_interval() != null && collection.getRefresh_interval() != 0){
-                propagate.replace("refresh_interval", collection.getRefresh_interval() + "s");
+//                propagate.replace("refresh_interval", collection.getRefresh_interval() + "s");
+                tmp.replace("refresh_interval", collection.getRefresh_interval() + "s");
             }
 
             if(collection.getReplicas() != null && collection.getReplicas() != 0){
-                propagate.replace("index.number_of_replicas",collection.getReplicas());
+                tmp.replace("index.number_of_replicas",collection.getReplicas());
+//                propagate.replace("index.number_of_replicas",collection.getReplicas());
             }
             
-            logger.info("propagate 시 셋팅 : {}", propagate);
+            logger.info("propagate 시 셋팅 : {}", tmp);
 
-            client.indices().putSettings(new UpdateSettingsRequest().indices(target).settings(propagate), RequestOptions.DEFAULT);
+            client.indices().putSettings(new UpdateSettingsRequest().indices(target).settings(tmp), RequestOptions.DEFAULT);
             IndexingStatus indexingStatus = new IndexingStatus();
             indexingStatus.setClusterId(clusterId);
             indexingStatus.setIndex(target);
@@ -369,8 +374,8 @@ public class IndexingJobService {
                 Map<String, Object> tmp = indexing;
 //                tmp.remove("index.routing.allocation.include.role");
 //                tmp.remove("index.routing.allocation.exclude.role");
-                tmp.put("index.routing.allocation.include.role", null);
-                tmp.put("index.routing.allocation.exclude.role", null);
+                tmp.replace("index.routing.allocation.include.role", null);
+                tmp.replace("index.routing.allocation.exclude.role", null);
                 logger.info("indexing settings >>> {}", tmp);
                 isAcknowledged = client.indices().create(new CreateIndexRequest(index.getIndex()).settings(tmp), RequestOptions.DEFAULT).isAcknowledged();
             }else{
@@ -388,11 +393,11 @@ public class IndexingJobService {
             boolean isAcknowledged = false;
             if(collection.getIgnoreRoleYn() != null &&  collection.getIgnoreRoleYn().equals("Y")){
                 Map<String, Object> tmp = indexing;
-//                tmp.remove("index.routing.allocation.include.role");
+//                tmp.remove("index.routing.alltocation.include.role");
 //                tmp.remove("index.routing.allocation.exclude.role");
 
-                tmp.put("index.routing.allocation.include.role", null);
-                tmp.put("index.routing.allocation.exclude.role", null);
+                tmp.replace("index.routing.allocation.include.role", null);
+                tmp.replace("index.routing.allocation.exclude.role", null);
                 logger.info("indexing settings >>> {}", tmp);
                 isAcknowledged = client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(tmp), RequestOptions.DEFAULT).isAcknowledged();
             }else{
