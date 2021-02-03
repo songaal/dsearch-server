@@ -98,7 +98,21 @@ public class IndexingJobService {
                 body.put("_jdbc", jdbcSource);
             }
             body.put("index", index.getIndex());
-            body.put("_indexingSettings", indexing);
+
+            Map<String, Object> tmp = new HashMap<>() ;
+            for(String key : indexing.keySet()){
+                tmp.put(key, indexing.get(key));
+            }
+
+            if(collection.getIgnoreRoleYn() != null && collection.getIgnoreRoleYn().equals("Y")) {
+                tmp.remove("index.routing.allocation.include.role");
+                tmp.remove("index.routing.allocation.exclude.role");
+            }else{
+                tmp.replace("index.routing.allocation.include.role", "");
+                tmp.replace("index.routing.allocation.exclude.role", "index");
+            }
+
+            body.put("_indexingSettings", tmp);
 
 //            4. indexer 색인 전송
             ResponseEntity<Map> responseEntity = restTemplate.exchange(
@@ -385,13 +399,11 @@ public class IndexingJobService {
                     tmp.put(key, indexing.get(key));
                 }
 
-//                tmp.remove("index.routing.allocation.include.role");
-//                tmp.remove("index.routing.allocation.exclude.role");
-                tmp.replace("index.routing.allocation.include.role", "");
-                tmp.replace("index.routing.allocation.exclude.role", "");
+                tmp.remove("index.routing.allocation.include.role");
+                tmp.remove("index.routing.allocation.exclude.role");
                 logger.info("indexing settings create / getIgnoreRoleYn >>> {}", tmp);
 
-                client.indices().create(new CreateIndexRequest("test-role").settings(tmp), RequestOptions.DEFAULT).isAcknowledged();
+//                client.indices().create(new CreateIndexRequest("test-role").settings(tmp), RequestOptions.DEFAULT).isAcknowledged();
                 isAcknowledged = client.indices().create(new CreateIndexRequest(index.getIndex()).settings(tmp), RequestOptions.DEFAULT).isAcknowledged();
             }else{
                 indexing.replace("index.routing.allocation.include.role", "index");
@@ -414,10 +426,8 @@ public class IndexingJobService {
                 for(String key : indexing.keySet()){
                     tmp.put(key, indexing.get(key));
                 }
-//                tmp.remove("index.routing.allocation.include.role");
-//                tmp.remove("index.routing.allocation.exclude.role");
-                tmp.replace("index.routing.allocation.include.role", "");
-                tmp.replace("index.routing.allocation.exclude.role", "");
+                tmp.remove("index.routing.allocation.include.role");
+                tmp.remove("index.routing.allocation.exclude.role");
                 logger.info("indexing settings update getIgnoreRoleYn >>> {}", tmp);
 
                 isAcknowledged = client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(tmp), RequestOptions.DEFAULT).isAcknowledged();
