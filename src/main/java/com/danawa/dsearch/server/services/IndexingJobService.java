@@ -376,6 +376,7 @@ public class IndexingJobService {
         // 인덱스 템플릿이 존재하기 때문에 맵핑 설정 패쓰
         // 셋팅무시 설정이 있을시 indexing 맵에서 role 제거
 
+        logger.info("collection >>> {}", collection.toString());
         if (index.getUuid() == null) {
             boolean isAcknowledged = false;
             if(collection.getIgnoreRoleYn() != null &&  collection.getIgnoreRoleYn().equals("Y")){
@@ -391,6 +392,7 @@ public class IndexingJobService {
             }else{
                 indexing.replace("index.routing.allocation.include.role", "index");
                 indexing.replace("index.routing.allocation.exclude.role", "");
+                logger.info("indexing settings >>> {}", indexing);
                 isAcknowledged = client.indices().create(new CreateIndexRequest(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
             }
 
@@ -403,7 +405,7 @@ public class IndexingJobService {
             // 셋팅무시 설정이 있을시 indexing 맵에서 role 제거
 
             boolean isAcknowledged = false;
-            if(collection.getIgnoreRoleYn() != null &&  collection.getIgnoreRoleYn().equals("Y")){
+            if(collection.getIgnoreRoleYn() != null && collection.getIgnoreRoleYn().equals("Y")){
                 Map<String, Object> tmp = new HashMap<>() ;
                 for(String key : indexing.keySet()){
                     tmp.put(key, indexing.get(key));
@@ -416,6 +418,7 @@ public class IndexingJobService {
             }else{
                 indexing.replace("index.routing.allocation.include.role", "index");
                 indexing.replace("index.routing.allocation.exclude.role", "");
+                logger.info("indexing settings >>> {}", indexing);
                 isAcknowledged = client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
             }
             logger.debug("edit settings : {} ", isAcknowledged);
