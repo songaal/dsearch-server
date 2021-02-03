@@ -389,12 +389,12 @@ public class IndexingJobService {
                 tmp.remove("index.routing.allocation.exclude.role");
 //                tmp.replace("index.routing.allocation.include.role", "");
 //                tmp.replace("index.routing.allocation.exclude.role", "");
-                logger.info("indexing settings >>> {}", tmp);
+                logger.info("indexing settings getIgnoreRoleYn >>> {}", tmp);
                 isAcknowledged = client.indices().create(new CreateIndexRequest(index.getIndex()).settings(tmp), RequestOptions.DEFAULT).isAcknowledged();
             }else{
                 indexing.replace("index.routing.allocation.include.role", "index");
                 indexing.replace("index.routing.allocation.exclude.role", "");
-                logger.info("indexing settings >>> {}", indexing);
+                logger.info("indexing settings 기존 로직 1 >>> {}", indexing);
                 isAcknowledged = client.indices().create(new CreateIndexRequest(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
             }
 
@@ -416,13 +416,13 @@ public class IndexingJobService {
                 tmp.remove("index.routing.allocation.exclude.role");
 //                tmp.replace("index.routing.allocation.include.role", "");
 //                tmp.replace("index.routing.allocation.exclude.role", "");
-                logger.info("indexing settings >>> {}", tmp);
+                logger.info("indexing settings getIgnoreRoleYn >>> {}", tmp);
 
                 isAcknowledged = client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(tmp), RequestOptions.DEFAULT).isAcknowledged();
             }else{
                 indexing.replace("index.routing.allocation.include.role", "index");
                 indexing.replace("index.routing.allocation.exclude.role", "");
-                logger.info("indexing settings >>> {}", indexing);
+                logger.info("indexing settings 기존 로직 2 >>> {}", indexing);
                 isAcknowledged = client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
             }
             logger.debug("edit settings : {} ", isAcknowledged);
