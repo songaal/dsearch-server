@@ -166,12 +166,11 @@ public class IndexingJobService {
             }
             
             //설정 무시 옵션 있을시 전파시 role 설정 제거
-            logger.info("Role 무시 확인용 로그 : {}", collection);
-            logger.info("Role 무시 확인용 로그2 : {}", collection.getIgnoreRoleYn());
+            logger.info("Role 무시 확인용 로그 : {}", collection.toString());
             if(collection.getIgnoreRoleYn() != null && collection.getIgnoreRoleYn().equals("Y")) {
 //                propagate.remove("index.routing.allocation.include.role");
 //                propagate.remove("index.routing.allocation.exclude.role");
-
+                logger.info("Role 무시 확인용 로그2 : {}", collection.getIgnoreRoleYn());
                 tmp.replace("index.routing.allocation.include.role", null);
                 tmp.replace("index.routing.allocation.exclude.role", null);
             }
