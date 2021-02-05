@@ -18,6 +18,27 @@ public class Collection implements Serializable {
     private boolean autoRun;
     private Integer replicas;
     private Integer refresh_interval;
+    private String ignoreRoleYn;
+
+    @Override
+    public String toString() {
+        return "Collection{" +
+                "id='" + id + '\'' +
+                ", name='" + name + '\'' +
+                ", baseId='" + baseId + '\'' +
+                ", scheduled=" + scheduled +
+                ", jdbcId='" + jdbcId + '\'' +
+                ", cron='" + cron + '\'' +
+                ", sourceName='" + sourceName + '\'' +
+                ", launcher=" + launcher +
+                ", indexA=" + indexA +
+                ", indexB=" + indexB +
+                ", autoRun=" + autoRun +
+                ", replicas=" + replicas +
+                ", refresh_interval=" + refresh_interval +
+                ", ignoreRoleYn='" + ignoreRoleYn + '\'' +
+                '}';
+    }
 
     public boolean isAutoRun() {
         return autoRun;
@@ -128,6 +149,7 @@ public class Collection implements Serializable {
         public void setPriStoreSize(String priStoreSize) {
             this.priStoreSize = priStoreSize;
         }
+
     }
 
     public static class Launcher {
@@ -263,6 +285,14 @@ public class Collection implements Serializable {
 
     public void setIndexB(Index indexB) {
         this.indexB = indexB;
+    }
+
+    public String getIgnoreRoleYn() {
+        return ignoreRoleYn;
+    }
+
+    public void setIgnoreRoleYn(String ignoreRoleYn) {
+        this.ignoreRoleYn = ignoreRoleYn;
     }
 
 }

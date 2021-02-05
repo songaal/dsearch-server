@@ -80,7 +80,8 @@ public class IndexingJobService {
             Collection.Index index = getTargetIndex(collection.getBaseId(), indexA, indexB);
 
 //            2. 인덱스 설정 변경.
-            editPreparations(client, index);
+//            editPreparations(client, index); // 이전버전
+            editPreparations(client, collection, index);
 
 //            3. 런처 파라미터 변환작업
             Collection.Launcher launcher = collection.getLauncher();
@@ -97,7 +98,21 @@ public class IndexingJobService {
                 body.put("_jdbc", jdbcSource);
             }
             body.put("index", index.getIndex());
-            body.put("_indexingSettings", indexing);
+
+            Map<String, Object> tmp = new HashMap<>() ;
+            for(String key : indexing.keySet()){
+                tmp.put(key, indexing.get(key));
+            }
+
+            if(collection.getIgnoreRoleYn() != null && collection.getIgnoreRoleYn().equals("Y")) {
+                tmp.remove("index.routing.allocation.include.role");
+                tmp.remove("index.routing.allocation.exclude.role");
+            }else{
+                tmp.replace("index.routing.allocation.include.role", "");
+                tmp.replace("index.routing.allocation.exclude.role", "index");
+            }
+
+            body.put("_indexingSettings", tmp);
 
 //            4. indexer 색인 전송
             ResponseEntity<Map> responseEntity = restTemplate.exchange(
@@ -139,6 +154,10 @@ public class IndexingJobService {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Collection.Index indexA = collection.getIndexA();
             Collection.Index indexB = collection.getIndexB();
+            Map<String, Object> tmp = new HashMap<>() ;
+            for(String key : propagate.keySet()){
+                tmp.put(key, propagate.get(key));
+            }
 
             if (target == null) {
                 BoolQueryBuilder boolQuery = new BoolQueryBuilder();
@@ -163,18 +182,33 @@ public class IndexingJobService {
 //                String index = (String) source.get("index");
                 target = (String) source.get("index");
             }
+            
+            //설정 무시 옵션 있을시 전파시 role 설정 제거
+            logger.info("Role 무시 확인용 로그 : {}", collection.toString());
+            if(collection.getIgnoreRoleYn() != null && collection.getIgnoreRoleYn().equals("Y")) {
+//                propagate.remove("index.routing.allocation.include.role");
+//                propagate.remove("index.routing.allocation.exclude.role");
+                logger.info("Role 무시 확인용 로그2 : {}", collection.getIgnoreRoleYn());
+                tmp.remove("index.routing.allocation.include.role");
+                tmp.remove("index.routing.allocation.exclude.role");
+            }else{
+                tmp.replace("index.routing.allocation.include.role", "");
+                tmp.replace("index.routing.allocation.exclude.role", "index");
+            }
 
             if(collection.getRefresh_interval() != null && collection.getRefresh_interval() != 0){
-                propagate.replace("refresh_interval", collection.getRefresh_interval() + "s");
+//                propagate.replace("refresh_interval", collection.getRefresh_interval() + "s");
+                tmp.replace("refresh_interval", collection.getRefresh_interval() + "s");
             }
 
             if(collection.getReplicas() != null && collection.getReplicas() != 0){
-                propagate.replace("index.number_of_replicas",collection.getReplicas());
+                tmp.replace("index.number_of_replicas",collection.getReplicas());
+//                propagate.replace("index.number_of_replicas",collection.getReplicas());
             }
             
-            logger.info("propagate 시 셋팅 : {}", propagate);
+            logger.info("propagate 시 셋팅 : {}", tmp);
 
-            client.indices().putSettings(new UpdateSettingsRequest().indices(target).settings(propagate), RequestOptions.DEFAULT);
+            client.indices().putSettings(new UpdateSettingsRequest().indices(target).settings(tmp), RequestOptions.DEFAULT);
             IndexingStatus indexingStatus = new IndexingStatus();
             indexingStatus.setClusterId(clusterId);
             indexingStatus.setIndex(target);
@@ -312,7 +346,8 @@ public class IndexingJobService {
 
 //            2. 인덱스 설정 변경.
             index.setStatus("STOP");
-            editPreparations(client, index);
+//            editPreparations(client, index); // 이전버전
+            editPreparations(client, collection, index);
             logger.info("stop propagation{}", index.getIndex());
         }
     }
@@ -348,6 +383,64 @@ public class IndexingJobService {
             logger.debug("edit settings : {} ", isAcknowledged);
         }
     }
+
+
+    private void editPreparations(RestHighLevelClient client, Collection collection, Collection.Index index) throws IOException {
+        // 인덱스 존재하지 않기 때문에 생성해주기.
+        // 인덱스 템플릿이 존재하기 때문에 맵핑 설정 패쓰
+        // 셋팅무시 설정이 있을시 indexing 맵에서 role 제거
+
+        logger.info("collection >>> {}", collection.toString());
+        if (index.getUuid() == null) {
+            boolean isAcknowledged = false;
+            if(collection.getIgnoreRoleYn() != null && collection.getIgnoreRoleYn().equals("Y")){
+                Map<String, Object> tmp = new HashMap<>() ;
+                for(String key : indexing.keySet()){
+                    tmp.put(key, indexing.get(key));
+                }
+
+                tmp.remove("index.routing.allocation.include.role");
+                tmp.remove("index.routing.allocation.exclude.role");
+                logger.info("indexing settings create / getIgnoreRoleYn >>> {}", tmp);
+
+//                client.indices().create(new CreateIndexRequest("test-role").settings(tmp), RequestOptions.DEFAULT).isAcknowledged();
+                isAcknowledged = client.indices().create(new CreateIndexRequest(index.getIndex()).settings(tmp), RequestOptions.DEFAULT).isAcknowledged();
+            }else{
+                indexing.replace("index.routing.allocation.include.role", "index");
+                indexing.replace("index.routing.allocation.exclude.role", "");
+                logger.info("indexing settings 기존 로직 1 >>> {}", indexing);
+                isAcknowledged = client.indices().create(new CreateIndexRequest(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
+            }
+
+
+            logger.debug("create settings : {} ", isAcknowledged);
+        } else {
+            // 기존 인덱스가 존재하기 때문에 셋팅 설정만 변경함.
+            // settings에 index.routing.allocation.include._exclude=search* 호출
+            // refresh interval: -1로 변경. 색인도중 검색노출하지 않음. 성능향상목적.
+            // 셋팅무시 설정이 있을시 indexing 맵에서 role 제거
+
+            boolean isAcknowledged = false;
+            if(collection.getIgnoreRoleYn() != null && collection.getIgnoreRoleYn().equals("Y")){
+                Map<String, Object> tmp = new HashMap<>() ;
+                for(String key : indexing.keySet()){
+                    tmp.put(key, indexing.get(key));
+                }
+                tmp.remove("index.routing.allocation.include.role");
+                tmp.remove("index.routing.allocation.exclude.role");
+                logger.info("indexing settings update getIgnoreRoleYn >>> {}", tmp);
+
+                isAcknowledged = client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(tmp), RequestOptions.DEFAULT).isAcknowledged();
+            }else{
+                indexing.replace("index.routing.allocation.include.role", "index");
+                indexing.replace("index.routing.allocation.exclude.role", "");
+                logger.info("indexing settings 기존 로직 2 >>> {}", indexing);
+                isAcknowledged = client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
+            }
+            logger.debug("edit settings : {} ", isAcknowledged);
+        }
+    }
+
     private Map<String, Object> convertRequestParams(String yamlStr) throws IndexingJobFailureException {
         Map<String, Object> convert = new HashMap<>();
 //        default param mixed

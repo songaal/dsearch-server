@@ -93,6 +93,8 @@ public class CollectionController {
                                             @RequestParam String action,
                                             @PathVariable String id,
                                             @RequestBody Collection collection) throws IOException, DuplicateException {
+
+        logger.info("{}", collection);
         if ("source".equalsIgnoreCase(action)) {
             collectionService.editSource(clusterId, id, collection);
         } else if ("schedule".equalsIgnoreCase(action)) {
