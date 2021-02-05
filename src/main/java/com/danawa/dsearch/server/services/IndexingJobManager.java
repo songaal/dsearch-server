@@ -5,6 +5,8 @@ import com.danawa.dsearch.server.entity.Collection;
 import com.danawa.dsearch.server.entity.IndexStep;
 import com.danawa.dsearch.server.entity.IndexingStatus;
 import com.danawa.dsearch.server.excpetions.IndexingJobFailureException;
+import com.danawa.fastcatx.indexer.IndexJobManager;
+import com.danawa.fastcatx.indexer.entity.Job;
 import com.google.gson.Gson;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.action.index.IndexRequest;
@@ -38,6 +40,7 @@ public class IndexingJobManager {
 
     private final IndexingJobService indexingJobService;
     private final ElasticsearchFactory elasticsearchFactory;
+    private final IndexJobManager indexerJobManager;
 
     private final String lastIndexStatusIndex = ".dsearch_last_index_status";
     private final String indexHistory = ".dsearch_index_history";
@@ -48,8 +51,11 @@ public class IndexingJobManager {
 //    private long timeout = 8 * 60 * 60 * 1000;
     private long timeout;
 
-    public IndexingJobManager(IndexingJobService indexingJobService, ElasticsearchFactory elasticsearchFactory,
+    public IndexingJobManager(IndexingJobService indexingJobService,
+                              ElasticsearchFactory elasticsearchFactory,
+                              IndexJobManager indexerJobManager,
                               @Value("${dsearch.timeout}") long timeout) {
+        this.indexerJobManager = indexerJobManager;
         this.timeout = timeout;
         this.indexingJobService = indexingJobService;
         this.elasticsearchFactory = elasticsearchFactory;
@@ -135,8 +141,13 @@ public class IndexingJobManager {
                             jobs.remove(id);
                             deleteLastIndexStatus(client, index, startTime);
                             addIndexHistory(client, index, jobType, startTime, endTime, autoRun, "0", "ERROR", "0");
-                            URI deleteUrl = URI.create(String.format("http://%s:%d/async/%s", indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId()));
-                            restTemplate.exchange(deleteUrl, HttpMethod.DELETE, new HttpEntity<>(new HashMap<>()), String.class);
+
+                            if (indexingStatus.getCollection().isExtIndexer()) {
+                                URI deleteUrl = URI.create(String.format("http://%s:%d/async/%s", indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId()));
+                                restTemplate.exchange(deleteUrl, HttpMethod.DELETE, new HttpEntity<>(new HashMap<>()), String.class);
+                            } else {
+                                indexerJobManager.remove(UUID.fromString(indexingStatus.getIndexingJobId()));
+                            }
                             logger.error("[remove job] retry.. {}", indexingStatus.getRetry());
                         } catch (Exception e1) {
                             logger.error("", e1);
@@ -200,21 +211,36 @@ public class IndexingJobManager {
         UUID clusterId = indexingStatus.getClusterId();
         String index = indexingStatus.getIndex();
 
+        boolean isExtIndexer = indexingStatus.getCollection().isExtIndexer();
+
         // check
-        URI url = URI.create(String.format("http://%s:%d/async/status?id=%s", indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId()));
-        ResponseEntity<Map> responseEntity = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(new HashMap<>()), Map.class);
-        Map<String, Object> body = responseEntity.getBody();
-        if (body == null) {
+        String status = "";
+        if (isExtIndexer) {
+            URI url = URI.create(String.format("http://%s:%d/async/status?id=%s", indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId()));
+            ResponseEntity<Map> responseEntity = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(new HashMap<>()), Map.class);
+            Map<String, Object> body = responseEntity.getBody();
+            status = (String) body.get("status");
+        } else {
+            Job job = indexerJobManager.status(UUID.fromString(indexingStatus.getIndexingJobId()));
+            status = job.getStatus();
+        }
+
+        if ("".equals(status)) {
             jobs.remove(id);
             return;
         }
-        String status = (String) body.get("status");
+
         logger.debug("index: {}, status: {}", indexingStatus.getIndex(), status);
 
         if ("SUCCESS".equalsIgnoreCase(status) || "ERROR".equalsIgnoreCase(status) || "STOP".equalsIgnoreCase(status)) {
             // indexer job id 삭제.
-            URI deleteUrl = URI.create(String.format("http://%s:%d/async/%s", indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId()));
-            restTemplate.exchange(deleteUrl, HttpMethod.DELETE, new HttpEntity<>(new HashMap<>()), String.class);
+
+            if (isExtIndexer) {
+                URI deleteUrl = URI.create(String.format("http://%s:%d/async/%s", indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId()));
+                restTemplate.exchange(deleteUrl, HttpMethod.DELETE, new HttpEntity<>(new HashMap<>()), String.class);
+            } else {
+                indexerJobManager.remove(UUID.fromString(indexingStatus.getIndexingJobId()));
+            }
 
             try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
                 client.getLowLevelClient().performRequest(new Request("POST", String.format("/%s/_flush", index)));

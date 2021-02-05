@@ -19,6 +19,7 @@ public class Collection implements Serializable {
     private Integer replicas;
     private Integer refresh_interval;
     private String ignoreRoleYn;
+    private boolean extIndexer;
 
     @Override
     public String toString() {
@@ -153,18 +154,9 @@ public class Collection implements Serializable {
     }
 
     public static class Launcher {
-//        private String path;
         private String yaml;
         private String host;
         private int port;
-
-//        public String getPath() {
-//            return path;
-//        }
-//
-//        public void setPath(String path) {
-//            this.path = path;
-//        }
 
         public String getHost() {
             return host;
@@ -295,4 +287,11 @@ public class Collection implements Serializable {
         this.ignoreRoleYn = ignoreRoleYn;
     }
 
+    public boolean isExtIndexer() {
+        return extIndexer;
+    }
+
+    public void setExtIndexer(boolean extIndexer) {
+        this.extIndexer = extIndexer;
+    }
 }

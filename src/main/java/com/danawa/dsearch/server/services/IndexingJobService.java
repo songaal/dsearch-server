@@ -1,10 +1,13 @@
 package com.danawa.dsearch.server.services;
 
+import com.danawa.dsearch.server.config.IndexerConfig;
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
 import com.danawa.dsearch.server.entity.Collection;
 import com.danawa.dsearch.server.entity.IndexStep;
 import com.danawa.dsearch.server.entity.IndexingStatus;
 import com.danawa.dsearch.server.excpetions.IndexingJobFailureException;
+import com.danawa.fastcatx.indexer.IndexJobManager;
+import com.danawa.fastcatx.indexer.entity.Job;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.get.GetRequest;
@@ -39,22 +42,25 @@ import java.util.*;
 @Service
 @ConfigurationProperties(prefix = "dsearch.collection")
 public class IndexingJobService {
-    private static Logger logger = LoggerFactory.getLogger(IndexingJobService.class);
+    private static final Logger logger = LoggerFactory.getLogger(IndexingJobService.class);
     private final ElasticsearchFactory elasticsearchFactory;
-    private RestTemplate restTemplate;
+    private final RestTemplate restTemplate;
 
     private final String indexHistory = ".dsearch_index_history";
 
     private final String jdbcSystemIndex;
+    private final com.danawa.fastcatx.indexer.IndexJobManager indexerJobManager;
 
     private Map<String, Object> params;
     private Map<String, Object> indexing;
     private Map<String, Object> propagate;
 
     public IndexingJobService(ElasticsearchFactory elasticsearchFactory,
-                              @Value("${dsearch.jdbc.setting}")String jdbcSystemIndex) {
+                              @Value("${dsearch.jdbc.setting}") String jdbcSystemIndex,
+                              IndexJobManager indexerJobManager) {
         this.elasticsearchFactory = elasticsearchFactory;
         this.jdbcSystemIndex = jdbcSystemIndex;
+        this.indexerJobManager = indexerJobManager;
 
         HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory();
         factory.setConnectTimeout(10 * 1000);
@@ -62,11 +68,15 @@ public class IndexingJobService {
         restTemplate = new RestTemplate(factory);
     }
 
+    public com.danawa.fastcatx.indexer.IndexJobManager getIndexerJobManager() {
+        return this.indexerJobManager;
+    }
+
     /**
      * 소스를 읽어들여 ES 색인에 입력하는 작업.
      * indexer를 외부 프로세스로 실행한다.
      *
-     * @return */
+     * @return IndexingStatus*/
     public IndexingStatus indexing(UUID clusterId, Collection collection, boolean autoRun, IndexStep step) throws IndexingJobFailureException {
         return indexing(clusterId, collection, autoRun, step, new ArrayDeque<>());
     }
@@ -114,23 +124,37 @@ public class IndexingJobService {
 
             body.put("_indexingSettings", tmp);
 
-//            4. indexer 색인 전송
-            ResponseEntity<Map> responseEntity = restTemplate.exchange(
-                    new URI(String.format("http://%s:%d/async/start", host, port)),
-                    HttpMethod.POST,
-                    new HttpEntity(body),
-                    Map.class
-            );
 
-            String id = (String) responseEntity.getBody().get("id");
-            logger.info("Job ID: {}", id);
+            String indexingJobId;
+//            4. indexer 색인 전송
+            logger.debug("외부 인덱서 사용 여부 : {}", collection.isExtIndexer());
+            if (collection.isExtIndexer()) {
+                // 외부 인덱서를 사용할 경우 전송.
+                ResponseEntity<Map> responseEntity = restTemplate.exchange(
+                        new URI(String.format("http://%s:%d/async/start", host, port)),
+                        HttpMethod.POST,
+                        new HttpEntity(body),
+                        Map.class
+                );
+                if (responseEntity.getBody() == null) {
+                    logger.warn("{}", responseEntity);
+                    throw new NullPointerException("Indexer Start Failed!");
+                }
+                indexingJobId = (String) responseEntity.getBody().get("id");
+            } else {
+                // 서버 쓰래드 기반으로 색인 실행.
+                Job job = indexerJobManager.start(IndexerConfig.ACTION.FULL_INDEX.name(), body);
+                indexingJobId = job.getId().toString();
+            }
+
+            logger.info("Job ID: {}", indexingJobId);
 //            indexingStatus.setCollectionId(collection.getId());
             indexingStatus.setClusterId(clusterId);
             indexingStatus.setIndex(index.getIndex());
             indexingStatus.setHost(host);
             indexingStatus.setStartTime(System.currentTimeMillis());
             indexingStatus.setPort(port);
-            indexingStatus.setIndexingJobId(id);
+            indexingStatus.setIndexingJobId(indexingJobId);
             indexingStatus.setAutoRun(autoRun);
             indexingStatus.setCurrentStep(step);
             indexingStatus.setNextStep(nextStep);
@@ -191,10 +215,11 @@ public class IndexingJobService {
                 logger.info("Role 무시 확인용 로그2 : {}", collection.getIgnoreRoleYn());
                 tmp.remove("index.routing.allocation.include.role");
                 tmp.remove("index.routing.allocation.exclude.role");
-            }else{
-                tmp.replace("index.routing.allocation.include.role", "");
-                tmp.replace("index.routing.allocation.exclude.role", "index");
             }
+//            else{
+//                tmp.replace("index.routing.allocation.include.role", "");
+//                tmp.replace("index.routing.allocation.exclude.role", "index");
+//            }
 
             if(collection.getRefresh_interval() != null && collection.getRefresh_interval() != 0){
 //                propagate.replace("refresh_interval", collection.getRefresh_interval() + "s");
@@ -353,7 +378,7 @@ public class IndexingJobService {
     }
 
     private Collection.Index getTargetIndex(String baseId, Collection.Index indexA, Collection.Index indexB) {
-        Collection.Index index = null;
+        Collection.Index index;
         // 인덱스에 대한 alias를 확인
         if (indexA.getAliases().size() == 0 && indexB.getAliases().size() == 0) {
             index = indexA;
@@ -368,21 +393,21 @@ public class IndexingJobService {
         return index;
     }
 
-    private void editPreparations(RestHighLevelClient client, Collection.Index index) throws IOException {
-        logger.debug("indexing settings >>> {}", indexing);
-        if (index.getUuid() == null) {
-            // 인덱스 존재하지 않기 때문에 생성해주기.
-            // 인덱스 템플릿이 존재하기 때문에 맵핑 설정 패쓰
-            boolean isAcknowledged = client.indices().create(new CreateIndexRequest(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
-            logger.debug("create settings : {} ", isAcknowledged);
-        } else {
-            // 기존 인덱스가 존재하기 때문에 셋팅 설정만 변경함.
-            // settings에 index.routing.allocation.include._exclude=search* 호출
-            // refresh interval: -1로 변경. 색인도중 검색노출하지 않음. 성능향상목적.
-            boolean isAcknowledged = client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
-            logger.debug("edit settings : {} ", isAcknowledged);
-        }
-    }
+//    private void editPreparations(RestHighLevelClient client, Collection.Index index) throws IOException {
+//        logger.debug("indexing settings >>> {}", indexing);
+//        if (index.getUuid() == null) {
+//            // 인덱스 존재하지 않기 때문에 생성해주기.
+//            // 인덱스 템플릿이 존재하기 때문에 맵핑 설정 패쓰
+//            boolean isAcknowledged = client.indices().create(new CreateIndexRequest(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
+//            logger.debug("create settings : {} ", isAcknowledged);
+//        } else {
+//            // 기존 인덱스가 존재하기 때문에 셋팅 설정만 변경함.
+//            // settings에 index.routing.allocation.include._exclude=search* 호출
+//            // refresh interval: -1로 변경. 색인도중 검색노출하지 않음. 성능향상목적.
+//            boolean isAcknowledged = client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
+//            logger.debug("edit settings : {} ", isAcknowledged);
+//        }
+//    }
 
 
     private void editPreparations(RestHighLevelClient client, Collection collection, Collection.Index index) throws IOException {
@@ -392,7 +417,7 @@ public class IndexingJobService {
 
         logger.info("collection >>> {}", collection.toString());
         if (index.getUuid() == null) {
-            boolean isAcknowledged = false;
+            boolean isAcknowledged;
             if(collection.getIgnoreRoleYn() != null && collection.getIgnoreRoleYn().equals("Y")){
                 Map<String, Object> tmp = new HashMap<>() ;
                 for(String key : indexing.keySet()){
@@ -420,7 +445,7 @@ public class IndexingJobService {
             // refresh interval: -1로 변경. 색인도중 검색노출하지 않음. 성능향상목적.
             // 셋팅무시 설정이 있을시 indexing 맵에서 role 제거
 
-            boolean isAcknowledged = false;
+            boolean isAcknowledged;
             if(collection.getIgnoreRoleYn() != null && collection.getIgnoreRoleYn().equals("Y")){
                 Map<String, Object> tmp = new HashMap<>() ;
                 for(String key : indexing.keySet()){
@@ -442,9 +467,9 @@ public class IndexingJobService {
     }
 
     private Map<String, Object> convertRequestParams(String yamlStr) throws IndexingJobFailureException {
-        Map<String, Object> convert = new HashMap<>();
+        Map<String, Object> convert = new HashMap<>(params);
 //        default param mixed
-        convert.putAll(params);
+//        convert.putAll(params);
         try {
             Map<String, Object> tmp = new Yaml().load(yamlStr);
             if (tmp != null) {
@@ -458,14 +483,15 @@ public class IndexingJobService {
 
     public void stopIndexing(String host, int port, String jobId) {
         try {
+            indexerJobManager.stop(UUID.fromString(jobId));
+        } catch (Exception ignore) {  }
+        try {
             restTemplate.exchange(new URI(String.format("http://%s:%d/async/stop?id=%s", host, port, jobId)),
                     HttpMethod.PUT,
                     new HttpEntity(new HashMap<>()),
                     String.class
             );
-        } catch (Exception e) {
-            logger.warn("", e);
-        }
+        } catch (Exception ignore) { }
     }
 
     public Map<String, Object> getParams() {
