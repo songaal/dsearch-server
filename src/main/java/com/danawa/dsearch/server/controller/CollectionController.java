@@ -10,19 +10,15 @@ import com.danawa.dsearch.server.services.ClusterService;
 import com.danawa.dsearch.server.services.CollectionService;
 import com.danawa.dsearch.server.services.IndexingJobManager;
 import com.danawa.dsearch.server.services.IndexingJobService;
-import org.hibernate.annotations.GeneratorType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @RestController
 @RequestMapping("/collections")

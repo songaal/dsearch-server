@@ -301,7 +301,13 @@ public class CollectionService {
 
         collection.setCron(String.valueOf(source.get("cron")));
         collection.setSourceName(String.valueOf(source.get("sourceName")));
-        collection.setAutoRun(Boolean.valueOf(String.valueOf(source.get("autoRun"))));
+        collection.setAutoRun(Boolean.parseBoolean(String.valueOf(source.get("autoRun"))));
+        collection.setEsScheme(String.valueOf(source.get("esScheme")));
+        collection.setEsHost(String.valueOf(source.get("esHost")));
+        collection.setEsPort(String.valueOf(source.get("esPort")));
+        collection.setEsUser(String.valueOf(source.get("esUser")));
+        collection.setEsPassword(String.valueOf(source.get("esPassword")));
+        collection.setExtIndexer(Boolean.parseBoolean(String.valueOf(source.get("extIndexer"))));
 
         Collection.Index indexA = new Collection.Index();
         indexA.setIndex(String.valueOf(source.get("indexA")));
@@ -316,7 +322,7 @@ public class CollectionService {
         Map<String, Object> launcherMap = ((Map<String, Object>) source.get("launcher"));
         Collection.Launcher launcher = new Collection.Launcher();
         if (launcherMap != null) {
-//            launcher.setPath(String.valueOf(launcherMap.get("path")));
+            launcher.setScheme(String.valueOf(launcherMap.get("scheme")));
             launcher.setYaml(String.valueOf(launcherMap.get("yaml")));
             launcher.setHost(String.valueOf(launcherMap.get("host")));
             launcher.setPort(Integer.parseInt(String.valueOf(launcherMap.get("port"))));
@@ -336,11 +342,18 @@ public class CollectionService {
                 .field("autoRun", collection.isAutoRun())
                 .field("sourceName", collection.getSourceName() == null ? "" : collection.getSourceName())
                 .field("jdbcId", collection.getJdbcId() == null ? "" : collection.getJdbcId())
-                .field("cron", collection.getCron() == null ? "" : collection.getCron());
+                .field("cron", collection.getCron() == null ? "" : collection.getCron())
+
+                .field("esScheme", collection.getEsScheme() == null ? "" : collection.getEsScheme())
+                .field("esHost", collection.getEsHost() == null ? "" : collection.getEsHost())
+                .field("esPort", collection.getEsPort() == null ? "" : collection.getEsPort())
+                .field("esUser", collection.getEsUser() == null ? "" : collection.getEsUser())
+                .field("esPassword", collection.getEsPassword() == null ? "" : collection.getEsPassword())
+                .field("extIndexer", collection.isExtIndexer());
         if (collection.getLauncher() != null) {
             Collection.Launcher launcher = collection.getLauncher();
             builder.startObject("launcher")
-//                    .field("path", launcher.getPath() == null ? "" : launcher.getPath())
+                    .field("scheme", launcher.getScheme() == null ? "" : launcher.getScheme())
                     .field("yaml", launcher.getYaml() == null ? "" : launcher.getYaml())
                     .field("host", launcher.getHost() == null ? "" : launcher.getHost())
                     .field("port", launcher.getPort() == 0 ? "" : launcher.getPort())
@@ -386,7 +399,6 @@ public class CollectionService {
     private Collection.Index getIndex(UUID clusterId, String index) {
         Collection.Index tmpIndex = new Collection.Index();
         tmpIndex.setIndex(index);
-//        logger.debug("getIndex >>> {}", index);
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Request indicesRequest = new Request("GET", "/_cat/indices/" + index);
             indicesRequest.addParameter("format", "json");
@@ -478,14 +490,32 @@ public class CollectionService {
             sourceAsMap.put("refresh_interval", collection.getRefresh_interval());
             sourceAsMap.put("replicas", collection.getReplicas());
             sourceAsMap.put("ignoreRoleYn", collection.getIgnoreRoleYn());
+            sourceAsMap.put("extIndexer", collection.isExtIndexer());
 
-            logger.info("collection 내용 : {}", collection);
+            if (collection.getEsHost() != null && "".equals(collection.getEsHost())
+                    && collection.getEsPort() != null && "".equals(collection.getEsPort())) {
+                sourceAsMap.put("esScheme", collection.getEsScheme());
+                sourceAsMap.put("esHost", collection.getEsHost());
+                sourceAsMap.put("esPort", collection.getEsPort());
+                sourceAsMap.put("esUser", collection.getEsUser());
+                sourceAsMap.put("esPassword", collection.getEsPassword());
+            } else {
+                Cluster cluster = clusterService.find(clusterId);
+                sourceAsMap.put("esScheme", cluster.getScheme());
+                sourceAsMap.put("esHost", cluster.getHost());
+                sourceAsMap.put("esPort", cluster.getPort());
+                sourceAsMap.put("esUser", cluster.getUsername());
+                sourceAsMap.put("esPassword", cluster.getPassword());
+            }
+
+            logger.debug("collection 내용 : {}", collection);
 
             Map<String, Object> launcherSourceAsMap = (Map<String, Object>) sourceAsMap.get("launcher");
             if (launcherSourceAsMap == null) {
                 launcherSourceAsMap = new HashMap<>();
             }
             launcherSourceAsMap.put("yaml", collection.getLauncher().getYaml());
+            launcherSourceAsMap.put("scheme", collection.getLauncher().getScheme());
             launcherSourceAsMap.put("host", collection.getLauncher().getHost());
             launcherSourceAsMap.put("port", collection.getLauncher().getPort());
             sourceAsMap.put("launcher", launcherSourceAsMap);

@@ -1,5 +1,6 @@
 package com.danawa.dsearch.server.config;
 
+import com.danawa.fastcatx.indexer.IndexJobManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -7,10 +8,9 @@ import org.springframework.context.annotation.Configuration;
 public class IndexerConfig {
 
     @Bean
-    public com.danawa.fastcatx.indexer.IndexJobManager indexerJobManager() {
-        return new com.danawa.fastcatx.indexer.IndexJobManager();
+    public IndexJobManager indexJobManager() {
+        return new IndexJobManager();
     }
-
-    public enum ACTION { FULL_INDEX, DYNAMIC_INDEX }
+    public enum ACTION { FULL_INDEX, }
 
 }
