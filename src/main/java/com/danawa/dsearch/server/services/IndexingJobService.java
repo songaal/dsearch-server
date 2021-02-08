@@ -95,7 +95,8 @@ public class IndexingJobService {
 
 //            3. 런처 파라미터 변환작업
             Collection.Launcher launcher = collection.getLauncher();
-
+            String host = launcher.getHost();
+            int port = launcher.getPort();
             Map<String, Object> body = convertRequestParams(launcher.getYaml());
             if (collection.getJdbcId() != null && !"".equals(collection.getJdbcId())) {
                 GetResponse getResponse = client.get(new GetRequest().index(jdbcSystemIndex).id(collection.getJdbcId()), RequestOptions.DEFAULT);
@@ -106,7 +107,6 @@ public class IndexingJobService {
                 jdbcSource.put("password", jdbcSource.get("password"));
                 body.put("_jdbc", jdbcSource);
             }
-
             body.put("index", index.getIndex());
 
             Map<String, Object> tmp = new HashMap<>() ;
@@ -123,11 +123,7 @@ public class IndexingJobService {
             }
 
             body.put("_indexingSettings", tmp);
-            body.put("scheme", collection.getEsScheme());
-            body.put("host", collection.getEsHost());
-            body.put("port", collection.getEsPort());
-            body.put("username", collection.getEsUser());
-            body.put("password", collection.getEsPassword());
+
 
             String indexingJobId;
 //            4. indexer 색인 전송
@@ -135,7 +131,7 @@ public class IndexingJobService {
             if (collection.isExtIndexer()) {
                 // 외부 인덱서를 사용할 경우 전송.
                 ResponseEntity<Map> responseEntity = restTemplate.exchange(
-                        new URI(String.format("http://%s:%d/async/start", launcher.getHost(), launcher.getPort())),
+                        new URI(String.format("http://%s:%d/async/start", host, port)),
                         HttpMethod.POST,
                         new HttpEntity(body),
                         Map.class
@@ -145,8 +141,6 @@ public class IndexingJobService {
                     throw new NullPointerException("Indexer Start Failed!");
                 }
                 indexingJobId = (String) responseEntity.getBody().get("id");
-                indexingStatus.setHost(launcher.getHost());
-                indexingStatus.setPort(launcher.getPort());
             } else {
                 // 서버 쓰래드 기반으로 색인 실행.
                 Job job = indexerJobManager.start(IndexerConfig.ACTION.FULL_INDEX.name(), body);
@@ -154,9 +148,12 @@ public class IndexingJobService {
             }
 
             logger.info("Job ID: {}", indexingJobId);
+//            indexingStatus.setCollectionId(collection.getId());
             indexingStatus.setClusterId(clusterId);
             indexingStatus.setIndex(index.getIndex());
+            indexingStatus.setHost(host);
             indexingStatus.setStartTime(System.currentTimeMillis());
+            indexingStatus.setPort(port);
             indexingStatus.setIndexingJobId(indexingJobId);
             indexingStatus.setAutoRun(autoRun);
             indexingStatus.setCurrentStep(step);
@@ -218,10 +215,11 @@ public class IndexingJobService {
                 logger.info("Role 무시 확인용 로그2 : {}", collection.getIgnoreRoleYn());
                 tmp.remove("index.routing.allocation.include.role");
                 tmp.remove("index.routing.allocation.exclude.role");
-            } else {
-                tmp.replace("index.routing.allocation.include.role", "");
-                tmp.replace("index.routing.allocation.exclude.role", "index");
             }
+//            else{
+//                tmp.replace("index.routing.allocation.include.role", "");
+//                tmp.replace("index.routing.allocation.exclude.role", "index");
+//            }
 
             if(collection.getRefresh_interval() != null && collection.getRefresh_interval() != 0){
 //                propagate.replace("refresh_interval", collection.getRefresh_interval() + "s");

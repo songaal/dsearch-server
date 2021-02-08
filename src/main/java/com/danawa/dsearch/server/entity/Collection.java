@@ -12,6 +12,7 @@ public class Collection implements Serializable {
     private String jdbcId;
     private String cron;
     private String sourceName;
+    private Launcher launcher;
     private Index indexA;
     private Index indexB;
     private boolean autoRun;
@@ -19,14 +20,6 @@ public class Collection implements Serializable {
     private Integer refresh_interval;
     private String ignoreRoleYn;
     private boolean extIndexer;
-
-    private String esScheme;
-    private String esHost;
-    private String esPort;
-    private String esUser;
-    private String esPassword;
-
-    private Launcher launcher;
 
     @Override
     public String toString() {
@@ -38,19 +31,13 @@ public class Collection implements Serializable {
                 ", jdbcId='" + jdbcId + '\'' +
                 ", cron='" + cron + '\'' +
                 ", sourceName='" + sourceName + '\'' +
+                ", launcher=" + launcher +
                 ", indexA=" + indexA +
                 ", indexB=" + indexB +
                 ", autoRun=" + autoRun +
                 ", replicas=" + replicas +
                 ", refresh_interval=" + refresh_interval +
                 ", ignoreRoleYn='" + ignoreRoleYn + '\'' +
-                ", extIndexer=" + extIndexer +
-                ", esScheme='" + esScheme + '\'' +
-                ", esHost='" + esHost + '\'' +
-                ", esPort='" + esPort + '\'' +
-                ", esUser='" + esUser + '\'' +
-                ", esPassword='" + esPassword + '\'' +
-                ", launcher=" + launcher +
                 '}';
     }
 
@@ -164,37 +151,12 @@ public class Collection implements Serializable {
             this.priStoreSize = priStoreSize;
         }
 
-        @Override
-        public String toString() {
-            return "Index{" +
-                    "index='" + index + '\'' +
-                    ", health='" + health + '\'' +
-                    ", status='" + status + '\'' +
-                    ", uuid='" + uuid + '\'' +
-                    ", pri='" + pri + '\'' +
-                    ", rep='" + rep + '\'' +
-                    ", docsCount='" + docsCount + '\'' +
-                    ", docsDeleted='" + docsDeleted + '\'' +
-                    ", storeSize='" + storeSize + '\'' +
-                    ", priStoreSize='" + priStoreSize + '\'' +
-                    ", aliases=" + aliases +
-                    '}';
-        }
     }
 
     public static class Launcher {
         private String yaml;
-        private String scheme;
         private String host;
         private int port;
-
-        public String getScheme() {
-            return scheme;
-        }
-
-        public void setScheme(String scheme) {
-            this.scheme = scheme;
-        }
 
         public String getHost() {
             return host;
@@ -218,16 +180,6 @@ public class Collection implements Serializable {
 
         public void setYaml(String yaml) {
             this.yaml = yaml;
-        }
-
-        @Override
-        public String toString() {
-            return "Launcher{" +
-                    "yaml='" + yaml + '\'' +
-                    ", scheme='" + scheme + '\'' +
-                    ", host='" + host + '\'' +
-                    ", port=" + port +
-                    '}';
         }
     }
 
@@ -341,45 +293,5 @@ public class Collection implements Serializable {
 
     public void setExtIndexer(boolean extIndexer) {
         this.extIndexer = extIndexer;
-    }
-
-    public String getEsScheme() {
-        return esScheme;
-    }
-
-    public void setEsScheme(String esScheme) {
-        this.esScheme = esScheme;
-    }
-
-    public String getEsHost() {
-        return esHost;
-    }
-
-    public void setEsHost(String esHost) {
-        this.esHost = esHost;
-    }
-
-    public String getEsPort() {
-        return esPort;
-    }
-
-    public void setEsPort(String esPort) {
-        this.esPort = esPort;
-    }
-
-    public String getEsUser() {
-        return esUser;
-    }
-
-    public void setEsUser(String esUser) {
-        this.esUser = esUser;
-    }
-
-    public String getEsPassword() {
-        return esPassword;
-    }
-
-    public void setEsPassword(String esPassword) {
-        this.esPassword = esPassword;
     }
 }
