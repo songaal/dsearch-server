@@ -35,13 +35,31 @@
       "sourceName": {
         "type": "keyword"
       },
+      "esScheme":  {
+        "type": "keyword"
+      },
+      "esHost":  {
+        "type": "keyword"
+      },
+      "esPort":  {
+        "type": "keyword"
+      },
+      "esUser":  {
+        "type": "keyword"
+      },
+      "esPassword":  {
+        "type": "keyword"
+      },
+      "extIndexer": {
+        "type": "boolean"
+      },
       "launcher": {
         "type": "nested",
         "properties": {
-          "path": {
+          "yaml": {
             "type": "keyword"
           },
-          "yaml": {
+          "scheme":  {
             "type": "keyword"
           },
           "host":  {

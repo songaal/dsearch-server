@@ -10,19 +10,15 @@ import com.danawa.dsearch.server.services.ClusterService;
 import com.danawa.dsearch.server.services.CollectionService;
 import com.danawa.dsearch.server.services.IndexingJobManager;
 import com.danawa.dsearch.server.services.IndexingJobService;
-import org.hibernate.annotations.GeneratorType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @RestController
 @RequestMapping("/collections")
@@ -183,7 +179,7 @@ public class CollectionController {
                     indexingStatus.setStatus("STOP");
                     Collection collection = collectionService.findById(clusterId, id);
                     Collection.Launcher launcher = collection.getLauncher();
-                    indexingJobService.stopIndexing(launcher.getHost(), launcher.getPort(), indexingStatus.getIndexingJobId());
+                    indexingJobService.stopIndexing(indexingStatus.getScheme(), launcher.getHost(), launcher.getPort(), indexingStatus.getIndexingJobId());
                     indexingJobManager.setStopStatus(id, "STOP"); // 추가
                     response.put("indexingStatus", indexingStatus);
                     response.put("result", "success");
@@ -328,7 +324,7 @@ public class CollectionController {
                 IndexingStatus indexingStatus = indexingJobManager.findById(id);
                 if (indexingStatus != null && (indexingStatus.getCurrentStep() == IndexStep.FULL_INDEX || indexingStatus.getCurrentStep() == IndexStep.DYNAMIC_INDEX)) {
                     Collection.Launcher launcher = collection.getLauncher();
-                    indexingJobService.stopIndexing(launcher.getHost(), launcher.getPort(), indexingStatus.getIndexingJobId());
+                    indexingJobService.stopIndexing(indexingStatus.getScheme(), launcher.getHost(), launcher.getPort(), indexingStatus.getIndexingJobId());
                     response.put("indexingStatus", indexingStatus);
                     response.put("result", "success");
                     indexingJobManager.setStopStatus(id, "STOP"); // 추가

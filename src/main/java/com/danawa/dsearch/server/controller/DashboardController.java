@@ -28,6 +28,6 @@ public class DashboardController {
     @GetMapping("/indexing")
     public ResponseEntity<?> getRunningIndexingStatus(@RequestHeader(value = "cluster-id") UUID clusterId){
         logger.debug("현재 Indexing Status 확인");
-        return new ResponseEntity<>(indexingJobManager.getIndexingStatus(), HttpStatus.OK);
+        return new ResponseEntity<>(indexingJobManager.getIndexingStatusList(clusterId), HttpStatus.OK);
     }
 }

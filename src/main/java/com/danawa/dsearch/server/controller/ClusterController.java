@@ -45,20 +45,26 @@ public class ClusterController {
     }
 
     @GetMapping
-    public ResponseEntity<?> findAll() {
+    public ResponseEntity<?> findAll(@RequestParam(required = false) String isStatus) {
         List<Map<String, Object>> response = new ArrayList<>();
         List<Cluster> clusterList = clusterService.findAll();
         int size = clusterList.size();
         for (int i=0; i < size; i++) {
             Cluster cluster = clusterList.get(i);
-            ClusterStatusResponse status = clusterService.scanClusterStatus(cluster.getScheme(),
-                    cluster.getHost(),
-                    cluster.getPort(),
-                    cluster.getUsername(),
-                    cluster.getPassword());
             Map<String, Object> clusterMap = new HashMap<>();
+            if ("true".equalsIgnoreCase(isStatus)) {
+                ClusterStatusResponse status = clusterService.scanClusterStatus(cluster.getScheme(),
+                        cluster.getHost(),
+                        cluster.getPort(),
+                        cluster.getUsername(),
+                        cluster.getPassword());
+                clusterMap.put("status", status);
+            } else {
+                Map<String, Object> statusMap = new HashMap<>();
+                statusMap.put("connection", false);
+                clusterMap.put("status", statusMap);
+            }
             clusterMap.put("cluster", cluster);
-            clusterMap.put("status", status);
             response.add(clusterMap);
         }
         return new ResponseEntity<>(response, HttpStatus.OK);

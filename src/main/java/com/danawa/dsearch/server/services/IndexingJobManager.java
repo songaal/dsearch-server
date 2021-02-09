@@ -108,7 +108,7 @@ public class IndexingJobManager {
                     logger.error("index: {}, Timeout 8 hours..", status.getIndex());
                     UUID clusterId = status.getClusterId();
                     try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-                        indexingJobService.stopIndexing(indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId());
+                        indexingJobService.stopIndexing(indexingStatus.getScheme(), indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId());
                         deleteLastIndexStatus(client, status.getIndex(), status.getStartTime());
                         addIndexHistory(client, status.getIndex(),  step.name(), status.getStartTime(), status.getEndTime(), status.isAutoRun(), "0", "ERROR", "0");
                     }catch (Exception e1){
@@ -130,7 +130,7 @@ public class IndexingJobManager {
                     if("STOP".equalsIgnoreCase(indexingStatus.getStatus())){
                         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
                             jobs.remove(id);
-                            indexingJobService.stopIndexing(indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId());
+                            indexingJobService.stopIndexing(indexingStatus.getScheme(), indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId());
                             deleteLastIndexStatus(client, index, startTime);
                             addIndexHistory(client, index, jobType, startTime, endTime, autoRun, "0", "ERROR", "0");
                         }catch (Exception e1){
@@ -216,13 +216,16 @@ public class IndexingJobManager {
         // check
         String status = "";
         if (isExtIndexer) {
-            URI url = URI.create(String.format("http://%s:%d/async/status?id=%s", indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId()));
+
+            URI url = URI.create(String.format("%s://%s:%d/async/status?id=%s", indexingStatus.getScheme(), indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId()));
             ResponseEntity<Map> responseEntity = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(new HashMap<>()), Map.class);
             Map<String, Object> body = responseEntity.getBody();
             status = (String) body.get("status");
         } else {
             Job job = indexerJobManager.status(UUID.fromString(indexingStatus.getIndexingJobId()));
-            status = job.getStatus();
+            if (job != null) {
+                status = job.getStatus();
+            }
         }
 
         if ("".equals(status)) {
@@ -236,7 +239,7 @@ public class IndexingJobManager {
             // indexer job id 삭제.
 
             if (isExtIndexer) {
-                URI deleteUrl = URI.create(String.format("http://%s:%d/async/%s", indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId()));
+                URI deleteUrl = URI.create(String.format("%s://%s:%d/async/%s", indexingStatus.getScheme(), indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId()));
                 restTemplate.exchange(deleteUrl, HttpMethod.DELETE, new HttpEntity<>(new HashMap<>()), String.class);
             } else {
                 indexerJobManager.remove(UUID.fromString(indexingStatus.getIndexingJobId()));
@@ -415,13 +418,14 @@ public class IndexingJobManager {
         }
     }
 
-    public Map<String, Object> getIndexingStatus(){
+    public Map<String, Object> getIndexingStatusList(UUID clusterId){
         Map<String, Object> map = new HashMap<>();
-        for(String key : jobs.keySet()){
-            Map<String, Object> template = new HashMap<>();
-            template.put("server", jobs.get(key));
-
-            map.put(key, template);
+        for(String key : jobs.keySet()) {
+            if (clusterId.equals(jobs.get(key).getClusterId())) {
+                Map<String, Object> template = new HashMap<>();
+                template.put("server", jobs.get(key));
+                map.put(key, template);
+            }
         }
         return map;
     }

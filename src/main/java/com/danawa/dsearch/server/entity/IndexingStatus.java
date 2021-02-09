@@ -8,6 +8,7 @@ public class IndexingStatus implements Serializable {
 
     private Collection collection;
 
+    private String scheme;
     private String host;
     private int port;
     private String index;
@@ -143,5 +144,13 @@ public class IndexingStatus implements Serializable {
 
     public void setClusterId(UUID clusterId) {
         this.clusterId = clusterId;
+    }
+
+    public String getScheme() {
+        return scheme;
+    }
+
+    public void setScheme(String scheme) {
+        this.scheme = scheme;
     }
 }

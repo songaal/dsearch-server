@@ -33,6 +33,19 @@ public class DictionaryController {
         return new ResponseEntity<>(dictionaryService.getSettings(clusterId), HttpStatus.OK);
     }
 
+    @PostMapping("/settings")
+    public ResponseEntity<?> addSetting(@RequestHeader(value = "cluster-id") UUID clusterId,
+                                        @RequestBody DictionarySetting setting) {
+        dictionaryService.addSetting(clusterId, setting);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+    @DeleteMapping("/settings/{id}")
+    public ResponseEntity<?> removeSetting(@RequestHeader(value = "cluster-id") UUID clusterId,
+                                        @PathVariable String id) throws IOException {
+        dictionaryService.removeSetting(clusterId, id);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
     @GetMapping("/{dictionary}/download")
     public ResponseEntity<?> download(@RequestHeader(value = "cluster-id") UUID clusterId,
                                       @PathVariable String dictionary) throws IOException {

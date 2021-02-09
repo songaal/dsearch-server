@@ -4,6 +4,7 @@ import com.danawa.dsearch.server.config.ElasticsearchFactory;
 import com.danawa.dsearch.server.entity.*;
 import com.danawa.dsearch.server.excpetions.ServiceException;
 import org.apache.http.util.EntityUtils;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.get.GetRequest;
@@ -20,6 +21,8 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.*;
 import org.elasticsearch.index.query.*;
+import org.elasticsearch.index.reindex.BulkByScrollResponse;
+import org.elasticsearch.index.reindex.DeleteByQueryRequest;
 import org.elasticsearch.search.Scroll;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchModule;
@@ -388,6 +391,53 @@ public class DictionaryService {
             client.update(updateRequest, RequestOptions.DEFAULT);
         } catch (Exception e) {
             logger.warn("dictionary appliedTime edit fail: {}", e.getMessage());
+        }
+    }
+
+    public void addSetting(UUID clusterId, DictionarySetting setting) {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            XContentBuilder builder = jsonBuilder()
+                    .startObject()
+                    .field("id", setting.getId())
+                    .field("name", setting.getName())
+                    .field("type", setting.getType())
+                    .field("tokenType", setting.getTokenType())
+                    .field("ignoreCase", setting.getIgnoreCase())
+                    .startArray("columns");
+
+            for (int i = 0; i < setting.getColumns().size(); i++) {
+                DictionarySetting.Column column = setting.getColumns().get(i);
+                if (column != null && column.getType() != null) {
+                    builder.startObject()
+                            .field("type", column.getType())
+                            .field("label", column.getLabel())
+                            .endObject();
+                }
+            }
+            builder.endArray().endObject();
+
+            client.index(new IndexRequest()
+                            .index(settingIndex)
+                            .source(builder)
+                    , RequestOptions.DEFAULT);
+        } catch (Exception e) {
+            logger.warn("dictionary appliedTime edit fail: {}", e.getMessage());
+        }
+    }
+
+    public void removeSetting(UUID clusterId, String id) throws IOException {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            GetResponse doc = client.get(new GetRequest(settingIndex).id(id), RequestOptions.DEFAULT);
+            if(doc.getSourceAsMap() != null && doc.getSourceAsMap().get("id") != null) {
+                client.deleteByQueryAsync(new DeleteByQueryRequest(dictionaryIndex)
+                                .setQuery(QueryBuilders.matchQuery("type", doc.getSourceAsMap().get("id")))
+                        , RequestOptions.DEFAULT
+                        , new ActionListener<BulkByScrollResponse>() {
+                            @Override public void onResponse(BulkByScrollResponse bulkByScrollResponse) {}
+                            @Override public void onFailure(Exception e) {}
+                        });
+            }
+            client.delete(new DeleteRequest(settingIndex).id(id), RequestOptions.DEFAULT);
         }
     }
 }
