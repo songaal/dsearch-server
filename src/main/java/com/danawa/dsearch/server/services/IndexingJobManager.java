@@ -9,6 +9,7 @@ import com.danawa.fastcatx.indexer.IndexJobManager;
 import com.danawa.fastcatx.indexer.entity.Job;
 import com.google.gson.Gson;
 import org.apache.http.util.EntityUtils;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.RequestOptions;
@@ -16,6 +17,8 @@ import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.MatchQueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.reindex.BulkByScrollResponse;
 import org.elasticsearch.index.reindex.DeleteByQueryRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -490,4 +493,23 @@ public class IndexingJobManager {
     public void setTimeout(long timeout) {
         this.timeout = timeout;
     }
+
+//    private void clean(UUID clusterId) {
+//        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+//            // 1일 지나면 삭제.
+//            long time = System.currentTimeMillis() - (60 * 60 * 24 * 1000);
+//            client.deleteByQueryAsync(new DeleteByQueryRequest(lastIndexStatusIndex).
+//                            setQuery(QueryBuilders.
+//                                    rangeQuery("startTime").
+//                                    gte(time)),
+//                    RequestOptions.DEFAULT, new ActionListener<BulkByScrollResponse>() {
+//                        @Override
+//                        public void onResponse(BulkByScrollResponse bulkByScrollResponse) { }
+//                        @Override
+//                        public void onFailure(Exception e) { }
+//                    });
+//        } catch (IOException e) {
+//            // ignore
+//        }
+//    }
 }

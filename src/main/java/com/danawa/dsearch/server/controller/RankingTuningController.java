@@ -30,16 +30,18 @@ public class RankingTuningController {
 
     public RankingTuningController() { }
 
-    public void findAnalyzer(Map<String, Object> analyzers, String property, Map<String, Object> linkedHashMap){
+    public void findAnalyzer(Map<String, Object> analyzers, String property, Map<String, Object> linkedHashMap, String prefix){
         for(String key : linkedHashMap.keySet()){
             if(key.equals("analyzer")){
                 analyzers.put(property, linkedHashMap.get(key));
-            }else{
-                if(linkedHashMap.get(key) != null && linkedHashMap.get(key) instanceof LinkedHashMap){
-                    Map<String, Object> map = (LinkedHashMap) linkedHashMap.get(key);
-                    findAnalyzer(analyzers, property, map);
-                }
             }
+            // TODO fields 대해선 로직에 고려되지 않아 일단 주석처리.
+//            else{
+//                if(linkedHashMap.get(key) != null && linkedHashMap.get(key) instanceof LinkedHashMap){
+//                    Map<String, Object> map = (LinkedHashMap) linkedHashMap.get(key);
+//                    findAnalyzer(analyzers, property, map, prefix);
+//                }
+//            }
         }
     }
     @PostMapping("/")
@@ -63,7 +65,7 @@ public class RankingTuningController {
                     if(mapping != null){
                         for(String property: mapping.keySet()){
                             LinkedHashMap<String, Object> linkedHashMap = (LinkedHashMap) mapping.get(property);
-                            findAnalyzer(indexAnalyzer, property, linkedHashMap);
+                            findAnalyzer(indexAnalyzer, property, linkedHashMap, "");
                         }
                     }
                     analyzers.put(_index, indexAnalyzer);
@@ -100,8 +102,14 @@ public class RankingTuningController {
                     source.put("_index", hitsIndex );
                     source.put("_id", searchHits[i].getId());
                     source.put("_explanation", searchHits[i].getExplanation());
+
                     docWithTokensMap.put(searchHits[i].getId(), analyzerTokensList);
-                    analyzerTokensMap.put(hitsIndex, docWithTokensMap);
+                    if(analyzerTokensMap.get(hitsIndex) != null) {
+                        analyzerTokensMap.get(hitsIndex).putAll(docWithTokensMap);
+                    } else {
+                        analyzerTokensMap.put(hitsIndex, docWithTokensMap);
+                    }
+
                 }
 
                 resultEntitiy.put("Total", searchResponse.getHits().getTotalHits());
@@ -115,7 +123,7 @@ public class RankingTuningController {
 
                 for(String key : result.keySet()){
                     LinkedHashMap<String, Object> linkedHashMap = (LinkedHashMap) result.get(key);
-                    findAnalyzer(analyzers, key, linkedHashMap);
+                    findAnalyzer(analyzers, key, linkedHashMap, "");
                 }
 
                 /* 2. Search 결과 가져오기 {indices}/_search?explain=true */
