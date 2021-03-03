@@ -217,11 +217,7 @@ public class IndexingJobService {
             }
             
             //설정 무시 옵션 있을시 전파시 role 설정 제거
-            logger.info("Role 무시 확인용 로그 : {}", collection.toString());
             if(collection.getIgnoreRoleYn() != null && collection.getIgnoreRoleYn().equals("Y")) {
-//                propagate.remove("index.routing.allocation.include.role");
-//                propagate.remove("index.routing.allocation.exclude.role");
-                logger.info("Role 무시 확인용 로그2 : {}", collection.getIgnoreRoleYn());
                 tmp.remove("index.routing.allocation.include.role");
                 tmp.remove("index.routing.allocation.exclude.role");
             } else {
@@ -230,16 +226,14 @@ public class IndexingJobService {
             }
 
             if(collection.getRefresh_interval() != null && collection.getRefresh_interval() != 0){
-//                propagate.replace("refresh_interval", collection.getRefresh_interval() + "s");
                 tmp.replace("refresh_interval", collection.getRefresh_interval() + "s");
             }
 
-            if(collection.getReplicas() != null && collection.getReplicas() != 0){
+            if(collection.getReplicas() != null && collection.getReplicas() >= 0){
                 tmp.replace("index.number_of_replicas",collection.getReplicas());
-//                propagate.replace("index.number_of_replicas",collection.getReplicas());
             }
             
-            logger.info("propagate 시 셋팅 : {}", tmp);
+//            logger.info("propagate 시 셋팅 : {}", tmp);
 
             client.indices().putSettings(new UpdateSettingsRequest().indices(target).settings(tmp), RequestOptions.DEFAULT);
             IndexingStatus indexingStatus = new IndexingStatus();
