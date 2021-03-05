@@ -5,6 +5,7 @@ import java.io.Serializable;
 public class DetailAnalysisRequest implements Serializable {
     private String text;
     private String plugin;
+    private String useForQuery;
 
     public String getText(){
         return this.text;
@@ -20,5 +21,13 @@ public class DetailAnalysisRequest implements Serializable {
 
     public void setPlugin(String plugin){
         this.plugin = plugin;
+    }
+
+    public void setUseForQuery(String useForQuery) {
+        this.useForQuery = useForQuery;
+    }
+
+    public String getUseForQuery() {
+        return this.useForQuery;
     }
 }

@@ -63,13 +63,16 @@ public class ToolsService {
             RestClient restClient = client.getLowLevelClient();
             String plugin = detailAnalysisRequest.getPlugin();
             String text = detailAnalysisRequest.getText();
+            String useForQuery = detailAnalysisRequest.getUseForQuery();
 
             String method = "POST";
             String endPoint = "/_" + plugin + "/analyze";
             String setJson = "{ \"index\": \"" + dictionaryIndex + "\", \n" +
                     "\"detail\": true, \n" +
-                    "\"useForQuery\": true, \n" +
+                    "\"useForQuery\": " + useForQuery + ", \n" +
                     "\"text\": \"" + text + "\"}";
+
+            System.out.println(setJson);
 
             Request pluginRequest = new Request(method, endPoint);
             pluginRequest.setJsonEntity(setJson);
