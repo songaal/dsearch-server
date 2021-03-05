@@ -72,8 +72,6 @@ public class ToolsService {
                     "\"useForQuery\": " + useForQuery + ", \n" +
                     "\"text\": \"" + text + "\"}";
 
-            System.out.println(setJson);
-
             Request pluginRequest = new Request(method, endPoint);
             pluginRequest.setJsonEntity(setJson);
             Response pluginResponse = restClient.performRequest(pluginRequest);
