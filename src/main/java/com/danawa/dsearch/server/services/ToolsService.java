@@ -64,6 +64,9 @@ public class ToolsService {
             String plugin = detailAnalysisRequest.getPlugin();
             String text = detailAnalysisRequest.getText();
             String useForQuery = detailAnalysisRequest.getUseForQuery();
+            if(useForQuery == null){
+                useForQuery = "false";
+            }
 
             String method = "POST";
             String endPoint = "/_" + plugin + "/analyze";
