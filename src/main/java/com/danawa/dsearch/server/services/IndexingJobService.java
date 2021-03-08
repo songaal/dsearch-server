@@ -435,11 +435,9 @@ public class IndexingJobService {
             }else{
                 indexing.replace("index.routing.allocation.include.role", "index");
                 indexing.replace("index.routing.allocation.exclude.role", "");
-                logger.info("indexing settings 기존 로직 1 >>> {}", indexing);
+                logger.info("ES 인덱스 없을 시 indexing settings >>> {}", indexing);
                 isAcknowledged = client.indices().create(new CreateIndexRequest(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
             }
-
-
             logger.debug("create settings : {} ", isAcknowledged);
         } else {
             // 기존 인덱스가 존재하기 때문에 셋팅 설정만 변경함.
@@ -461,7 +459,7 @@ public class IndexingJobService {
             }else{
                 indexing.replace("index.routing.allocation.include.role", "index");
                 indexing.replace("index.routing.allocation.exclude.role", "");
-                logger.info("indexing settings 기존 로직 2 >>> {}", indexing);
+                logger.info("ES 인덱스 존재 시, indexing settings >>> {}", indexing);
                 isAcknowledged = client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
             }
             logger.debug("edit settings : {} ", isAcknowledged);
