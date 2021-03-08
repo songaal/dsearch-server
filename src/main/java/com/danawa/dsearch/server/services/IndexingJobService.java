@@ -428,14 +428,14 @@ public class IndexingJobService {
 
                 tmp.remove("index.routing.allocation.include.role");
                 tmp.remove("index.routing.allocation.exclude.role");
-                logger.info("indexing settings create / getIgnoreRoleYn >>> {}", tmp);
+                logger.info("ES 인덱스 없을 시, Createing indexing settings >>> {}", tmp);
 
 //                client.indices().create(new CreateIndexRequest("test-role").settings(tmp), RequestOptions.DEFAULT).isAcknowledged();
                 isAcknowledged = client.indices().create(new CreateIndexRequest(index.getIndex()).settings(tmp), RequestOptions.DEFAULT).isAcknowledged();
             }else{
                 indexing.replace("index.routing.allocation.include.role", "index");
                 indexing.replace("index.routing.allocation.exclude.role", "");
-                logger.info("ES 인덱스 없을 시 indexing settings >>> {}", indexing);
+                logger.info("ES 인덱스 없을 시, indexing settings >>> {}", indexing);
                 isAcknowledged = client.indices().create(new CreateIndexRequest(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
             }
             logger.debug("create settings : {} ", isAcknowledged);
@@ -453,7 +453,7 @@ public class IndexingJobService {
                 }
                 tmp.remove("index.routing.allocation.include.role");
                 tmp.remove("index.routing.allocation.exclude.role");
-                logger.info("indexing settings update getIgnoreRoleYn >>> {}", tmp);
+                logger.info("ES 인덱스 존재 시, Updated indexing settings >>> {}", tmp);
 
                 isAcknowledged = client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(tmp), RequestOptions.DEFAULT).isAcknowledged();
             }else{
