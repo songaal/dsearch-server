@@ -223,7 +223,9 @@ public class IndexingJobManager {
             URI url = URI.create(String.format("%s://%s:%d/async/status?id=%s", indexingStatus.getScheme(), indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId()));
             ResponseEntity<Map> responseEntity = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(new HashMap<>()), Map.class);
             Map<String, Object> body = responseEntity.getBody();
-            status = (String) body.get("status");
+
+            // Null pointer Exception
+            if(body.get("status") != null) status = (String) body.get("status");
         } else {
             Job job = indexerJobManager.status(UUID.fromString(indexingStatus.getIndexingJobId()));
             if (job != null) {
