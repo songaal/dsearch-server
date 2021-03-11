@@ -561,6 +561,7 @@ public class CollectionService {
 
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             GetResponse getResponse = client.get(new GetRequest().index(collectionIndex).id(id), RequestOptions.DEFAULT);
+            logger.info("Response.. : {}", getResponse.getSourceAsMap());
             Map<String, Object> sourceAsMap = getResponse.getSourceAsMap();
             sourceAsMap.put("scheduled", collection.isScheduled());
             client.update(new UpdateRequest()
