@@ -72,6 +72,7 @@ public class CollectionService {
         this.indicesService = indicesService;
         this.indexSuffixA = indexSuffixA.toLowerCase();
         this.indexSuffixB = indexSuffixB.toLowerCase();
+
         this.scheduler.initialize();
         if (indexSuffixA.equalsIgnoreCase(indexSuffixB)) {
             throw new IllegalArgumentException("Error [index-suffix-a, index-suffix-b] duplicate");
@@ -140,6 +141,7 @@ public class CollectionService {
                             if(collection.isScheduled()) {
                                 String cron = collection.getCron();
                                 String scheduledKey = String.format("%s-%s", cluster.getId(), collection.getId());
+                                logger.info("initial Scheduling.. cron: 0 {}, ClusterId: {}, CollectionId: {}", cron, cluster.getId(), collection.getId());
                                 scheduled.put(scheduledKey, Objects.requireNonNull(scheduler.schedule(() -> {
                                     try {
                                         IndexingStatus indexingStatus = indexingJobManager.findById(collection.getId());
@@ -156,7 +158,6 @@ public class CollectionService {
                                         logger.error("[INIT ERROR] ", e);
                                     }
                                 }, new CronTrigger("0 " + cron))));
-
                             }
                         } catch (Exception e) {
                             logger.error("[INIT ERROR] ", e);
@@ -567,6 +568,7 @@ public class CollectionService {
             String scheduledKey = String.format("%s-%s", clusterId.toString(), registerCollection.getId());
             if (registerCollection.isScheduled()) {
                 String cron = registerCollection.getCron();
+                logger.info("Edit Scheduling.. cron: 0 {}, ClusterId: {}, CollectionId: {}", cron, clusterId.toString(), collection.getId());
                 scheduled.put(scheduledKey, Objects.requireNonNull(scheduler.schedule(() -> {
                     try {
                         IndexingStatus indexingStatus = indexingJobManager.findById(registerCollection.getId());
@@ -584,13 +586,14 @@ public class CollectionService {
                 }, new CronTrigger("0 " + cron))));
             } else {
                 ScheduledFuture<?> future = scheduled.get(scheduledKey);
+                logger.info("Remove Scheduling.. scheduledKey: {}, future: {}", scheduledKey, future);
                 if (future != null) {
                     try {
                         future.cancel(true);
                         scheduled.remove(collection.getId());
                         logger.debug("collection {} >> cancel {}", collection.getId(), future.isCancelled());
                     } catch (NullPointerException e) {
-                        logger.warn("ignore exception", e.getMessage());
+                        logger.warn("ignore exception {}", e.getMessage());
                     }
                 }
             }
