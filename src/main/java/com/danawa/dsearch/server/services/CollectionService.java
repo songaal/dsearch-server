@@ -367,7 +367,9 @@ public class CollectionService {
 
     public Collection findById(UUID clusterId, String id) throws IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            logger.info("collectionId: {}, id: {}",collectionIndex, id);
             GetResponse getResponse = client.get(new GetRequest().index(collectionIndex).id(id), RequestOptions.DEFAULT);
+            logger.info("Response: {} ", getResponse.getSourceAsMap());
             Collection collection = convertMapToObject(getResponse.getId(), getResponse.getSourceAsMap());
             collection.setIndexA(getIndex(clusterId, collection.getIndexA().getIndex()));
             collection.setIndexB(getIndex(clusterId, collection.getIndexB().getIndex()));
@@ -555,6 +557,8 @@ public class CollectionService {
     }
 
     public void editSchedule(UUID clusterId, String id, Collection collection) throws IOException {
+        logger.info("Edit init Scheduling.. id : {}, collectionId", id, collection);
+
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             GetResponse getResponse = client.get(new GetRequest().index(collectionIndex).id(id), RequestOptions.DEFAULT);
             Map<String, Object> sourceAsMap = getResponse.getSourceAsMap();
