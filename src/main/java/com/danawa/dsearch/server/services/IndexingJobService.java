@@ -127,8 +127,6 @@ public class IndexingJobService {
             body.put("scheme", collection.getEsScheme());
             body.put("host", collection.getEsHost());
             body.put("port", Integer.parseInt(collection.getEsPort()));
-            body.put("username", collection.getEsUser());
-            body.put("password", collection.getEsPassword());
 
             if (launcher.getScheme() == null || "".equals(launcher.getScheme())) {
                 launcher.setScheme("http");
@@ -154,6 +152,8 @@ public class IndexingJobService {
                 indexingStatus.setHost(launcher.getHost());
                 indexingStatus.setPort(launcher.getPort());
             } else {
+                body.put("username", collection.getEsUser());
+                body.put("password", collection.getEsPassword());
                 // 서버 쓰래드 기반으로 색인 실행.
                 Job job = indexerJobManager.start(IndexerConfig.ACTION.FULL_INDEX.name(), body);
                 indexingJobId = job.getId().toString();

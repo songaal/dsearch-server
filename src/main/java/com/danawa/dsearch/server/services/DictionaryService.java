@@ -27,7 +27,9 @@ import org.elasticsearch.search.Scroll;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.sort.FieldSortBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
+import org.elasticsearch.search.sort.SortOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -170,6 +172,7 @@ public class DictionaryService {
 
         SearchSourceBuilder builder = new SearchSourceBuilder()
                 .query(boolQueryBuilder)
+                .sort(new FieldSortBuilder("createdTime").order(SortOrder.DESC)) // 추가
                 .sort(SortBuilders.fieldSort("_id"));
 
         return indicesService.findAllDocumentPagination(clusterId, dictionaryIndex, pageNum, rowSize, builder);
@@ -207,6 +210,9 @@ public class DictionaryService {
                     .field("id", document.getId())
                     .field("keyword", document.getKeyword())
                     .field("value", document.getValue())
+                    // 아래 두개 필드 추가
+                    .field("createdTime", new Date())
+                    .field("updatedTime", new Date())
                     .endObject();
 
             IndexResponse indexResponse = client.index(new IndexRequest()
@@ -244,6 +250,8 @@ public class DictionaryService {
                     .field("keyword", document.getKeyword())
                     .field("value", document.getValue())
                     .field("id", document.getId())
+                    // 아래 한줄 추가
+                    .field("updatedTime", new Date())
                     .endObject();
 
             UpdateResponse updateResponse = client.update(new UpdateRequest()
