@@ -127,6 +127,8 @@ public class IndexingJobService {
             body.put("scheme", collection.getEsScheme());
             body.put("host", collection.getEsHost());
             body.put("port", Integer.parseInt(collection.getEsPort()));
+//            body.put("username", collection.getEsUser());
+//            body.put("password", collection.getEsPassword());
 
             if (launcher.getScheme() == null || "".equals(launcher.getScheme())) {
                 launcher.setScheme("http");

@@ -172,7 +172,8 @@ public class DictionaryService {
 
         SearchSourceBuilder builder = new SearchSourceBuilder()
                 .query(boolQueryBuilder)
-//                .sort(new FieldSortBuilder("createdTime").order(SortOrder.DESC)) // 추가
+                .sort(new FieldSortBuilder("updatedTime").order(SortOrder.DESC)) // 추가
+                .sort(new FieldSortBuilder("createdTime").order(SortOrder.DESC)) // 추가
                 .sort(SortBuilders.fieldSort("_id"));
 
         return indicesService.findAllDocumentPagination(clusterId, dictionaryIndex, pageNum, rowSize, builder);
