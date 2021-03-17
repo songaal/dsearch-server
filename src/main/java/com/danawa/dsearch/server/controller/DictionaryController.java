@@ -136,29 +136,14 @@ public class DictionaryController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
-    @GetMapping("/settings/updateList")
+    @PostMapping("/settings/updateList")
     public ResponseEntity<?> updatedSettingsList(@RequestHeader(value = "cluster-id") UUID clusterId,
-                                                 @RequestParam(defaultValue = "") String firstId,
-                                                 @RequestParam(defaultValue = "") String secondId,
-                                                 @RequestParam(defaultValue = "0") int firstIdx,
-                                                 @RequestParam(defaultValue = "0") int secondIdx) throws IOException {
-        if(firstId.equals("") || secondId.equals("")){
+                                                 @RequestBody List<DictionarySetting> dictionarySettings
+                                                 ) throws IOException {
+        if(dictionarySettings.size() == 0){
             return new ResponseEntity<>(HttpStatus.METHOD_NOT_ALLOWED);
         }
-
-        if(firstIdx == 0 && secondIdx == 0){
-            return new ResponseEntity<>(HttpStatus.METHOD_NOT_ALLOWED);
-        }
-
-        if(firstIdx == secondIdx){
-            return new ResponseEntity<>(HttpStatus.OK);
-        }
-
-        System.out.println(firstId + " : " + firstIdx);
-        System.out.println(secondId + " : " + secondIdx);
-
-        dictionaryService.updatedSettingsList(clusterId, firstId, secondId, firstIdx, secondIdx);
-
+        dictionaryService.updatedSettingsList(clusterId, dictionarySettings);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 }

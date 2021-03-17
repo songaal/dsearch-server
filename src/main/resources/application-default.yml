@@ -66,6 +66,6 @@ dsearch:
   jdbc:
     setting: .dsearch_jdbc
   build:
-    name: @project.name@
-    version: @project.version@
+    name: asdf
+    version: asdf
   timeout: 28800000

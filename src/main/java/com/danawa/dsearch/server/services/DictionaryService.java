@@ -455,46 +455,20 @@ public class DictionaryService {
     }
 
 
-    /*
-     * 서로 스왑을 수행한다
-     *
-     * {
-     *   _id: firstId,
-     *   {
-     *     index: firstIdx -> secondIdx
-     *   }
-     * }
-     *
-     * {
-     *   _id: secondId,
-     *   {
-     *     index: secondIdx -> firstIdx
-     *   }
-     * }
-     */
-    public void updatedSettingsList(UUID clusterId, String firstId, String secondId, int firstIdx, int secondIdx) throws IOException {
+    public void updatedSettingsList(UUID clusterId, List<DictionarySetting> settings) throws IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            XContentBuilder builder = jsonBuilder()
-                    .startObject()
-                    .field("index", firstIdx)
-                    .endObject();
 
-            XContentBuilder builder2 = jsonBuilder()
-                    .startObject()
-                    .field("index", secondIdx)
-                    .endObject();
-
-            UpdateResponse updateResponse = client.update(new UpdateRequest()
-                            .index(settingIndex)
-                            .id(firstId)
-                            .doc(builder2)
-                    , RequestOptions.DEFAULT);
-
-            UpdateResponse updateResponse2 = client.update(new UpdateRequest()
-                            .index(settingIndex)
-                            .id(secondId)
-                            .doc(builder)
-                    , RequestOptions.DEFAULT);
+            for(DictionarySetting setting : settings){
+                XContentBuilder builder = jsonBuilder()
+                        .startObject()
+                        .field("index", setting.getIndex())
+                        .endObject();
+                UpdateResponse updateResponse = client.update(new UpdateRequest()
+                                .index(settingIndex)
+                                .id(setting.getDocumentId())
+                                .doc(builder)
+                        , RequestOptions.DEFAULT);
+            }
         }
 
     }
