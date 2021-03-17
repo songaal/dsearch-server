@@ -109,6 +109,7 @@ public class DictionaryService {
         setting.setTokenType((String) source.get("tokenType"));
         setting.setUpdatedTime((String) source.get("updatedTime"));
         setting.setAppliedTime((String) source.get("appliedTime"));
+        setting.setIndex((Integer) source.get("index"));
 
         List<Map> columnList = (List<Map>) source.get("columns");
         List<DictionarySetting.Column> columns = new ArrayList<>();
@@ -403,7 +404,9 @@ public class DictionaryService {
         }
     }
 
-    public void addSetting(UUID clusterId, DictionarySetting setting) {
+    public void addSetting(UUID clusterId, DictionarySetting setting) throws IOException {
+        int index = getSettings(clusterId).size();
+
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             XContentBuilder builder = jsonBuilder()
                     .startObject()
@@ -412,6 +415,7 @@ public class DictionaryService {
                     .field("type", setting.getType())
                     .field("tokenType", setting.getTokenType())
                     .field("ignoreCase", setting.getIgnoreCase())
+                    .field("index", index)
                     .startArray("columns");
 
             for (int i = 0; i < setting.getColumns().size(); i++) {
@@ -448,5 +452,50 @@ public class DictionaryService {
             }
             client.delete(new DeleteRequest(settingIndex).id(id), RequestOptions.DEFAULT);
         }
+    }
+
+
+    /*
+     * 서로 스왑을 수행한다
+     *
+     * {
+     *   _id: firstId,
+     *   {
+     *     index: firstIdx -> secondIdx
+     *   }
+     * }
+     *
+     * {
+     *   _id: secondId,
+     *   {
+     *     index: secondIdx -> firstIdx
+     *   }
+     * }
+     */
+    public void updatedSettingsList(UUID clusterId, String firstId, String secondId, int firstIdx, int secondIdx) throws IOException {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            XContentBuilder builder = jsonBuilder()
+                    .startObject()
+                    .field("index", firstIdx)
+                    .endObject();
+
+            XContentBuilder builder2 = jsonBuilder()
+                    .startObject()
+                    .field("index", secondIdx)
+                    .endObject();
+
+            UpdateResponse updateResponse = client.update(new UpdateRequest()
+                            .index(settingIndex)
+                            .id(firstId)
+                            .doc(builder2)
+                    , RequestOptions.DEFAULT);
+
+            UpdateResponse updateResponse2 = client.update(new UpdateRequest()
+                            .index(settingIndex)
+                            .id(secondId)
+                            .doc(builder)
+                    , RequestOptions.DEFAULT);
+        }
+
     }
 }

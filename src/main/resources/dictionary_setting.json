@@ -36,6 +36,9 @@
       },
       "appliedTime": {
         "type": "date"
+      },
+      "index": {
+        "type": "integer"
       }
     }
   }

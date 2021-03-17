@@ -11,6 +11,7 @@ public class DictionarySetting implements Serializable {
     private String ignoreCase;
     private String updatedTime;
     private String appliedTime;
+    private Integer index;
     private List<Column> columns;
 
     public static class Column {
@@ -111,5 +112,13 @@ public class DictionarySetting implements Serializable {
 
     public void setColumns(List<Column> columns) {
         this.columns = columns;
+    }
+
+    public Integer getIndex() {
+        return index;
+    }
+
+    public void setIndex(Integer index) {
+        this.index = index;
     }
 }
