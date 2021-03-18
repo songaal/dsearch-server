@@ -77,6 +77,7 @@ public class ClusterService {
         registerCluster.setTheme(cluster.getTheme());
         registerCluster.setUpdateDate(LocalDateTime.now());
         registerCluster.setKibana(cluster.getKibana());
+        registerCluster.setDictionaryRemoteClusterId(cluster.getDictionaryRemoteClusterId());
         return clusterRepository.save(registerCluster);
     }
 

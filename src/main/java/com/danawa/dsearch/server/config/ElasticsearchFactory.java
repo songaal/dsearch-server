@@ -40,6 +40,15 @@ public class ElasticsearchFactory {
         this.restTemplate = new RestTemplate(factory);
     }
 
+    public UUID getDictionaryRemoteClusterId(UUID id) {
+        Cluster cluster = clusterService.find(id);
+        if (cluster.getDictionaryRemoteClusterId() != null && !"".equals(cluster.getDictionaryRemoteClusterId().trim())) {
+            return UUID.fromString(cluster.getDictionaryRemoteClusterId());
+        } else {
+            return id;
+        }
+    }
+
     public RestHighLevelClient getClient(UUID id) {
         Cluster cluster = clusterService.find(id);
 
