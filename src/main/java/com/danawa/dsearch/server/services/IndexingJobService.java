@@ -81,19 +81,25 @@ public class IndexingJobService {
         return indexing(clusterId, collection, autoRun, step, new ArrayDeque<>());
     }
     public IndexingStatus indexing(UUID clusterId, Collection collection, boolean autoRun, IndexStep step, Queue<IndexStep> nextStep) throws IndexingJobFailureException {
+        logger.info(collection.toString());
+
+        
         IndexingStatus indexingStatus = new IndexingStatus();
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Collection.Index indexA = collection.getIndexA();
             Collection.Index indexB = collection.getIndexB();
 
 //            1. 대상 인덱스 찾기.
+            logger.info("{} 대상 인덱스 찾기", collection.getBaseId());
             Collection.Index index = getTargetIndex(collection.getBaseId(), indexA, indexB);
 
 //            2. 인덱스 설정 변경.
 //            editPreparations(client, index); // 이전버전
+            logger.info("{} 인덱스 설정 변경", index);
             editPreparations(client, collection, index);
 
 //            3. 런처 파라미터 변환작업
+            logger.info("{} 런처 파라미터 변환 작업", index);
             Collection.Launcher launcher = collection.getLauncher();
 
             Map<String, Object> body = convertRequestParams(launcher.getYaml());
@@ -124,9 +130,24 @@ public class IndexingJobService {
 
             body.put("_indexingSettings", tmp);
 
+            
+            // null 대비 에러처리
+            if(collection.getEsHost() != null && !collection.getEsHost().equals("")){
+                body.put("host", collection.getEsHost());    
+            }
+
+            int esPort = 9200;
+            if(collection.getEsPort() != null && !collection.getEsPort().equals("")){
+                try{
+                    esPort = Integer.parseInt(collection.getEsPort());
+                }catch (NumberFormatException e){
+                    logger.info("{}", e);
+                }
+                body.put("port", esPort);
+            }
+            
             body.put("scheme", collection.getEsScheme());
-            body.put("host", collection.getEsHost());
-            body.put("port", Integer.parseInt(collection.getEsPort()));
+
 //            body.put("username", collection.getEsUser());
 //            body.put("password", collection.getEsPassword());
 
