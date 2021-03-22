@@ -81,6 +81,9 @@ public class IndexingJobService {
         return indexing(clusterId, collection, autoRun, step, new ArrayDeque<>());
     }
     public IndexingStatus indexing(UUID clusterId, Collection collection, boolean autoRun, IndexStep step, Queue<IndexStep> nextStep) throws IndexingJobFailureException {
+        logger.info(collection.toString());
+
+        
         IndexingStatus indexingStatus = new IndexingStatus();
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Collection.Index indexA = collection.getIndexA();
@@ -127,18 +130,23 @@ public class IndexingJobService {
 
             body.put("_indexingSettings", tmp);
 
-            body.put("scheme", collection.getEsScheme());
-            body.put("host", collection.getEsHost());
-
-            logger.info("host: {}, port: {}, scheme {}" , collection.getEsHost(), collection.getEsPort(), collection.getEsScheme());
-            int esPort = 9200;
-            try{
-                esPort = Integer.parseInt(collection.getEsPort());
-            }catch (NumberFormatException e){
-                logger.info("{}", e);
+            
+            // null 대비 에러처리
+            if(collection.getEsHost() != null && !collection.getEsHost().equals("")){
+                body.put("host", collection.getEsHost());    
             }
 
-            body.put("port", esPort);
+            int esPort = 9200;
+            if(collection.getEsPort() != null && !collection.getEsPort().equals("")){
+                try{
+                    esPort = Integer.parseInt(collection.getEsPort());
+                }catch (NumberFormatException e){
+                    logger.info("{}", e);
+                }
+                body.put("port", esPort);
+            }
+            
+            body.put("scheme", collection.getEsScheme());
 
 //            body.put("username", collection.getEsUser());
 //            body.put("password", collection.getEsPassword());
