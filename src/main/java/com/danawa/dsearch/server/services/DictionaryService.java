@@ -17,8 +17,6 @@ import org.elasticsearch.action.search.SearchScrollRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.*;
-import org.elasticsearch.client.indices.AnalyzeResponse;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.*;
 import org.elasticsearch.index.query.*;
@@ -26,7 +24,6 @@ import org.elasticsearch.index.reindex.BulkByScrollResponse;
 import org.elasticsearch.index.reindex.DeleteByQueryRequest;
 import org.elasticsearch.search.Scroll;
 import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.FieldSortBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
@@ -47,6 +44,7 @@ public class DictionaryService {
     private static Logger logger = LoggerFactory.getLogger(DictionaryService.class);
 
     private IndicesService indicesService;
+    private final ClusterService clusterService;
 
     private String settingIndex;
     private String dictionaryIndex;
@@ -58,10 +56,12 @@ public class DictionaryService {
     public DictionaryService(@Value("${dsearch.dictionary.setting}") String settingIndex,
                              @Value("${dsearch.dictionary.index}") String dictionaryIndex,
                              IndicesService indicesService,
+                             ClusterService clusterService,
                              ElasticsearchFactory elasticsearchFactory) {
         this.indicesService = indicesService;
         this.settingIndex = settingIndex;
         this.dictionaryIndex = dictionaryIndex;
+        this.clusterService = clusterService;
         this.elasticsearchFactory = elasticsearchFactory;
     }
 
@@ -342,10 +342,8 @@ public class DictionaryService {
         }
     }
 
-    //    TODO 분석기 수정예정
     public Response findDict(UUID clusterId, DictionarySearchRequest dictionarySearchRequest) throws IOException{
-//        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             RestClient restClient = client.getLowLevelClient();
             String word = dictionarySearchRequest.getWord();
             String method = "POST";
@@ -360,22 +358,24 @@ public class DictionaryService {
         }
     }
 
-    //    TODO 분석기 수정예정
     public String getDictionaryInfo(UUID clusterId) throws IOException{
-//        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             RestClient restClient = client.getLowLevelClient();
+            Cluster remoteCluster = clusterService.find(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId));
+
             Request request = new Request("GET", "/_analysis-product-name/info-dict");
+            request.addParameter("host", remoteCluster.getHost());
+            request.addParameter("port", String.valueOf(remoteCluster.getPort()));
             Response response = restClient.performRequest(request);
             return EntityUtils.toString(response.getEntity());
         }
     }
 
-    //    TODO 분석기 수정예정
     public Response compileDict(UUID clusterId, DictionaryCompileRequest dictionaryCompileRequest) throws IOException{
-//        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             RestClient restClient = client.getLowLevelClient();
+            Cluster remoteCluster = clusterService.find(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId));
+
             String type = dictionaryCompileRequest.getType();
             String method = "POST";
             String endPoint = "/_analysis-product-name/compile-dict";
@@ -384,12 +384,24 @@ public class DictionaryService {
                     "\"exportFile\": false, \n" +
                     "\"distribute\": false, \n" +
                     "\"type\": \"" + type+ "\", \n" +
+                    "\"host\": \"" + remoteCluster.getHost() + "\", \n" +
+                    "\"port\": \"" + remoteCluster.getPort() + "\" \n" +
                     "}";
 
             Request compileDictRequest = new Request(method, endPoint);
             compileDictRequest.setJsonEntity(setJson);
             return restClient.performRequest(compileDictRequest);
         }
+    }
+
+    public Map<String, Object> getRemoteInfo(UUID clusterId) {
+        Map<String, Object> response = new HashMap<>();
+        UUID remoteClusterId = elasticsearchFactory.getDictionaryRemoteClusterId(clusterId);
+        Cluster cluster = clusterService.find(remoteClusterId);
+        response.put("remote", !remoteClusterId.equals(clusterId));
+        response.put("host", cluster.getHost());
+        response.put("port", cluster.getPort());
+        return response;
     }
 
     public void updateTime(UUID clusterId, String id) throws IOException{

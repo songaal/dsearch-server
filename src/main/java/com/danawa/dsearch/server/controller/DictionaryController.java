@@ -107,6 +107,8 @@ public class DictionaryController {
 
         entity.put("dictionarySettings", dictionarySettings);
         entity.put("dictionaryInfo", dictionaryInfo);
+        entity.put("remote", dictionaryService.getRemoteInfo(clusterId));
+
 //        entity.put("dictionaryTimes", dictionaryTimes);
 
         // 전송
