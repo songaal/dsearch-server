@@ -129,6 +129,14 @@ public class IndexingJobService {
 
             body.put("scheme", collection.getEsScheme());
             body.put("host", collection.getEsHost());
+
+            int esPort = 0;
+            try{
+                esPort = Integer.parseInt(collection.getEsPort());
+            }catch (NumberFormatException e){
+                logger.info("host: {}, port: {}, scheme {}" , collection.getEsHost(), collection.getEsPort(), collection.getEsScheme());
+            }
+
             body.put("port", collection.getEsPort());
 
 //            body.put("username", collection.getEsUser());
