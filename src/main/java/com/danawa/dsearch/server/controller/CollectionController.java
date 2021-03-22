@@ -248,6 +248,7 @@ public class CollectionController {
         // 즉, 아무거나 가져와도 됨
         Cluster cluster = clusterList.get(0);
         Collection collection = collectionService.findByName(cluster.getId(), collectionName);
+        logger.info(collection.toString());
         if(collection == null){
             //컬렉션이 없을때
             response.put("message", "Not Found Collection Name");
