@@ -35,6 +35,8 @@ public class Cluster {
     @Column
     private String password;
 
+    @Column
+    private String dictionaryRemoteClusterId;
 
     @Column
     private String autocompleteUrl;
@@ -132,5 +134,13 @@ public class Cluster {
     }
     public void setAutocompleteUrl(String autocompleteUrl) {
         this.autocompleteUrl = autocompleteUrl;
+    }
+
+    public String getDictionaryRemoteClusterId() {
+        return dictionaryRemoteClusterId;
+    }
+
+    public void setDictionaryRemoteClusterId(String dictionaryRemoteClusterId) {
+        this.dictionaryRemoteClusterId = dictionaryRemoteClusterId;
     }
 }
