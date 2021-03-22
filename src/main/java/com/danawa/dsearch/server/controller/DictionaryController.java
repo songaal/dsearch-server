@@ -93,6 +93,10 @@ public class DictionaryController {
         return new ResponseEntity<>(dictionaryService.updateDocument(clusterId, id, request), HttpStatus.OK);
     }
 
+    @GetMapping("/remote")
+    public ResponseEntity<?> getRemote(@RequestHeader(value = "cluster-id") UUID clusterId) {
+        return new ResponseEntity<>(dictionaryService.getRemoteInfo(clusterId), HttpStatus.OK);
+    }
 
     @GetMapping("/summary")
     public ResponseEntity<?> getSummary(@RequestHeader(value = "cluster-id") UUID clusterId) throws IOException {
@@ -107,7 +111,6 @@ public class DictionaryController {
 
         entity.put("dictionarySettings", dictionarySettings);
         entity.put("dictionaryInfo", dictionaryInfo);
-        entity.put("remote", dictionaryService.getRemoteInfo(clusterId));
 
 //        entity.put("dictionaryTimes", dictionaryTimes);
 
