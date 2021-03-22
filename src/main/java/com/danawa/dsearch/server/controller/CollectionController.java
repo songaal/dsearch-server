@@ -206,14 +206,10 @@ public class CollectionController {
         }
 
         // Port 에러 처리
-        if(port == null || port.equals("")){
-            for(int i = 0; i < port.length(); i++){
-                if(!Character.isDigit(port.charAt(i))){
-                    response.put("message", "port is not correct");
-                    response.put("result", "fail");
-                    return new ResponseEntity<>(response, HttpStatus.OK);
-                }
-            }
+        if (port == null || port.equals("")) {
+            response.put("message", "port is not correct");
+            response.put("result", "fail");
+            return new ResponseEntity<>(response, HttpStatus.OK);
         }
 
         // CollectionName 에러 처리
@@ -224,13 +220,23 @@ public class CollectionController {
         }
 
         // action 에러 처리
-        if(action == null || action.equals("")){
+        if (action == null || action.equals("")) {
             response.put("message", "action is not correct");
             response.put("result", "fail");
             return new ResponseEntity<>(response, HttpStatus.OK);
         }
 
-        List<Cluster> clusterList = clusterService.findByHostAndPort(host, Integer.parseInt(port));
+        int parsePort = 0;
+        try {
+            parsePort = Integer.parseInt(port);
+        } catch (NumberFormatException e) {
+            response.put("message", e.getMessage());
+            response.put("result", "fail");
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        }
+
+        List<Cluster> clusterList = clusterService.findByHostAndPort(host, parsePort);
+
         if(clusterList == null || clusterList.size() == 0){
             // 클러스터가 없을때
             response.put("message", "Not Found Cluster");
@@ -354,14 +360,10 @@ public class CollectionController {
             return new ResponseEntity<>(response, HttpStatus.OK);
         }
 
-        if(port == null || port.equals("")){
-            for(int i = 0; i < port.length(); i++){
-                if(!Character.isDigit(port.charAt(i))){
-                    response.put("message", "port is not correct");
-                    response.put("result", "fail");
-                    return new ResponseEntity<>(response, HttpStatus.OK);
-                }
-            }
+        if (port == null || port.equals("")) {
+            response.put("message", "port is not correct");
+            response.put("result", "fail");
+            return new ResponseEntity<>(response, HttpStatus.OK);
         }
 
         if(collectionName == null || collectionName.equals("")){
@@ -370,7 +372,16 @@ public class CollectionController {
             return new ResponseEntity<>(response, HttpStatus.OK);
         }
 
-        List<Cluster> clusterList = clusterService.findByHostAndPort(host, Integer.parseInt(port));
+        int parsePort = 0;
+        try {
+            parsePort = Integer.parseInt(port);
+        } catch (NumberFormatException e) {
+            response.put("message", e.getMessage());
+            response.put("result", "fail");
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        }
+
+        List<Cluster> clusterList = clusterService.findByHostAndPort(host, parsePort);
         if(clusterList == null || clusterList.size() == 0){
             response.put("message", "Not Found Cluster");
             response.put("result", "fail");
