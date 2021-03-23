@@ -364,8 +364,10 @@ public class DictionaryService {
             Cluster remoteCluster = clusterService.find(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId));
 
             Request request = new Request("GET", "/_analysis-product-name/info-dict");
-            request.addParameter("host", remoteCluster.getHost());
-            request.addParameter("port", String.valueOf(remoteCluster.getPort()));
+            if (!remoteCluster.getId().equals(clusterId)) {
+                request.addParameter("host", remoteCluster.getHost());
+                request.addParameter("port", String.valueOf(remoteCluster.getPort()));
+            }
             Response response = restClient.performRequest(request);
             return EntityUtils.toString(response.getEntity());
         }
@@ -379,14 +381,24 @@ public class DictionaryService {
             String type = dictionaryCompileRequest.getType();
             String method = "POST";
             String endPoint = "/_analysis-product-name/compile-dict";
-            String setJson = "{ \n" +
-                    "\"index\": \"" + dictionaryIndex + "\", \n" +
-                    "\"exportFile\": false, \n" +
-                    "\"distribute\": false, \n" +
-                    "\"type\": \"" + type+ "\", \n" +
-                    "\"host\": \"" + remoteCluster.getHost() + "\", \n" +
-                    "\"port\": \"" + remoteCluster.getPort() + "\" \n" +
-                    "}";
+            String setJson;
+            if (!remoteCluster.getId().equals(clusterId)) {
+                setJson = "{ \n" +
+                        "\"index\": \"" + dictionaryIndex + "\", \n" +
+                        "\"exportFile\": false, \n" +
+                        "\"distribute\": false, \n" +
+                        "\"type\": \"" + type+ "\", \n" +
+                        "\"host\": \"" + remoteCluster.getHost() + "\", \n" +
+                        "\"port\": \"" + remoteCluster.getPort() + "\" \n" +
+                        "}";
+            } else {
+                setJson = "{ \n" +
+                        "\"index\": \"" + dictionaryIndex + "\", \n" +
+                        "\"exportFile\": false, \n" +
+                        "\"distribute\": false, \n" +
+                        "\"type\": \"" + type+ "\" \n" +
+                        "}";
+            }
 
             Request compileDictRequest = new Request(method, endPoint);
             compileDictRequest.setJsonEntity(setJson);
