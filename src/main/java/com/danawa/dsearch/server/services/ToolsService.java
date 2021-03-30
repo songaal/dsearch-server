@@ -78,6 +78,7 @@ public class ToolsService {
             Request pluginRequest = new Request(method, endPoint);
             pluginRequest.setJsonEntity(setJson);
             Response pluginResponse = restClient.performRequest(pluginRequest);
+
             return pluginResponse;
         }
     }
