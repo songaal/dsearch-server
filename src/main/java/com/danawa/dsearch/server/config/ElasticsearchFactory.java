@@ -67,7 +67,7 @@ public class ElasticsearchFactory {
         RestClientBuilder builder = RestClient.builder(httpHost)
                 .setRequestConfigCallback(requestConfigBuilder -> requestConfigBuilder
                         .setConnectTimeout(10000)
-                        .setSocketTimeout(60000))
+                        .setSocketTimeout(10 * 60 * 1000))
                 .setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder.setDefaultIOReactorConfig(
                         IOReactorConfig.custom()
                                 .setIoThreadCount(1)
