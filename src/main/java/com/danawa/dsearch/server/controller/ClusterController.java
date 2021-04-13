@@ -28,13 +28,15 @@ public class ClusterController {
     private final CollectionService collectionService;
     private final JdbcService jdbcService;
     private final IndicesService indicesService;
+    private final IndexTemplateService indexTemplateService;
 
     public ClusterController(@Value("${dsearch.delete}") String deletePrefix,
                              ClusterService clusterService,
                              DictionaryService dictionaryService,
                              ReferenceService referenceService,
                              CollectionService collectionService,
-                             IndicesService indicesService, JdbcService jdbcService) {
+                             IndicesService indicesService, JdbcService jdbcService,
+                            IndexTemplateService indexTemplateService) {
         this.deletePrefix = deletePrefix;
         this.clusterService = clusterService;
         this.dictionaryService = dictionaryService;
@@ -42,6 +44,7 @@ public class ClusterController {
         this.collectionService = collectionService;
         this.indicesService = indicesService;
         this.jdbcService = jdbcService;
+        this.indexTemplateService = indexTemplateService;
     }
 
     @GetMapping
@@ -92,6 +95,7 @@ public class ClusterController {
         collectionService.fetchSystemIndex(registerCluster.getId());
         indicesService.fetchSystemIndex(registerCluster.getId());
         jdbcService.fetchSystemIndex(registerCluster.getId()); /* JDBC 인덱스 추가 */
+        indexTemplateService.fetchSystemIndex(registerCluster.getId()); /* JDBC 인덱스 추가 */
         return new ResponseEntity<>(registerCluster, HttpStatus.OK);
     }
 

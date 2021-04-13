@@ -68,3 +68,5 @@ dsearch:
     name: @project.name@
     version: @project.version@
   timeout: 28800000
+  comments:
+    setting: .dsearch_mapping_comments
