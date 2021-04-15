@@ -65,6 +65,7 @@ public class IndexJobRunner implements Runnable {
             job.setStatus(STATUS.RUNNING.name());
             Map<String, Object> payload = job.getRequest();
             logger.info("Started Indexing Job Runner");
+            logger.info("{}", payload);
             // 공통
             // ES 호스트
             String host = (String) payload.get("host");
