@@ -165,6 +165,8 @@ public class IndexJobRunner implements Runnable {
                 boolean procedureSkip  = (Boolean) payload.getOrDefault("procedureSkip",false); // 프로시저 스킵 여부
                 boolean rsyncSkip = (Boolean) payload.getOrDefault("rsyncSkip",false); // rsync 스킵 여부
 
+                logger.info("procedure payload");
+                logger.info("{}", payload);
                 //프로시져
                 CallProcedure procedure = new CallProcedure(driverClassName, url, user, password, procedureName,groupSeq,path);
                 //RSNYC
