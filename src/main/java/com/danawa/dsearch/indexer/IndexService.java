@@ -154,7 +154,6 @@ public class IndexService {
                         record = filter.filter(record);
                     }
 
-                    logger.info("{}", record);
                     if (record != null && record.size() > 0) {
                         count++;
 
@@ -245,7 +244,6 @@ public class IndexService {
                     if (count != 0 && count % 10000 == 0) {
                         logger.info("index: [{}] {} ROWS FLUSHED! in {}ms", index, count, (System.nanoTime() - time) / 1000000);
                     }
-                    //logger.info("{}",count);
                 }
 
                 if (request.estimatedSizeInBytes() > 0) {
@@ -258,7 +256,6 @@ public class IndexService {
             } catch (StopSignalException e) {
                 throw e;
             } catch (Exception e) {
-                logger.info("{}", e);
                 StackTraceElement[] exception = e.getStackTrace();
                 logger.error("[Exception] : request id : {}", id);
                 for (StackTraceElement element : exception) {

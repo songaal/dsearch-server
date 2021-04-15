@@ -105,13 +105,11 @@ public class CollectionController {
                                       @PathVariable String id,
                                       @RequestParam String action) throws IndexingJobFailureException, IOException {
         Map<String, Object> response = new HashMap<>();
-        logger.debug("collection: {}, action: {}", id, action);
         if ("all".equalsIgnoreCase(action)) {
             synchronized (obj) {
                 IndexingStatus registerStatus = indexingJobManager.findById(id);
                 if (registerStatus == null) {
                     Collection collection = collectionService.findById(clusterId, id);
-                    logger.info("{}", collection);
                     Queue<IndexStep> nextStep = new ArrayDeque<>();
                     nextStep.add(IndexStep.PROPAGATE);
                     nextStep.add(IndexStep.EXPOSE);
