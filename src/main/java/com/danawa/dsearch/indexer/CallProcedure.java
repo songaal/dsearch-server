@@ -86,7 +86,7 @@ public class CallProcedure {
             if (connection != null) {
                 closeConnection();
             }
-            logger.error(e.getMessage());
+            logger.error("url: "+ url +", user: " + user + ", password: " +password + ", procedureName: " +procedureName +", massage: " + e.getMessage());
             return false;
         }
     }
