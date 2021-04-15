@@ -175,8 +175,10 @@ public class IndexingJobService {
                 indexingStatus.setHost(launcher.getHost());
                 indexingStatus.setPort(launcher.getPort());
             } else {
-                body.put("username", collection.getEsUser());
-                body.put("password", collection.getEsPassword());
+                // ES USER 설정은 차후에 명칭 변경
+//                body.put("username", collection.getEsUser());
+//                body.put("password", collection.getEsPassword());
+                
                 // 서버 쓰래드 기반으로 색인 실행.
                 Job job = indexerJobManager.start(IndexerConfig.ACTION.FULL_INDEX.name(), body);
                 indexingJobId = job.getId().toString();

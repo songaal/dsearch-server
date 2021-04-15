@@ -111,6 +111,7 @@ public class CollectionController {
                 IndexingStatus registerStatus = indexingJobManager.findById(id);
                 if (registerStatus == null) {
                     Collection collection = collectionService.findById(clusterId, id);
+                    logger.info("{}", collection);
                     Queue<IndexStep> nextStep = new ArrayDeque<>();
                     nextStep.add(IndexStep.PROPAGATE);
                     nextStep.add(IndexStep.EXPOSE);
