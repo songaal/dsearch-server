@@ -133,10 +133,7 @@ public class IndexService {
 //                                .setSocketTimeout(SOCKET_TIMEOUT))
 //                        .setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder
 //                                .setKeepAliveStrategy(getConnectionKeepAliveStrategy())))) {
-
-
             count = 0;
-
             String id = "";
             long start = System.currentTimeMillis();
             BulkRequest request = new BulkRequest();
@@ -157,7 +154,7 @@ public class IndexService {
                         record = filter.filter(record);
                     }
 
-                    //logger.info("{}", record);
+                    logger.info("{}", record);
                     if (record != null && record.size() > 0) {
                         count++;
 
