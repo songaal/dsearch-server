@@ -11,12 +11,11 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.commons.CommonsMultipartFile;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.io.*;
+import java.util.*;
 
 @RestController
 @RequestMapping("/dictionaries")
@@ -151,4 +150,26 @@ public class DictionaryController {
         dictionaryService.updatedSettingsList(clusterId, dictionarySettings);
         return new ResponseEntity<>(HttpStatus.OK);
     }
+
+    @PostMapping(value = "/fileUpload", headers = ("Content-Type=multipart/*"))
+    public ResponseEntity<?> uploadFile(@RequestHeader(value = "cluster-id") UUID clusterId,
+                                        @RequestParam("dictionaryName") String dictionaryName,
+                                        @RequestParam("filename") MultipartFile file
+                                        ) {
+        try{
+            logger.info(dictionaryName);
+            InputStream in = file.getInputStream();
+            BufferedInputStream bis = new BufferedInputStream(in);
+            BufferedReader br = new BufferedReader(new InputStreamReader(bis));
+
+            String line = null;
+            while((line = br.readLine()) != null){
+                logger.info(line);
+            }
+        }catch (IOException e){
+            logger.error("{}", e);
+        }
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
 }

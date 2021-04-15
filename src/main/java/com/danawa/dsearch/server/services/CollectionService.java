@@ -141,7 +141,7 @@ public class CollectionService {
                             if(collection.isScheduled()) {
                                 String cron = collection.getCron();
                                 String scheduledKey = String.format("%s-%s", cluster.getId(), collection.getId());
-                                logger.info("initial Scheduling.. cron: 0 {}, ClusterId: {}, CollectionId: {}", cron, cluster.getId(), collection.getId());
+//                                logger.info("initial Scheduling.. cron: 0 {}, ClusterId: {}, CollectionId: {}", cron, cluster.getId(), collection.getId());
                                 scheduled.put(scheduledKey, Objects.requireNonNull(scheduler.schedule(() -> {
                                     try {
                                         IndexingStatus indexingStatus = indexingJobManager.findById(collection.getId());
@@ -367,9 +367,9 @@ public class CollectionService {
 
     public Collection findById(UUID clusterId, String id) throws IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            logger.info("collectionId: {}, id: {}",collectionIndex, id);
+//            logger.info("collectionId: {}, id: {}",collectionIndex, id);
             GetResponse getResponse = client.get(new GetRequest().index(collectionIndex).id(id), RequestOptions.DEFAULT);
-            logger.info("Response: {} ", getResponse.getSourceAsMap());
+//            logger.info("Response: {} ", getResponse.getSourceAsMap());
             Collection collection = convertMapToObject(getResponse.getId(), getResponse.getSourceAsMap());
             collection.setIndexA(getIndex(clusterId, collection.getIndexA().getIndex()));
             collection.setIndexB(getIndex(clusterId, collection.getIndexB().getIndex()));
@@ -557,11 +557,11 @@ public class CollectionService {
     }
 
     public void editSchedule(UUID clusterId, String id, Collection collection) throws IOException {
-        logger.info("Edit init Scheduling.. id : {}, collectionId", id, collection);
+//        logger.info("Edit init Scheduling.. id : {}, collectionId", id, collection);
 
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             GetResponse getResponse = client.get(new GetRequest().index(collectionIndex).id(id), RequestOptions.DEFAULT);
-            logger.info("Response.. : {}", getResponse.getSourceAsMap());
+//            logger.info("Response.. : {}", getResponse.getSourceAsMap());
             Map<String, Object> sourceAsMap = getResponse.getSourceAsMap();
             sourceAsMap.put("scheduled", collection.isScheduled());
             client.update(new UpdateRequest()
@@ -573,7 +573,7 @@ public class CollectionService {
             String scheduledKey = String.format("%s-%s", clusterId.toString(), registerCollection.getId());
             if (registerCollection.isScheduled()) {
                 String cron = registerCollection.getCron();
-                logger.info("Edit Scheduling.. cron: 0 {}, ClusterId: {}, CollectionId: {}", cron, clusterId.toString(), collection.getId());
+//                logger.info("Edit Scheduling.. cron: 0 {}, ClusterId: {}, CollectionId: {}", cron, clusterId.toString(), collection.getId());
                 scheduled.put(scheduledKey, Objects.requireNonNull(scheduler.schedule(() -> {
                     try {
                         IndexingStatus indexingStatus = indexingJobManager.findById(registerCollection.getId());

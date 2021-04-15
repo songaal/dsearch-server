@@ -13,12 +13,16 @@ spring:
     show-sql: true
     hibernate:
       ddl-auto: update
+  servlet:
+    multipart:
+      max-file-size: 200MB
+      max-request-size: 200MB
 logging:
   level:
     level:
       root: info
     com:
-      danawa: debug
+      danawa: info
   file:
     path: C:\\windows\\temp
     max-history: 7

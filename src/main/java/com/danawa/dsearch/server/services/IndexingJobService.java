@@ -6,8 +6,8 @@ import com.danawa.dsearch.server.entity.Collection;
 import com.danawa.dsearch.server.entity.IndexStep;
 import com.danawa.dsearch.server.entity.IndexingStatus;
 import com.danawa.dsearch.server.excpetions.IndexingJobFailureException;
-import com.danawa.fastcatx.indexer.IndexJobManager;
-import com.danawa.fastcatx.indexer.entity.Job;
+import com.danawa.dsearch.indexer.IndexJobManager;
+import com.danawa.dsearch.indexer.entity.Job;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.get.GetRequest;
@@ -49,7 +49,7 @@ public class IndexingJobService {
     private final String indexHistory = ".dsearch_index_history";
 
     private final String jdbcSystemIndex;
-    private final com.danawa.fastcatx.indexer.IndexJobManager indexerJobManager;
+    private final com.danawa.dsearch.indexer.IndexJobManager indexerJobManager;
 
     private Map<String, Object> params;
     private Map<String, Object> indexing;
@@ -68,7 +68,7 @@ public class IndexingJobService {
         restTemplate = new RestTemplate(factory);
     }
 
-    public com.danawa.fastcatx.indexer.IndexJobManager getIndexerJobManager() {
+    public com.danawa.dsearch.indexer.IndexJobManager getIndexerJobManager() {
         return this.indexerJobManager;
     }
 
@@ -398,7 +398,7 @@ public class IndexingJobService {
             index.setStatus("STOP");
 //            editPreparations(client, index); // 이전버전
             editPreparations(client, collection, index);
-            logger.info("stop propagation{}", index.getIndex());
+            logger.info("stop propagation : {}", index.getIndex());
         }
     }
 
@@ -417,23 +417,6 @@ public class IndexingJobService {
         logger.debug("choice Index: {}", index.getIndex());
         return index;
     }
-
-//    private void editPreparations(RestHighLevelClient client, Collection.Index index) throws IOException {
-//        logger.debug("indexing settings >>> {}", indexing);
-//        if (index.getUuid() == null) {
-//            // 인덱스 존재하지 않기 때문에 생성해주기.
-//            // 인덱스 템플릿이 존재하기 때문에 맵핑 설정 패쓰
-//            boolean isAcknowledged = client.indices().create(new CreateIndexRequest(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
-//            logger.debug("create settings : {} ", isAcknowledged);
-//        } else {
-//            // 기존 인덱스가 존재하기 때문에 셋팅 설정만 변경함.
-//            // settings에 index.routing.allocation.include._exclude=search* 호출
-//            // refresh interval: -1로 변경. 색인도중 검색노출하지 않음. 성능향상목적.
-//            boolean isAcknowledged = client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
-//            logger.debug("edit settings : {} ", isAcknowledged);
-//        }
-//    }
-
 
     private void editPreparations(RestHighLevelClient client, Collection collection, Collection.Index index) throws IOException {
         // 인덱스 존재하지 않기 때문에 생성해주기.
