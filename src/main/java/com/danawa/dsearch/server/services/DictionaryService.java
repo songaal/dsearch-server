@@ -5,6 +5,7 @@ import com.danawa.dsearch.server.entity.*;
 import com.danawa.dsearch.server.excpetions.ServiceException;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.get.GetRequest;
@@ -32,8 +33,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
+import java.io.*;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -498,7 +501,114 @@ public class DictionaryService {
                         , RequestOptions.DEFAULT);
             }
         }
-
     }
 
+    public boolean insertDictFileToIndex(UUID clusterId, String dictName, String dictType, MultipartFile file, List<String> fields){
+        logger.info("insert DictFile to Index");
+        logger.info("dictName: {}, dictType: {}, fileName: {}, fields: {}",  dictName,  dictType,  file.getName(), fields.toString() );
+        int count = 0;
+        BulkRequest bulkRequest = new BulkRequest();
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
+//                    String output = new DateTime( DateTimeZone.UTC );
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+            TimeZone utc = TimeZone.getTimeZone("UTC");
+            sdf.setTimeZone(utc);
+            Date now = new Date();
+            String nowDate = sdf.format(now);
+            InputStream in = file.getInputStream();
+            BufferedInputStream bis = new BufferedInputStream(in);
+            BufferedReader br = new BufferedReader(new InputStreamReader(bis));
+            String line = null;
+            while((line = br.readLine()) != null){
+                String[] split = line.split("\t");
+                if(dictType.equals("custom")){
+                    String id = split[0];
+                    String keyword = split[1];
+                    String value = split[2];
+
+                    Map<String, Object> source = new HashMap<>();
+                    source.put(fields.get(0), id);
+                    source.put(fields.get(1), keyword);
+                    source.put(fields.get(2), value);
+                    source.put("createdTime", nowDate);
+                    source.put("updatedTime", nowDate);
+                    source.put("type", dictName);
+
+                    bulkRequest.add(new IndexRequest().index(dictionaryIndex).source(source));
+                    count++;
+                }else if(dictType.equals("synonym")){
+                    String keyword = split[0];
+                    String value = split[1];
+
+                    Map<String, Object> source = new HashMap<>();
+                    source.put(fields.get(0), keyword);
+                    source.put(fields.get(1), value);
+                    source.put("createdTime", nowDate);
+                    source.put("updatedTime", nowDate);
+                    source.put("type", dictName);
+
+                    bulkRequest.add(new IndexRequest().index(dictionaryIndex).source(source));
+                    count++;
+                }else if(dictType.equals("set")){
+                    String keyword = split[0];
+
+                    Map<String, Object> source = new HashMap<>();
+                    source.put(fields.get(0), keyword);
+                    source.put("createdTime", nowDate);
+                    source.put("updatedTime", nowDate);
+                    source.put("type", dictName);
+                    bulkRequest.add(new IndexRequest().index(dictionaryIndex).source(source));
+                    count++;
+                }else if(dictType.equals("compound")){
+                    String keyword = split[0];
+                    String value = split[1];
+
+                    Map<String, Object> source = new HashMap<>();
+                    source.put(fields.get(0), keyword);
+                    source.put(fields.get(1), value);
+                    source.put("createdTime", nowDate);
+                    source.put("updatedTime", nowDate);
+                    source.put("type", dictName);
+                    bulkRequest.add(new IndexRequest().index(dictionaryIndex).source(source));
+                    count++;
+                }else if(dictType.equals("space")){
+                    String keyword = split[0];
+
+                    Map<String, Object> source = new HashMap<>();
+                    source.put(fields.get(0), keyword);
+                    source.put("createdTime", nowDate);
+                    source.put("updatedTime", nowDate);
+                    source.put("type", dictName);
+                    bulkRequest.add(new IndexRequest().index(dictionaryIndex).source(source));
+                    count++;
+                }else if(dictType.equals("synonym_2way")){
+                    String value = split[0];
+                    Map<String, Object> source = new HashMap<>();
+                    source.put(fields.get(0), value);
+                    source.put("createdTime", nowDate);
+                    source.put("updatedTime", nowDate);
+                    source.put("type", dictName);
+                    bulkRequest.add(new IndexRequest().index(dictionaryIndex).source(source));
+                    count++;
+                }
+
+                if(count % 1000 == 0){
+                    logger.info("{} flushed !!", count);
+                    client.bulk(bulkRequest, RequestOptions.DEFAULT);
+                    bulkRequest = new BulkRequest();
+                }
+            }
+            if( count != 0 ){
+                logger.info("{} flushed !!", count);
+                client.bulk(bulkRequest, RequestOptions.DEFAULT);
+            }
+        }catch (IOException e){
+            logger.error("{}", e);
+            return false;
+        }catch (ArrayIndexOutOfBoundsException e){
+            logger.error("{}", e);
+            return false;
+        }
+        return true;
+    }
 }

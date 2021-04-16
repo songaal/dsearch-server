@@ -154,22 +154,42 @@ public class DictionaryController {
     @PostMapping(value = "/fileUpload", headers = ("Content-Type=multipart/*"))
     public ResponseEntity<?> uploadFile(@RequestHeader(value = "cluster-id") UUID clusterId,
                                         @RequestParam("dictionaryName") String dictionaryName,
+                                        @RequestParam("dictionaryType") String dictionaryType,
+                                        @RequestParam("dictionaryFields") List<String> dictionaryList,
                                         @RequestParam("filename") MultipartFile file
-                                        ) {
-        try{
-            logger.info(dictionaryName);
-            InputStream in = file.getInputStream();
-            BufferedInputStream bis = new BufferedInputStream(in);
-            BufferedReader br = new BufferedReader(new InputStreamReader(bis));
-
-            String line = null;
-            while((line = br.readLine()) != null){
-                logger.info(line);
-            }
-        }catch (IOException e){
-            logger.error("{}", e);
+    ) {
+        Map<String, Boolean> result = new HashMap<>();
+        boolean flag = false;
+        switch (dictionaryType.toLowerCase()){
+            // 1개 남는 것
+            case "set":
+            case "space":
+            case "synonym_2way":
+                dictionaryList.remove("value");
+            // 2개 남는 것
+            case "compound":
+            case "synonym":
+                dictionaryList.remove("id");
+            // 3개 전부 있는 것
+            case "custom":
+                dictionaryList.remove("type");
+                dictionaryList.remove("createdTime");
+                dictionaryList.remove("updatedTime");
+                flag = dictionaryService.insertDictFileToIndex(clusterId, dictionaryName, dictionaryType.toLowerCase(), file, dictionaryList);
+                result.put("result", flag);
+                break;
+            default:
+                result.put("result", flag);
+                logger.info("{}", result);
+                return new ResponseEntity<>(result, HttpStatus.BAD_REQUEST);
         }
-        return new ResponseEntity<>(HttpStatus.OK);
+        logger.info("{}", result);
+
+        if(flag){
+            return new ResponseEntity<>(result, HttpStatus.OK);
+        }else{
+            return new ResponseEntity<>(result, HttpStatus.NOT_ACCEPTABLE);
+        }
     }
 
 }
