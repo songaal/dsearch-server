@@ -38,16 +38,18 @@
     </Appenders>
 
     <Loggers>
-        <Root level="info" additivity="false">
-            <AppenderRef ref="console" />
-        </Root>
+<!--        <Root level="info" additivity="false">-->
+<!--            <AppenderRef ref="console" />-->
+<!--        </Root>-->
 
         <Logger name="com.danawa.dsearch.server" level="all" additivity="false" >
+            <AppenderRef ref="console" />
             <AppenderRef ref="dsearch_file" />
             <AppenderRef ref="errorFile" />
         </Logger>
 
         <Logger name="com.danawa.dsearch.indexer" level="all" additivity="false">
+            <AppenderRef ref="console" />
             <AppenderRef ref="indexer_file" />
             <AppenderRef ref="errorFile" />
         </Logger>
