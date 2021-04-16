@@ -1,0 +1,40 @@
+[2021-04-16 10:17:47.198 INFO] [restartedMain] (StartupInfoLogger.java:55) - Starting DsearchServerApplication on DA-PC-0484 with PID 2948 (C:\Users\admin\Desktop\Projects\dsearch-server\target\classes started by admin in C:\Users\admin\Desktop\Projects\dsearch-server)
+[2021-04-16 10:17:47.205 INFO] [restartedMain] (SpringApplication.java:651) - No active profile set, falling back to default profiles: default
+[2021-04-16 10:17:51.783 INFO] [restartedMain] (StartupInfoLogger.java:61) - Started DsearchServerApplication in 4.919 seconds (JVM running for 6.155)
+[2021-04-16 10:17:51.781 ERROR] [scheduling-1] (IndexingJobManager.java:122) - 
+java.lang.NullPointerException: Cannot invoke "com.danawa.dsearch.server.entity.IndexingStatus.setStatus(String)" because "status" is null
+	at com.danawa.dsearch.server.services.IndexingJobManager.lambda$fetchIndexingStatus$0(IndexingJobManager.java:108) ~[classes/:?]
+	at java.util.Iterator.forEachRemaining(Iterator.java:133) [?:?]
+	at com.danawa.dsearch.server.services.IndexingJobManager.fetchIndexingStatus(IndexingJobManager.java:77) [classes/:?]
+	at jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[?:?]
+	at jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:64) ~[?:?]
+	at jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[?:?]
+	at java.lang.reflect.Method.invoke(Method.java:564) ~[?:?]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.run(ScheduledMethodRunnable.java:84) [spring-context-5.2.7.RELEASE.jar:5.2.7.RELEASE]
+	at org.springframework.scheduling.support.DelegatingErrorHandlingRunnable.run(DelegatingErrorHandlingRunnable.java:54) [spring-context-5.2.7.RELEASE.jar:5.2.7.RELEASE]
+	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:515) [?:?]
+	at java.util.concurrent.FutureTask.runAndReset(FutureTask.java:305) [?:?]
+	at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:305) [?:?]
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1130) [?:?]
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:630) [?:?]
+	at java.lang.Thread.run(Thread.java:832) [?:?]
+[2021-04-16 10:18:53.115 INFO] [restartedMain] (StartupInfoLogger.java:55) - Starting DsearchServerApplication on DA-PC-0484 with PID 7944 (C:\Users\admin\Desktop\Projects\dsearch-server\target\classes started by admin in C:\Users\admin\Desktop\Projects\dsearch-server)
+[2021-04-16 10:18:53.121 INFO] [restartedMain] (SpringApplication.java:651) - No active profile set, falling back to default profiles: default
+[2021-04-16 10:18:57.747 INFO] [restartedMain] (StartupInfoLogger.java:61) - Started DsearchServerApplication in 4.936 seconds (JVM running for 6.082)
+[2021-04-16 10:18:57.745 ERROR] [scheduling-1] (IndexingJobManager.java:122) - 
+java.lang.NullPointerException: Cannot invoke "com.danawa.dsearch.server.entity.IndexingStatus.setStatus(String)" because "status" is null
+	at com.danawa.dsearch.server.services.IndexingJobManager.lambda$fetchIndexingStatus$0(IndexingJobManager.java:108) ~[classes/:?]
+	at java.util.Iterator.forEachRemaining(Iterator.java:133) [?:?]
+	at com.danawa.dsearch.server.services.IndexingJobManager.fetchIndexingStatus(IndexingJobManager.java:77) [classes/:?]
+	at jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[?:?]
+	at jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:64) ~[?:?]
+	at jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[?:?]
+	at java.lang.reflect.Method.invoke(Method.java:564) ~[?:?]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.run(ScheduledMethodRunnable.java:84) [spring-context-5.2.7.RELEASE.jar:5.2.7.RELEASE]
+	at org.springframework.scheduling.support.DelegatingErrorHandlingRunnable.run(DelegatingErrorHandlingRunnable.java:54) [spring-context-5.2.7.RELEASE.jar:5.2.7.RELEASE]
+	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:515) [?:?]
+	at java.util.concurrent.FutureTask.runAndReset(FutureTask.java:305) [?:?]
+	at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:305) [?:?]
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1130) [?:?]
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:630) [?:?]
+	at java.lang.Thread.run(Thread.java:832) [?:?]

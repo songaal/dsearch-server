@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="error">
+    <Appenders>
+        <Console name="console" target="SYSTEM_OUT">
+            <PatternLayout
+                    pattern="[%d{yyyy-MM-dd HH:mm:ss.SSS} %p] [%t] (%F:%L\) - %m%n" />
+        </Console>
+
+        <RollingFile name="dsearch_file" fileName="/data/logs/dsearch.log"
+                     filePattern="/data/logs/dsearch-%d{yyyy-MM-dd}.log">
+            <PatternLayout
+                    pattern="[%d{yyyy-MM-dd HH:mm:ss.SSS} %p] [%t] (%F:%L\) - %m%n" />
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+            </Policies>
+        </RollingFile>
+
+        <RollingFile name="indexer_file" fileName="/data/logs/dsearch-indexer.log"
+                     filePattern="/data/logs/dsearch-indexer-%d{yyyy-MM-dd}.log">
+            <PatternLayout
+                    pattern="[%d{yyyy-MM-dd HH:mm:ss.SSS} %p] [%t] (%F:%L\) - %m%n" />
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+            </Policies>
+        </RollingFile>
+
+        <RollingFile name="errorFile" fileName="/data/logs/error.log"
+                     filePattern="/data/logs/error-%d{yyyy-MM-dd}.log">
+            <PatternLayout
+                    pattern="[%d{yyyy-MM-dd HH:mm:ss.SSS} %p] [%t] (%F:%L\) - %m%n" />
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+            </Policies>
+        </RollingFile>
+    </Appenders>
+
+    <Loggers>
+        <Root level="info" additivity="false">
+            <AppenderRef ref="console" />
+        </Root>
+
+        <Logger name="com.danawa.dsearch.server" level="" additivity="false" >
+            <AppenderRef ref="dsearch_file" />
+            <AppenderRef ref="errorFile" />
+        </Logger>
+
+        <Logger name="com.danawa.dsearch.indexer" level="error" additivity="false">
+            <AppenderRef ref="indexer_file" />
+            <AppenderRef ref="errorFile" />
+        </Logger>
+    </Loggers>
+</Configuration>

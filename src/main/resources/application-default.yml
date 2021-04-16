@@ -17,17 +17,19 @@ spring:
     multipart:
       max-file-size: 200MB
       max-request-size: 200MB
+#logging:
+#  level:
+#    level:
+#      root: info
+#    com:
+#      danawa: info
+#  file:
+#    path: C:\\windows\\temp
+#    max-history: 7
+#    clean-history-on-start: true
+#    max-size: 100MB
 logging:
-  level:
-    level:
-      root: info
-    com:
-      danawa: info
-  file:
-    path: C:\\windows\\temp
-    max-history: 7
-    clean-history-on-start: true
-    max-size: 100MB
+  config: classpath:log4j2.xml
 dsearch:
   notice:
     telegram:

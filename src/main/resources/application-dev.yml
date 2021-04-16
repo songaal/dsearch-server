@@ -13,16 +13,18 @@ spring:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
       ddl-auto: update
+#logging:
+#  level:
+#    level:
+#      root: info
+#    com:
+#      danawa: info
+#  file:
+#    path: /var/log
+#    max-history: 30
+#    max-size: 500MB
 logging:
-  level:
-    level:
-      root: info
-    com:
-      danawa: info
-  file:
-    path: /var/log
-    max-history: 30
-    max-size: 500MB
+  config: classpath:log4j2-dev.xml
 dsearch:
   notice:
     telegram:
