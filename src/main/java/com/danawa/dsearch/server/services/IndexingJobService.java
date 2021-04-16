@@ -81,9 +81,6 @@ public class IndexingJobService {
         return indexing(clusterId, collection, autoRun, step, new ArrayDeque<>());
     }
     public IndexingStatus indexing(UUID clusterId, Collection collection, boolean autoRun, IndexStep step, Queue<IndexStep> nextStep) throws IndexingJobFailureException {
-        logger.info(collection.toString());
-
-        
         IndexingStatus indexingStatus = new IndexingStatus();
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Collection.Index indexA = collection.getIndexA();
