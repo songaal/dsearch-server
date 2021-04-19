@@ -153,12 +153,20 @@ public class DictionaryController {
 
     @PostMapping(value = "/fileUpload", headers = ("Content-Type=multipart/*"))
     public ResponseEntity<?> uploadFile(@RequestHeader(value = "cluster-id") UUID clusterId,
+                                        @RequestParam("overwrite") boolean overwrite,
                                         @RequestParam("dictionaryName") String dictionaryName,
                                         @RequestParam("dictionaryType") String dictionaryType,
                                         @RequestParam("dictionaryFields") List<String> dictionaryList,
                                         @RequestParam("filename") MultipartFile file
     ) {
         Map<String, Boolean> result = new HashMap<>();
+
+        logger.info("overwrite: {}, dictionaryName: {}, dictionaryType: {}, dictionaryFields: {}", overwrite, dictionaryName, dictionaryType, dictionaryList.toString());
+        // 덮어쓰기
+        if(overwrite){
+            dictionaryService.resetDict(clusterId, dictionaryName);
+        }
+
         boolean flag = false;
         switch (dictionaryType.toLowerCase()){
             // 1개 남는 것
@@ -180,16 +188,22 @@ public class DictionaryController {
                 break;
             default:
                 result.put("result", flag);
-                logger.info("{}", result);
                 return new ResponseEntity<>(result, HttpStatus.BAD_REQUEST);
         }
-        logger.info("{}", result);
 
         if(flag){
             return new ResponseEntity<>(result, HttpStatus.OK);
         }else{
             return new ResponseEntity<>(result, HttpStatus.NOT_ACCEPTABLE);
         }
+    }
+
+    @PostMapping(value = "/resetDict")
+    public ResponseEntity<?> removeAllDictData(@RequestHeader(value = "cluster-id") UUID clusterId,
+                                        @RequestParam("dictionaryName") String dictionaryName
+    ) {
+        dictionaryService.resetDict(clusterId, dictionaryName);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
 }

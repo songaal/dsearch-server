@@ -504,8 +504,6 @@ public class DictionaryService {
     }
 
     public boolean insertDictFileToIndex(UUID clusterId, String dictName, String dictType, MultipartFile file, List<String> fields){
-        logger.info("insert DictFile to Index");
-        logger.info("dictName: {}, dictType: {}, fileName: {}, fields: {}",  dictName,  dictType,  file.getName(), fields.toString() );
         int count = 0;
         BulkRequest bulkRequest = new BulkRequest();
         try (RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
@@ -593,13 +591,13 @@ public class DictionaryService {
                 }
 
                 if(count % 1000 == 0){
-                    logger.info("{} flushed !!", count);
+                    logger.info("dictionaryName: {}, {} flushed !!",dictName, count);
                     client.bulk(bulkRequest, RequestOptions.DEFAULT);
                     bulkRequest = new BulkRequest();
                 }
             }
             if( count != 0 ){
-                logger.info("{} flushed !!", count);
+                logger.info("dictionaryName: {}, {} flushed !!",dictName, count);
                 client.bulk(bulkRequest, RequestOptions.DEFAULT);
             }
         }catch (IOException e){
@@ -610,5 +608,15 @@ public class DictionaryService {
             return false;
         }
         return true;
+    }
+
+    public void resetDict(UUID clusterId, String dictName) {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
+            DeleteByQueryRequest deleteByQueryRequest = new DeleteByQueryRequest();
+            deleteByQueryRequest.setQuery(QueryBuilders.matchQuery("type", dictName)).indices(dictionaryIndex);
+            client.deleteByQuery(deleteByQueryRequest, RequestOptions.DEFAULT);
+        }catch (IOException e){
+            logger.error("{}", e);
+        }
     }
 }
