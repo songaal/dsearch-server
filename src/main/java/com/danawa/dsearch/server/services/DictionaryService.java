@@ -503,7 +503,9 @@ public class DictionaryService {
         }
     }
 
-    public boolean insertDictFileToIndex(UUID clusterId, String dictName, String dictType, MultipartFile file, List<String> fields){
+    public Map<String, Object> insertDictFileToIndex(UUID clusterId, String dictName, String dictType, MultipartFile file, List<String> fields){
+        Map<String, Object> result = new HashMap<>();
+
         int count = 0;
         BulkRequest bulkRequest = new BulkRequest();
         try (RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
@@ -601,16 +603,23 @@ public class DictionaryService {
                 client.bulk(bulkRequest, RequestOptions.DEFAULT);
             }
         }catch (IOException e){
+            result.put("result", false);
+            result.put("message", "IOException");
             logger.error("{}", e);
-            return false;
+            return result;
         }catch (ArrayIndexOutOfBoundsException e){
+            result.put("result", false);
+            result.put("message", "형식에 맞지 않은 파일입니다.");
             logger.error("{}", e);
-            return false;
+            return result;
         }
-        return true;
+        result.put("result", true);
+        result.put("message", "success");
+        return result;
     }
 
     public void resetDict(UUID clusterId, String dictName) {
+        logger.info("reset dictionaryName: {}", dictName);
         try (RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
             DeleteByQueryRequest deleteByQueryRequest = new DeleteByQueryRequest();
             deleteByQueryRequest.setQuery(QueryBuilders.matchQuery("type", dictName)).indices(dictionaryIndex);

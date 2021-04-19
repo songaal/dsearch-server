@@ -159,7 +159,7 @@ public class DictionaryController {
                                         @RequestParam("dictionaryFields") List<String> dictionaryList,
                                         @RequestParam("filename") MultipartFile file
     ) {
-        Map<String, Boolean> result = new HashMap<>();
+        Map<String, Object> result = null;
 
         logger.info("overwrite: {}, dictionaryName: {}, dictionaryType: {}, dictionaryFields: {}", overwrite, dictionaryName, dictionaryType, dictionaryList.toString());
         // 덮어쓰기
@@ -167,7 +167,6 @@ public class DictionaryController {
             dictionaryService.resetDict(clusterId, dictionaryName);
         }
 
-        boolean flag = false;
         switch (dictionaryType.toLowerCase()){
             // 1개 남는 것
             case "set":
@@ -183,19 +182,17 @@ public class DictionaryController {
                 dictionaryList.remove("type");
                 dictionaryList.remove("createdTime");
                 dictionaryList.remove("updatedTime");
-                flag = dictionaryService.insertDictFileToIndex(clusterId, dictionaryName, dictionaryType.toLowerCase(), file, dictionaryList);
-                result.put("result", flag);
+                result = dictionaryService.insertDictFileToIndex(clusterId, dictionaryName, dictionaryType.toLowerCase(), file, dictionaryList);
                 break;
             default:
-                result.put("result", flag);
-                return new ResponseEntity<>(result, HttpStatus.BAD_REQUEST);
+                result = new HashMap<>();
+                result.put("result", false);
+                result.put("message", "맞는 사전 타입이 없습니다.");
         }
 
-        if(flag){
-            return new ResponseEntity<>(result, HttpStatus.OK);
-        }else{
-            return new ResponseEntity<>(result, HttpStatus.NOT_ACCEPTABLE);
-        }
+        logger.info("{}", result);
+
+        return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
     @PostMapping(value = "/resetDict")
