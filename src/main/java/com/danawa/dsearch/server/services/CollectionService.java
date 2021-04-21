@@ -576,16 +576,18 @@ public class CollectionService {
 //                logger.info("Edit Scheduling.. cron: 0 {}, ClusterId: {}, CollectionId: {}", cron, clusterId.toString(), collection.getId());
                 scheduled.put(scheduledKey, Objects.requireNonNull(scheduler.schedule(() -> {
                     try {
-                        IndexingStatus indexingStatus = indexingJobManager.findById(registerCollection.getId());
+                        // 변경사항이 있을수 있으므로, 컬렉션 정보를 새로 가져온다.
+                        Collection registerCollection2 = findById(clusterId, id);
+                        IndexingStatus indexingStatus = indexingJobManager.findById(registerCollection2.getId());
                         if (indexingStatus != null) {
                             return;
                         }
                         Deque<IndexStep> nextStep = new ArrayDeque<>();
                         nextStep.add(IndexStep.PROPAGATE);
                         nextStep.add(IndexStep.EXPOSE);
-                        IndexingStatus status = indexingJobService.indexing(clusterId, registerCollection, true, IndexStep.FULL_INDEX, nextStep);
-                        indexingJobManager.add(registerCollection.getId(), status);
-                    } catch (IndexingJobFailureException e) {
+                        IndexingStatus status = indexingJobService.indexing(clusterId, registerCollection2, true, IndexStep.FULL_INDEX, nextStep);
+                        indexingJobManager.add(registerCollection2.getId(), status);
+                    } catch (IndexingJobFailureException | IOException e) {
                         logger.error("", e);
                     }
                 }, new CronTrigger("0 " + cron))));
