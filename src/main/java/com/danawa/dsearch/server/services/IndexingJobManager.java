@@ -384,7 +384,6 @@ public class IndexingJobManager {
             countQuery.filter().add(QueryBuilders.termQuery("index", index));
             countQuery.filter().add(QueryBuilders.termQuery("startTime", startTime));
             countQuery.filter().add(QueryBuilders.termQuery("jobType", jobType));
-            countQuery.filter().add(QueryBuilders.termQuery("status", status));
             CountResponse countResponse = client.count(new CountRequest(indexHistory).query(countQuery), RequestOptions.DEFAULT);
 
             if (countResponse.getCount() == 0) {
