@@ -15,6 +15,8 @@ import org.elasticsearch.client.Request;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.core.CountRequest;
+import org.elasticsearch.client.core.CountResponse;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.MatchQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -266,7 +268,7 @@ public class IndexingJobManager {
             if ("SUCCESS".equalsIgnoreCase(status) && nextStep != null) {
                 // 다음 작업이 있을 경우.
                 indexingStatus = indexingJobService.propagate(clusterId, true, indexingStatus.getCollection(), indexingStatus.getNextStep(), index);
-                addLastIndexStatus(clusterId, indexingStatus.getCollection().getId(), index, indexingStatus.getStartTime(), "RUNNING", indexingStatus.getCurrentStep().name());
+                addLastIndexStatus(clusterId, indexingStatus.getCollection().getId(), index, indexingStatus.getStartTime(), "RUNNING", indexingStatus.getCurrentStep().name(), id);
                 jobs.put(id, indexingStatus);
 
 //                IndexingStatus idxStat = jobs.get(id);
@@ -377,24 +379,34 @@ public class IndexingJobManager {
         }
 
         try {
-            Map<String, Object> source = new HashMap<>();
-            source.put("index", index);
-            source.put("jobType", jobType);
-            source.put("startTime", startTime);
-            source.put("endTime", endTime);
-            source.put("autoRun", autoRun);
-            source.put("status", status);
-            source.put("docSize", docSize);
-            source.put("store", store);
-            client.index(new IndexRequest().index(indexHistory).source(source), RequestOptions.DEFAULT);
+            // 이력의 갯수를 체크하여 0일때만 이력에 남김.
+            BoolQueryBuilder countQuery = QueryBuilders.boolQuery();
+            countQuery.filter().add(QueryBuilders.termQuery("index", index));
+            countQuery.filter().add(QueryBuilders.termQuery("startTime", startTime));
+            countQuery.filter().add(QueryBuilders.termQuery("jobType", jobType));
+            countQuery.filter().add(QueryBuilders.termQuery("status", status));
+            CountResponse countResponse = client.count(new CountRequest(indexHistory).query(countQuery), RequestOptions.DEFAULT);
+
+            if (countResponse.getCount() == 0) {
+                Map<String, Object> source = new HashMap<>();
+                source.put("index", index);
+                source.put("jobType", jobType);
+                source.put("startTime", startTime);
+                source.put("endTime", endTime);
+                source.put("autoRun", autoRun);
+                source.put("status", status);
+                source.put("docSize", docSize);
+                source.put("store", store);
+                client.index(new IndexRequest().index(indexHistory).source(source), RequestOptions.DEFAULT);
+            }
         } catch(Exception e) {
             logger.error("addIndexHistory >> index: {}", index, e);
         }
     }
 
-    public void addLastIndexStatus(UUID clusterId, String collectionId, String index, long startTime, String status, String step) throws IOException {
+    public void addLastIndexStatus(UUID clusterId, String collectionId, String index, long startTime, String status, String step, String jobId) throws IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            addLastIndexStatus(client, collectionId, index, startTime, status, step, null);
+            addLastIndexStatus(client, collectionId, index, startTime, status, step, jobId);
         }
     }
     public void addLastIndexStatus(RestHighLevelClient client, String collectionId, String index, long startTime, String status, String step, String jobId) {

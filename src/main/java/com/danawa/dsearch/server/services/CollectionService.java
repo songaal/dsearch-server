@@ -21,6 +21,7 @@ import org.elasticsearch.client.*;
 import org.elasticsearch.client.indices.PutIndexTemplateRequest;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.query.*;
+import org.elasticsearch.index.reindex.DeleteByQueryRequest;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
@@ -94,35 +95,44 @@ public class CollectionService {
                                 .size(10000)
                                 .from(0))
                         , RequestOptions.DEFAULT);
+
+                Calendar calendar = Calendar.getInstance();
+                // 진행 중 문서 중 jobID가 null 인경우와 7일 지난 문서는 무시.
+                calendar.add(Calendar.DATE, 7);
+                long expireStartTime = calendar.getTimeInMillis();
                 lastIndexResponse.getHits().forEach(documentFields -> {
                     try {
                         Map<String, Object> source = documentFields.getSourceAsMap();
-                        String collectionId = (String) source.get("collectionId");
-                        String jobId = String.valueOf(source.getOrDefault("jobId", ""));
-                        String index = (String) source.get("index");
-                        long startTime = (long) source.get("startTime");
-                        IndexStep step = IndexStep.valueOf(String.valueOf(source.get("step")));
-                        Collection collection = findById(cluster.getId(), collectionId);
-                        Collection.Launcher launcher = collection.getLauncher();
-                        IndexingStatus indexingStatus = new IndexingStatus();
-
-                        indexingStatus.setClusterId(cluster.getId());
-                        indexingStatus.setIndex(index);
-                        indexingStatus.setStartTime(startTime);
-                        if (launcher != null) {
-                            indexingStatus.setIndexingJobId(jobId);
-                            indexingStatus.setScheme(launcher.getScheme());
-                            indexingStatus.setHost(launcher.getHost());
-                            indexingStatus.setPort(launcher.getPort());
-                        }
-                        indexingStatus.setAutoRun(true);
-                        indexingStatus.setCurrentStep(step);
-                        indexingStatus.setNextStep(new ArrayDeque<>());
-                        indexingStatus.setRetry(50);
-                        indexingStatus.setCollection(collection);
-                        if(indexingJobManager.findById(collectionId) == null) {
-                            indexingJobManager.add(collectionId, indexingStatus, false);
-                            logger.debug("collection register job: {}", collectionId);
+                        // 잡아이디가 없는 문서가 많음... 로컬 실행하여 테스트 데이터 의심...
+                        if (source.get("jobId") != null && !"".equals(source.get("jobId"))) {
+                            String collectionId = (String) source.get("collectionId");
+                            String jobId = String.valueOf(source.getOrDefault("jobId", ""));
+                            String index = (String) source.get("index");
+                            long startTime = (long) source.get("startTime");
+                            IndexStep step = IndexStep.valueOf(String.valueOf(source.get("step")));
+                            if (expireStartTime <= startTime) {
+                                Collection collection = findById(cluster.getId(), collectionId);
+                                Collection.Launcher launcher = collection.getLauncher();
+                                IndexingStatus indexingStatus = new IndexingStatus();
+                                indexingStatus.setClusterId(cluster.getId());
+                                indexingStatus.setIndex(index);
+                                indexingStatus.setStartTime(startTime);
+                                if (launcher != null) {
+                                    indexingStatus.setIndexingJobId(jobId);
+                                    indexingStatus.setScheme(launcher.getScheme());
+                                    indexingStatus.setHost(launcher.getHost());
+                                    indexingStatus.setPort(launcher.getPort());
+                                }
+                                indexingStatus.setAutoRun(true);
+                                indexingStatus.setCurrentStep(step);
+                                indexingStatus.setNextStep(new ArrayDeque<>());
+                                indexingStatus.setRetry(50);
+                                indexingStatus.setCollection(collection);
+                                if(indexingJobManager.findById(collectionId) == null) {
+                                    indexingJobManager.add(collectionId, indexingStatus, false);
+                                    logger.debug("collection register cluster: {}, job: {}, step: {}", cluster.getName(), collectionId, step);
+                                }
+                            }
                         }
                     } catch (Exception e) {
                         logger.error("[INIT ERROR] ", e);
@@ -144,17 +154,19 @@ public class CollectionService {
 //                                logger.info("initial Scheduling.. cron: 0 {}, ClusterId: {}, CollectionId: {}", cron, cluster.getId(), collection.getId());
                                 scheduled.put(scheduledKey, Objects.requireNonNull(scheduler.schedule(() -> {
                                     try {
-                                        IndexingStatus indexingStatus = indexingJobManager.findById(collection.getId());
+                                        // 변경사항이 있을수 있으므로, 컬렉션 정보를 새로 가져온다.
+                                        Collection registerCollection2 = findById(cluster.getId(), collection.getId());
+                                        IndexingStatus indexingStatus = indexingJobManager.findById(registerCollection2.getId());
                                         if (indexingStatus != null) {
                                             return;
                                         }
                                         Deque<IndexStep> nextStep = new ArrayDeque<>();
                                         nextStep.add(IndexStep.PROPAGATE);
                                         nextStep.add(IndexStep.EXPOSE);
-                                        IndexingStatus status = indexingJobService.indexing(cluster.getId(), collection, true, IndexStep.FULL_INDEX, nextStep);
-                                        indexingJobManager.add(collection.getId(), status);
-                                        logger.debug("enabled scheduled collection: {}", collection.getId());
-                                    } catch (IndexingJobFailureException e) {
+                                        IndexingStatus status = indexingJobService.indexing(cluster.getId(), registerCollection2, true, IndexStep.FULL_INDEX, nextStep);
+                                        indexingJobManager.add(registerCollection2.getId(), status);
+                                        logger.debug("enabled scheduled collection: {}", registerCollection2.getId());
+                                    } catch (IndexingJobFailureException | IOException e) {
                                         logger.error("[INIT ERROR] ", e);
                                     }
                                 }, new CronTrigger("0 " + cron))));
