@@ -157,7 +157,6 @@ public class IndexingStatus implements Serializable {
     @Override
     public String toString() {
         return "IndexingStatus{" +
-                "collection=" + collection +
                 ", scheme='" + scheme + '\'' +
                 ", host='" + host + '\'' +
                 ", port=" + port +
