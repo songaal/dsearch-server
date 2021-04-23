@@ -105,7 +105,7 @@ public class IndexingJobManager {
                     logger.debug("expose success. collection: {}", collection.getId());
                     try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
                         indexingJobService.stopIndexing(indexingStatus.getScheme(), indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId());
-                        deleteLastIndexStatus(client, indexingStatus.getIndex(), indexingStatus.getStartTime());
+                        deleteLastIndexStatus(client, indexingStatus.getIndex(), -1);
                     }catch (Exception e1){
                         logger.error("", e1);
                     }
@@ -432,11 +432,28 @@ public class IndexingJobManager {
     }
     public void deleteLastIndexStatus(RestHighLevelClient client, String index, long startTime) {
         try {
-            client.deleteByQuery(new DeleteByQueryRequest(lastIndexStatusIndex)
-                            .setQuery(new BoolQueryBuilder()
-                                    .must(new MatchQueryBuilder("index", index))
-                                    .must(new MatchQueryBuilder("startTime", startTime)))
-                    , RequestOptions.DEFAULT);
+            logger.debug("deleteLastIndexStatus index: {} , startTime: {}", index, startTime);
+            for (int i = 0; i < 3; i++) {
+                BulkByScrollResponse response;
+                if (startTime > 0) {
+                    response = client.deleteByQuery(new DeleteByQueryRequest(lastIndexStatusIndex)
+                                    .setQuery(new BoolQueryBuilder()
+                                            .must(new MatchQueryBuilder("index", index))
+                                            .must(new MatchQueryBuilder("startTime", startTime)))
+                            , RequestOptions.DEFAULT);
+                } else {
+                    response = client.deleteByQuery(new DeleteByQueryRequest(lastIndexStatusIndex)
+                                    .setQuery(new BoolQueryBuilder()
+                                            .must(new MatchQueryBuilder("index", index)))
+                            , RequestOptions.DEFAULT);
+                }
+                if (response != null && response.getDeleted() == 0) {
+                    Thread.sleep(500);
+                } else {
+                    break;
+                }
+            }
+
         } catch(Exception e) {
             logger.error("deleteLastIndexStatus >> index: {}", index, e);
         }
