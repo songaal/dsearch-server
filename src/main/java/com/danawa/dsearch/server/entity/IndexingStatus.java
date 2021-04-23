@@ -153,4 +153,26 @@ public class IndexingStatus implements Serializable {
     public void setScheme(String scheme) {
         this.scheme = scheme;
     }
+
+    @Override
+    public String toString() {
+        return "IndexingStatus{" +
+                "collection=" + collection +
+                ", scheme='" + scheme + '\'' +
+                ", host='" + host + '\'' +
+                ", port=" + port +
+                ", index='" + index + '\'' +
+                ", indexingJobId='" + indexingJobId + '\'' +
+                ", isAutoRun=" + isAutoRun +
+                ", clusterId=" + clusterId +
+                ", status='" + status + '\'' +
+                ", error='" + error + '\'' +
+                ", startTime=" + startTime +
+                ", endTime=" + endTime +
+                ", action='" + action + '\'' +
+                ", retry=" + retry +
+                ", currentStep=" + currentStep +
+                ", nextStep=" + nextStep +
+                '}';
+    }
 }
