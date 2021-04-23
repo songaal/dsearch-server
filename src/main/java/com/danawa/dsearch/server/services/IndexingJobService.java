@@ -8,14 +8,15 @@ import com.danawa.dsearch.server.entity.IndexingStatus;
 import com.danawa.dsearch.server.excpetions.IndexingJobFailureException;
 import com.danawa.dsearch.indexer.IndexJobManager;
 import com.danawa.dsearch.indexer.entity.Job;
+import com.google.gson.Gson;
+import org.apache.http.util.EntityUtils;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.*;
 import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.MatchQueryBuilder;
@@ -88,7 +89,8 @@ public class IndexingJobService {
 
 //            1. 대상 인덱스 찾기.
             logger.info("clusterId: {}, baseId: {}, 대상 인덱스 찾기", clusterId, collection.getBaseId());
-            Collection.Index index = getTargetIndex(collection.getBaseId(), indexA, indexB);
+//            Collection.Index index = getTargetIndex(collection.getBaseId(), indexA, indexB);
+            Collection.Index index = getTargetIndex(client, collection.getBaseId(), indexA, indexB);
 
 //            2. 인덱스 설정 변경.
 //            editPreparations(client, index); // 이전버전
@@ -387,6 +389,7 @@ public class IndexingJobService {
             Collection.Index indexB = collection.getIndexB();
 //            1. 대상 인덱스 찾기.
             Collection.Index index = getTargetIndex(collection.getBaseId(), indexA, indexB);
+//            Collection.Index index = getTargetIndex(client, collection.getBaseId(), indexA, indexB);
 
 //            2. 인덱스 설정 변경.
             index.setStatus("STOP");
@@ -409,6 +412,45 @@ public class IndexingJobService {
             index = indexA;
         }
         logger.debug("choice Index: {}", index.getIndex());
+        return index;
+    }
+
+
+    private Collection.Index getTargetIndex(RestHighLevelClient client, String baseId, Collection.Index indexA, Collection.Index indexB) {
+        Collection.Index index = indexA;
+        // 인덱스에 대한 alias를 확인
+        if (indexA.getAliases().size() == 0 && indexB.getAliases().size() == 0) {
+            return index;
+        }
+
+        try{
+            RestClient lowLevelClient = client.getLowLevelClient();
+            Request request = new Request("GET", "_cat/aliases");
+            request.addParameter("format", "json");
+            Response response = lowLevelClient.performRequest(request);
+            String entityString = EntityUtils.toString(response.getEntity());
+            List<Map<String, Object>> entityMap = new Gson().fromJson(entityString, List.class);
+
+            for(Map<String, Object> item : entityMap){
+                if(item.get("alias").equals(baseId)){
+                    String currentIndex = (String) item.get("index");
+                    String suffix = currentIndex.substring(currentIndex.length()-2);
+
+                    if(suffix.equals("-a")){
+                        index = indexB;
+                    }else if(suffix.equals("-b")){
+                        index = indexA;
+                    }else{
+                        index = indexA;
+                    }
+                    break;
+                }
+            }
+
+        }catch (IOException e){
+            logger.error("{}", e);
+        }
+
         return index;
     }
 
