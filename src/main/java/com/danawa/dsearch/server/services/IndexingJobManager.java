@@ -384,8 +384,9 @@ public class IndexingJobManager {
             countQuery.filter().add(QueryBuilders.termQuery("index", index));
             countQuery.filter().add(QueryBuilders.termQuery("startTime", startTime));
             countQuery.filter().add(QueryBuilders.termQuery("jobType", jobType));
-            CountResponse countResponse = client.count(new CountRequest(indexHistory).query(countQuery), RequestOptions.DEFAULT);
 
+            CountResponse countResponse = client.count(new CountRequest(indexHistory).query(countQuery), RequestOptions.DEFAULT);
+            logger.debug("addIndexHistory: index: {}, startTime: {}, jobType: {}, result Count: {}", index, startTime, jobType, countResponse.getCount());
             if (countResponse.getCount() == 0) {
                 Map<String, Object> source = new HashMap<>();
                 source.put("index", index);
