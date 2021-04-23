@@ -398,6 +398,7 @@ public class IndexingJobManager {
                 source.put("store", store);
                 client.index(new IndexRequest().index(indexHistory).source(source), RequestOptions.DEFAULT);
             }
+            deleteLastIndexStatus(client, index, startTime);
         } catch(Exception e) {
             logger.error("addIndexHistory >> index: {}", index, e);
         }
