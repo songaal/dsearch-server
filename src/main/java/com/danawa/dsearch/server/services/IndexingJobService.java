@@ -87,7 +87,7 @@ public class IndexingJobService {
             Collection.Index indexB = collection.getIndexB();
 
 //            1. 대상 인덱스 찾기.
-            logger.info("{} 대상 인덱스 찾기", collection.getBaseId());
+            logger.info("clusterId: {}, baseId: {}, 대상 인덱스 찾기", clusterId, collection.getBaseId());
             Collection.Index index = getTargetIndex(collection.getBaseId(), indexA, indexB);
 
 //            2. 인덱스 설정 변경.

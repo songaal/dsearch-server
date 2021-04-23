@@ -134,4 +134,19 @@ public class ClusterController {
         return new ResponseEntity<>(editCluster, HttpStatus.OK);
     }
 
+    @GetMapping("/check")
+    public ResponseEntity<?> check(@RequestHeader(value = "cluster-id") UUID clusterId,
+                                   @RequestParam Boolean flag)  {
+
+        if(flag){
+            // 해당 클러스터의 스케줄 제거
+            logger.info("클러스터 점검 시작, clusterId: {}", clusterId);
+            collectionService.flushSchedule(clusterId);
+        }else{
+            // 해당 클러스터의 스케줄 재 등록
+            logger.info("클러스터 점검 완료, clusterId: {}", clusterId);
+            collectionService.registerSchedule(clusterId);
+        }
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
 }
