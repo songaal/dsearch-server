@@ -103,6 +103,12 @@ public class IndexingJobManager {
                     indexingProcessQueue.put(id, idxStat);
                     jobs.remove(id);
                     logger.debug("expose success. collection: {}", collection.getId());
+                    try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+                        indexingJobService.stopIndexing(indexingStatus.getScheme(), indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId());
+                        deleteLastIndexStatus(client, indexingStatus.getIndex(), indexingStatus.getStartTime());
+                    }catch (Exception e1){
+                        logger.error("", e1);
+                    }
                 }
 
                 if (System.currentTimeMillis() - indexingStatus.getStartTime() >= timeout){
