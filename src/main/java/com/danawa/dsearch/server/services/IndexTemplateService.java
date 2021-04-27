@@ -3,14 +3,14 @@ package com.danawa.dsearch.server.services;
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
 import com.danawa.dsearch.server.entity.Collection;
 import com.danawa.dsearch.server.excpetions.DuplicateException;
+import com.google.gson.Gson;
+import org.apache.http.util.EntityUtils;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.update.UpdateRequest;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.Response;
-import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.*;
 import org.elasticsearch.client.indices.PutIndexTemplateRequest;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.query.BoolQueryBuilder;
@@ -18,16 +18,20 @@ import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
 @Service
 public class IndexTemplateService {
+    private static Logger logger = LoggerFactory.getLogger(IndexTemplateService.class);
 
     private ElasticsearchFactory factory;
     private String commentsIndex;
@@ -55,10 +59,6 @@ public class IndexTemplateService {
             return searchResponse;
         }
     }
-
-
-
-
 
     public void setTemplateComment(UUID clusterId, Map<String, Object> comments) throws IOException {
         try (RestHighLevelClient client = factory.getClient(clusterId)) {
@@ -107,4 +107,50 @@ public class IndexTemplateService {
             }
         }
     }
+
+
+    public String download(UUID clusterId) throws IOException{
+        String templates = "{}";
+        try (RestHighLevelClient client = factory.getClient(clusterId)) {
+            RestClient restClient = client.getLowLevelClient();
+            Request request = new Request("GET", "_template");
+//            request.addParameter("format", "json");
+            Response response = restClient.performRequest(request);
+
+            templates = EntityUtils.toString(response.getEntity());
+        }
+        return templates;
+    }
+
+    public String commentDownload(UUID clusterId) {
+        StringBuffer sb = new StringBuffer();
+        try (RestHighLevelClient client = factory.getClient(clusterId)) {
+            SearchRequest searchRequest = new SearchRequest();
+            searchRequest.indices(commentsIndex).source(new SearchSourceBuilder().query(QueryBuilders.matchAllQuery()).size(10000).from(0));
+            SearchResponse response = client.search(searchRequest, RequestOptions.DEFAULT);
+            SearchHit[] hits = response.getHits().getHits();
+
+            Gson gson = new Gson();
+            int count = 0;
+            for(SearchHit hit : hits){
+                if(count != 0){
+                    sb.append(",\n");
+                }
+                Map<String, Object> body = new HashMap<>();
+                body.put("_index", commentsIndex);
+                body.put("_type", "_doc");
+                body.put("_id", hit.getId());
+                body.put("_score", hit.getScore());
+                body.put("_source", hit.getSourceAsMap());
+                String stringBody = gson.toJson(body);
+                sb.append(stringBody);
+                count++;
+            }
+        } catch (IOException e) {
+            logger.error("{}", e);
+        }
+        return sb.toString();
+    }
+
+
 }

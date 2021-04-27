@@ -680,4 +680,33 @@ public class CollectionService {
         }
     }
 
+    public String download(UUID clusterId){
+        StringBuffer sb = new StringBuffer();
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            SearchRequest searchRequest = new SearchRequest();
+            searchRequest.indices(collectionIndex).source(new SearchSourceBuilder().query(QueryBuilders.matchAllQuery()).size(10000).from(0));
+            SearchResponse response = client.search(searchRequest, RequestOptions.DEFAULT);
+            SearchHit[] hits = response.getHits().getHits();
+
+            Gson gson = new Gson();
+            int count = 0;
+            for(SearchHit hit : hits){
+                if(count != 0){
+                    sb.append(",\n");
+                }
+                Map<String, Object> body = new HashMap<>();
+                body.put("_index", collectionIndex);
+                body.put("_type", "_doc");
+                body.put("_id", hit.getId());
+                body.put("_score", hit.getScore());
+                body.put("_source", hit.getSourceAsMap());
+                String stringBody = gson.toJson(body);
+                sb.append(stringBody);
+                count++;
+            }
+        } catch (IOException e) {
+            logger.error("{}", e);
+        }
+        return sb.toString();
+    }
 }

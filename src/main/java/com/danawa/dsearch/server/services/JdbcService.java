@@ -2,6 +2,7 @@ package com.danawa.dsearch.server.services;
 
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
 import com.danawa.dsearch.server.entity.JdbcRequest;
+import com.google.gson.Gson;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.index.IndexRequest;
@@ -16,6 +17,8 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.slf4j.Logger;
@@ -135,5 +138,35 @@ public class JdbcService {
             UpdateResponse updateResponse = client.update(updateRequest, RequestOptions.DEFAULT);
             return updateResponse;
         }
+    }
+
+    public String download(UUID clusterId){
+        StringBuffer sb = new StringBuffer();
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            SearchRequest searchRequest = new SearchRequest();
+            searchRequest.indices(jdbcIndex).source(new SearchSourceBuilder().query(QueryBuilders.matchAllQuery()).size(10000).from(0));
+            SearchResponse response = client.search(searchRequest, RequestOptions.DEFAULT);
+            SearchHit[] hits = response.getHits().getHits();
+
+            Gson gson = new Gson();
+            int count = 0;
+            for(SearchHit hit : hits){
+                if(count != 0){
+                    sb.append(",\n");
+                }
+                Map<String, Object> body = new HashMap<>();
+                body.put("_index", jdbcIndex);
+                body.put("_type", "_doc");
+                body.put("_id", hit.getId());
+                body.put("_score", hit.getScore());
+                body.put("_source", hit.getSourceAsMap());
+                String stringBody = gson.toJson(body);
+                sb.append(stringBody);
+                count++;
+            }
+        } catch (IOException e) {
+            logger.error("{}", e);
+        }
+        return sb.toString();
     }
 }

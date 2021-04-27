@@ -602,6 +602,10 @@ public class DictionaryService {
                 logger.info("dictionaryName: {}, {} flushed !!",dictName, count);
                 client.bulk(bulkRequest, RequestOptions.DEFAULT);
             }
+
+            br.close();
+            bis.close();
+            in.close();
         }catch (IOException e){
             result.put("result", false);
             result.put("message", "IOException");
