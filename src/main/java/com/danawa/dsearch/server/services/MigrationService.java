@@ -133,9 +133,9 @@ public class MigrationService {
             result.put("result", true);
             result.put("message", "success");
         }catch (IOException e){
-            logger.info("{}", e);
+            logger.info("{}", e.getMessage());
             result.put("result", false);
-            result.put("message", "failed IOException");
+            result.put("message", e.getMessage());
         }
 
         return result;
