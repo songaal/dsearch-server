@@ -5,6 +5,7 @@ import com.danawa.dsearch.server.entity.*;
 import com.danawa.dsearch.server.entity.Collection;
 import com.danawa.dsearch.server.excpetions.DuplicateException;
 import com.danawa.dsearch.server.excpetions.IndexingJobFailureException;
+import com.danawa.dsearch.server.utils.JsonUtils;
 import com.google.gson.Gson;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
@@ -680,15 +681,19 @@ public class CollectionService {
         }
     }
 
-    public String download(UUID clusterId){
+    public String download(UUID clusterId, Map<String, Object> message){
         StringBuffer sb = new StringBuffer();
+        Map<String, Object> collection = new HashMap<>();
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             SearchRequest searchRequest = new SearchRequest();
             searchRequest.indices(collectionIndex).source(new SearchSourceBuilder().query(QueryBuilders.matchAllQuery()).size(10000).from(0));
             SearchResponse response = client.search(searchRequest, RequestOptions.DEFAULT);
             SearchHit[] hits = response.getHits().getHits();
 
-            Gson gson = new Gson();
+            collection.put("result", true);
+            collection.put("count", hits.length);
+
+            Gson gson = JsonUtils.createCustomGson();
             int count = 0;
             for(SearchHit hit : hits){
                 if(count != 0){
@@ -705,8 +710,12 @@ public class CollectionService {
                 count++;
             }
         } catch (IOException e) {
+            collection.put("result", false);
+            collection.put("count", 0);
+            collection.put("message", e.getMessage());
             logger.error("{}", e);
         }
+        message.put("collection", collection);
         return sb.toString();
     }
 }

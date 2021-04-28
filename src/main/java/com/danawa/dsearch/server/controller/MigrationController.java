@@ -3,6 +3,7 @@ package com.danawa.dsearch.server.controller;
 
 import com.danawa.dsearch.server.entity.Cluster;
 import com.danawa.dsearch.server.services.*;
+import com.danawa.dsearch.server.utils.JsonUtils;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.TypeAdapter;
@@ -75,40 +76,53 @@ public class MigrationController {
         logger.info("clusterId: {}, pipeline: {}, collections: {}, jdbc: {}, templates: {}, comments: {}", clusterId, pipeline, collection, jdbc, templates, comments);
         Cluster cluster = clusterService.find(clusterId);
 
+        Map<String, Object> message = new HashMap<>();
         HttpHeaders headers = new HttpHeaders();
         StringBuilder sb = new StringBuilder();
         sb.append("{\n");
 
         boolean firstFlag = false;
         if(pipeline){
-            sb.append("\"pipeline\": " + pipelineService.download(clusterId));
+            sb.append("\"pipeline\": " + pipelineService.download(clusterId, message));
             firstFlag = true;
         }
 
         if(collection){
             if(firstFlag) { sb.append(",\n"); }
-            sb.append("\"collection\": [" + collectionService.download(clusterId) + "]");
+            sb.append("\"collection\": [" + collectionService.download(clusterId, message) + "]");
             firstFlag = true;
         }
 
         if(jdbc){
             if(firstFlag) {sb.append(",\n"); }
-            sb.append("\"jdbc\": [" + jdbcService.download(clusterId) + "]");
+            sb.append("\"jdbc\": [" + jdbcService.download(clusterId, message) + "]");
             firstFlag = true;
         }
 
         if(templates){
             if(firstFlag) {sb.append(",\n"); }
-            sb.append("\"templates\": " + indexTemplateService.download(clusterId));
+            sb.append("\"templates\": " + indexTemplateService.download(clusterId, message));
             firstFlag = true;
         }
 
         if(comments){
             if(firstFlag) {sb.append(",\n");}
-            sb.append("\"comments\": [" + indexTemplateService.commentDownload(clusterId) + "]");
+            sb.append("\"comments\": [" + indexTemplateService.commentDownload(clusterId, message) + "]");
+            firstFlag = true;
+        }
+
+        Gson gson = JsonUtils.createCustomGson();
+        String result = gson.toJson(message);
+
+        if(firstFlag) {
+            sb.append(",\n");
+            sb.append("\"result\": " + result);
+        }else{
+            sb.append("\"result\": " + result);
         }
 
         sb.append("\n}");
+
         headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=dsearch-"+ cluster.getName()+ "-backup.txt");
         return new ResponseEntity<>(sb, headers, HttpStatus.OK);
     }

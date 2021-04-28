@@ -2,6 +2,7 @@ package com.danawa.dsearch.server.services;
 
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
 import com.danawa.dsearch.server.entity.DictionarySetting;
+import com.danawa.dsearch.server.utils.JsonUtils;
 import com.google.gson.Gson;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.action.bulk.BulkRequest;
@@ -85,13 +86,20 @@ public class PipelineService {
         }
     }
 
-    public String download(UUID clusterId) throws IOException{
+    public String download(UUID clusterId, Map<String, Object> message) throws IOException{
         // 1. 파이프라인 조회
         Response response = getPipeLineLists(clusterId);
 
         // 2. 파이프라인 json 형태로 변경
         StringBuffer sb = new StringBuffer();
         String pipelines = EntityUtils.toString(response.getEntity());
+
+        Gson gson = JsonUtils.createCustomGson();
+        Map<String, Object> pipelineMap = gson.fromJson(pipelines, Map.class);
+        Map<String, Object> result = new HashMap<>();
+        result.put("result", true);
+        result.put("count", pipelineMap.size());
+        message.put("pipeline", result);
 
         return pipelines;
     }

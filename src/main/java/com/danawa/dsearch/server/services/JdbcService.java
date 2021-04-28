@@ -2,6 +2,7 @@ package com.danawa.dsearch.server.services;
 
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
 import com.danawa.dsearch.server.entity.JdbcRequest;
+import com.danawa.dsearch.server.utils.JsonUtils;
 import com.google.gson.Gson;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
@@ -140,15 +141,19 @@ public class JdbcService {
         }
     }
 
-    public String download(UUID clusterId){
+    public String download(UUID clusterId, Map<String, Object> message){
         StringBuffer sb = new StringBuffer();
+        Map<String, Object> jdbc = new HashMap<>();
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             SearchRequest searchRequest = new SearchRequest();
             searchRequest.indices(jdbcIndex).source(new SearchSourceBuilder().query(QueryBuilders.matchAllQuery()).size(10000).from(0));
             SearchResponse response = client.search(searchRequest, RequestOptions.DEFAULT);
             SearchHit[] hits = response.getHits().getHits();
 
-            Gson gson = new Gson();
+            Gson gson = JsonUtils.createCustomGson();
+
+            jdbc.put("result", true);
+            jdbc.put("count", hits.length);
             int count = 0;
             for(SearchHit hit : hits){
                 if(count != 0){
@@ -165,8 +170,12 @@ public class JdbcService {
                 count++;
             }
         } catch (IOException e) {
+            jdbc.put("result", false);
+            jdbc.put("count", 0);
+            jdbc.put("message", e.getMessage());
             logger.error("{}", e);
         }
+        message.put("jdbc", jdbc);
         return sb.toString();
     }
 }

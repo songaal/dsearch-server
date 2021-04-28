@@ -3,6 +3,7 @@ package com.danawa.dsearch.server.services;
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
 import com.danawa.dsearch.server.entity.Collection;
 import com.danawa.dsearch.server.excpetions.DuplicateException;
+import com.danawa.dsearch.server.utils.JsonUtils;
 import com.google.gson.Gson;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.action.index.IndexRequest;
@@ -109,7 +110,7 @@ public class IndexTemplateService {
     }
 
 
-    public String download(UUID clusterId) throws IOException{
+    public String download(UUID clusterId, Map<String, Object> message) throws IOException{
         String templates = "{}";
         try (RestHighLevelClient client = factory.getClient(clusterId)) {
             RestClient restClient = client.getLowLevelClient();
@@ -119,18 +120,29 @@ public class IndexTemplateService {
 
             templates = EntityUtils.toString(response.getEntity());
         }
+
+        Gson gson = JsonUtils.createCustomGson();
+        Map<String, Object> templateMap = gson.fromJson(templates, Map.class);
+        Map<String, Object> result = new HashMap<>();
+        result.put("result", true);
+        result.put("count", templateMap.size());
+        message.put("templates", result);
         return templates;
     }
 
-    public String commentDownload(UUID clusterId) {
+    public String commentDownload(UUID clusterId, Map<String, Object> message) {
         StringBuffer sb = new StringBuffer();
+        Map<String, Object> comments = new HashMap<>();
         try (RestHighLevelClient client = factory.getClient(clusterId)) {
             SearchRequest searchRequest = new SearchRequest();
             searchRequest.indices(commentsIndex).source(new SearchSourceBuilder().query(QueryBuilders.matchAllQuery()).size(10000).from(0));
             SearchResponse response = client.search(searchRequest, RequestOptions.DEFAULT);
             SearchHit[] hits = response.getHits().getHits();
 
-            Gson gson = new Gson();
+            comments.put("result", true);
+            comments.put("count", hits.length);
+
+            Gson gson = JsonUtils.createCustomGson();
             int count = 0;
             for(SearchHit hit : hits){
                 if(count != 0){
@@ -147,8 +159,13 @@ public class IndexTemplateService {
                 count++;
             }
         } catch (IOException e) {
+            comments.put("result", false);
+            comments.put("count", 0);
+            comments.put("message", e.getMessage());
             logger.error("{}", e);
         }
+
+        message.put("comments", comments);
         return sb.toString();
     }
 

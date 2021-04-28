@@ -1,6 +1,7 @@
 package com.danawa.dsearch.server.services;
 
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
+import com.danawa.dsearch.server.utils.JsonUtils;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.TypeAdapter;
@@ -39,8 +40,7 @@ public class MigrationService {
             InputStream in = file.getInputStream();
             BufferedInputStream bis = new BufferedInputStream(in);
             BufferedReader br = new BufferedReader(new InputStreamReader(bis));
-            CustomGsonAdapter adapter = new CustomGsonAdapter();
-            Gson gson = new GsonBuilder().registerTypeAdapter(Map.class, adapter).create();
+            Gson gson = JsonUtils.createCustomGson();
 
             String line = null;
             StringBuilder sb = new StringBuilder();
@@ -49,6 +49,16 @@ public class MigrationService {
             }
 
             Map<String, Object> body = gson.fromJson(sb.toString(), Map.class);
+            if(body.get("pipeline") == null && body.get("collection") == null
+                    && body.get("jdbc") == null
+                    && body.get("templates") == null
+                    && body.get("comments") == null){
+
+                result.put("result", false);
+                result.put("message", "Uploaded File is not Correct Format");
+                logger.info("{} is not correct file uploaded", clusterId);
+                return result;
+            }
 
             // 1. 파이프라인
             Map<String, Object> pipelines = (Map<String, Object>) body.get("pipeline");
@@ -173,57 +183,5 @@ public class MigrationService {
             }
         }
         return result;
-    }
-
-
-    private class CustomGsonAdapter extends TypeAdapter<Object> {
-        private final TypeAdapter<Object> delegate = new Gson().getAdapter(Object.class);
-
-        @Override
-        public void write(JsonWriter out, Object value) throws IOException {
-            delegate.write(out, value);
-        }
-
-        @Override
-        public Object read(JsonReader in) throws IOException {
-            JsonToken token = in.peek();
-            switch (token) {
-                case BEGIN_ARRAY:
-                    List<Object> list = new ArrayList<Object>();
-                    in.beginArray();
-                    while (in.hasNext()) {
-                        list.add(read(in));
-                    }
-                    in.endArray();
-                    return list;
-
-                case BEGIN_OBJECT:
-                    Map<String, Object> map = new LinkedTreeMap<String, Object>();
-                    in.beginObject();
-                    while (in.hasNext()) {
-                        map.put(in.nextName(), read(in));
-                    }
-                    in.endObject();
-                    return map;
-
-                case STRING:
-                    return in.nextString();
-
-                case NUMBER:
-                    //return in.nextDouble();
-                    String n = in.nextString();
-                    if (n.indexOf('.') != -1) {
-                        return Double.parseDouble(n);
-                    }
-                    return Long.parseLong(n);
-                case BOOLEAN:
-                    return in.nextBoolean();
-                case NULL:
-                    in.nextNull();
-                    return null;
-                default:
-                    throw new IllegalStateException();
-            }
-        }
     }
 }
