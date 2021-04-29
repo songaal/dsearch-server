@@ -97,10 +97,27 @@ public class PipelineService {
         Gson gson = JsonUtils.createCustomGson();
         Map<String, Object> pipelineMap = gson.fromJson(pipelines, Map.class);
         Map<String, Object> result = new HashMap<>();
+        List<String> list = new ArrayList<>();
+        List<String> keys = new ArrayList<>();
+        for(String key : pipelineMap.keySet()){
+            if(key.startsWith("xpack")){
+                keys.add(key);
+            }
+        }
+
+        for(String key: keys){
+            pipelineMap.remove(key);
+        }
+
+        for(String key : pipelineMap.keySet()){
+            list.add(key);
+        }
+
         result.put("result", true);
         result.put("count", pipelineMap.size());
-        message.put("pipeline", result);
+        result.put("list", list);
 
-        return pipelines;
+        message.put("pipeline", result);
+        return gson.toJson(pipelineMap);
     }
 }

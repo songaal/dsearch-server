@@ -690,8 +690,7 @@ public class CollectionService {
             SearchResponse response = client.search(searchRequest, RequestOptions.DEFAULT);
             SearchHit[] hits = response.getHits().getHits();
 
-            collection.put("result", true);
-            collection.put("count", hits.length);
+            List<String> list = new ArrayList<>();
 
             Gson gson = JsonUtils.createCustomGson();
             int count = 0;
@@ -705,14 +704,21 @@ public class CollectionService {
                 body.put("_id", hit.getId());
                 body.put("_score", hit.getScore());
                 body.put("_source", hit.getSourceAsMap());
+                list.add(hit.getSourceAsMap().get("baseId") + "");
+//                list.add(hit.getSourceAsMap().get("name") + " [" + hit.getSourceAsMap().get("baseId") + "]");
                 String stringBody = gson.toJson(body);
                 sb.append(stringBody);
                 count++;
             }
+            collection.put("result", true);
+            collection.put("count", hits.length);
+            collection.put("list", list);
+
         } catch (IOException e) {
             collection.put("result", false);
             collection.put("count", 0);
             collection.put("message", e.getMessage());
+            collection.put("list", new ArrayList<>());
             logger.error("{}", e);
         }
         message.put("collection", collection);

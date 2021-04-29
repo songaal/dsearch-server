@@ -117,17 +117,26 @@ public class IndexTemplateService {
             Request request = new Request("GET", "_template");
 //            request.addParameter("format", "json");
             Response response = restClient.performRequest(request);
-
             templates = EntityUtils.toString(response.getEntity());
         }
 
+        List<String> list = new ArrayList<>();
+
         Gson gson = JsonUtils.createCustomGson();
-        Map<String, Object> templateMap = gson.fromJson(templates, Map.class);
+        Map<String, Object> templateAllMap = gson.fromJson(templates, Map.class);
+        Map<String, Object> templateMap = new HashMap<>();
+        for(String key: templateAllMap.keySet()){
+            if(!key.startsWith(".")){
+                templateMap.put(key, templateAllMap.get(key));
+                list.add(key);
+            }
+        }
         Map<String, Object> result = new HashMap<>();
         result.put("result", true);
         result.put("count", templateMap.size());
+        result.put("list", list);
         message.put("templates", result);
-        return templates;
+        return gson.toJson(templateMap);
     }
 
     public String commentDownload(UUID clusterId, Map<String, Object> message) {
@@ -139,8 +148,7 @@ public class IndexTemplateService {
             SearchResponse response = client.search(searchRequest, RequestOptions.DEFAULT);
             SearchHit[] hits = response.getHits().getHits();
 
-            comments.put("result", true);
-            comments.put("count", hits.length);
+            List<String> list = new ArrayList<>();
 
             Gson gson = JsonUtils.createCustomGson();
             int count = 0;
@@ -154,14 +162,20 @@ public class IndexTemplateService {
                 body.put("_id", hit.getId());
                 body.put("_score", hit.getScore());
                 body.put("_source", hit.getSourceAsMap());
+                list.add(hit.getSourceAsMap().get("name") + "");
                 String stringBody = gson.toJson(body);
                 sb.append(stringBody);
                 count++;
             }
+
+            comments.put("result", true);
+            comments.put("count", hits.length);
+            comments.put("list", list);
         } catch (IOException e) {
             comments.put("result", false);
             comments.put("count", 0);
             comments.put("message", e.getMessage());
+            comments.put("list", new ArrayList<>());
             logger.error("{}", e);
         }
 

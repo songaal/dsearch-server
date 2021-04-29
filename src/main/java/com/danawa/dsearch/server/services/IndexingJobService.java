@@ -471,12 +471,13 @@ public class IndexingJobService {
                 tmp.remove("index.routing.allocation.include.role");
                 tmp.remove("index.routing.allocation.exclude.role");
                 logger.info("ES 인덱스 없을 시, Createing indexing settings >>> {}", tmp);
-
+                logger.info("{}", index.getIndex());
 //                client.indices().create(new CreateIndexRequest("test-role").settings(tmp), RequestOptions.DEFAULT).isAcknowledged();
                 isAcknowledged = client.indices().create(new CreateIndexRequest(index.getIndex()).settings(tmp), RequestOptions.DEFAULT).isAcknowledged();
             }else{
                 indexing.replace("index.routing.allocation.include.role", "index");
                 indexing.replace("index.routing.allocation.exclude.role", "");
+                logger.info("{}", index.getIndex());
                 logger.info("ES 인덱스 없을 시, indexing settings >>> {}", indexing);
                 isAcknowledged = client.indices().create(new CreateIndexRequest(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
             }

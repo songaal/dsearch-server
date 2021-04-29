@@ -70,10 +70,9 @@ public class MigrationController {
                                       @RequestParam("pipeline") boolean pipeline,
                                       @RequestParam("collection") boolean collection,
                                       @RequestParam("jdbc") boolean jdbc,
-                                      @RequestParam("templates") boolean templates,
-                                      @RequestParam("comments") boolean comments) throws IOException {
+                                      @RequestParam("templates") boolean templates) throws IOException {
 
-        logger.info("clusterId: {}, pipeline: {}, collections: {}, jdbc: {}, templates: {}, comments: {}", clusterId, pipeline, collection, jdbc, templates, comments);
+        logger.info("clusterId: {}, pipeline: {}, collections: {}, jdbc: {}, templates: {}, comments: {}", clusterId, pipeline, collection, jdbc, templates);
         Cluster cluster = clusterService.find(clusterId);
 
         Map<String, Object> message = new HashMap<>();
@@ -102,29 +101,18 @@ public class MigrationController {
         if(templates){
             if(firstFlag) {sb.append(",\n"); }
             sb.append("\"templates\": " + indexTemplateService.download(clusterId, message));
-            firstFlag = true;
-        }
-
-        if(comments){
-            if(firstFlag) {sb.append(",\n");}
+            sb.append(",\n");
             sb.append("\"comments\": [" + indexTemplateService.commentDownload(clusterId, message) + "]");
             firstFlag = true;
         }
 
         Gson gson = JsonUtils.createCustomGson();
-        String result = gson.toJson(message);
-
-        if(firstFlag) {
-            sb.append(",\n");
-            sb.append("\"result\": " + result);
-        }else{
-            sb.append("\"result\": " + result);
-        }
-
+        if(firstFlag) {sb.append(",\n"); }
+        sb.append("\"result\": " + gson.toJson(message));
         sb.append("\n}");
 
         headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=dsearch-"+ cluster.getName()+ "-backup.txt");
-        return new ResponseEntity<>(sb, headers, HttpStatus.OK);
+        return new ResponseEntity<>(sb.toString(), headers, HttpStatus.OK);
     }
 
     @PostMapping("/upload")

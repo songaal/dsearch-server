@@ -150,10 +150,9 @@ public class JdbcService {
             SearchResponse response = client.search(searchRequest, RequestOptions.DEFAULT);
             SearchHit[] hits = response.getHits().getHits();
 
+            List<String> list = new ArrayList<>();
             Gson gson = JsonUtils.createCustomGson();
 
-            jdbc.put("result", true);
-            jdbc.put("count", hits.length);
             int count = 0;
             for(SearchHit hit : hits){
                 if(count != 0){
@@ -165,14 +164,19 @@ public class JdbcService {
                 body.put("_id", hit.getId());
                 body.put("_score", hit.getScore());
                 body.put("_source", hit.getSourceAsMap());
+                list.add(hit.getSourceAsMap().get("id") + " [" + hit.getSourceAsMap().get("name") + "]");
                 String stringBody = gson.toJson(body);
                 sb.append(stringBody);
                 count++;
             }
+            jdbc.put("result", true);
+            jdbc.put("count", hits.length);
+            jdbc.put("list", list);
         } catch (IOException e) {
             jdbc.put("result", false);
             jdbc.put("count", 0);
             jdbc.put("message", e.getMessage());
+            jdbc.put("list", new ArrayList<>());
             logger.error("{}", e);
         }
         message.put("jdbc", jdbc);
