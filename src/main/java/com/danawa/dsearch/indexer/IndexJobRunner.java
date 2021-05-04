@@ -284,6 +284,18 @@ public class IndexJobRunner implements Runnable {
 
 //                프로시저 -> multiThread
 //                rsync ->  singleThread -> 1개 씩
+                // 폴더 생성
+                logger.info("File path: {}", path);
+                File file = new File(path);
+                if(!file.exists()){
+                    boolean result = file.mkdir();
+                    if(result){
+                        logger.info("{} mkdir!!", path);
+                    }else{
+                        logger.info("{} mkdir failed..", path);
+                    }
+                }
+
                 if(rsyncSkip == false){
                     ExecutorService threadPool = Executors.newFixedThreadPool(Integer.parseInt(procedureThreads));
                     List threadsResults2 = new ArrayList<Future<Object>>();
@@ -304,6 +316,18 @@ public class IndexJobRunner implements Runnable {
                                     execProdure = procedureMap.get(groupSeq);
                                 }
                                 logger.info("execProdure : {}",execProdure);
+
+                                //덤프파일 이름
+                                File file = new File(path + "/" + dumpFileName);
+                                logger.info("fila path: {}", path + "/" + dumpFileName);
+
+                                if (file.exists()) {
+                                    logger.info("기존 파일 삭제 : {}", file);
+                                    file.delete();
+                                }else{
+                                    logger.info("기존 파일을 찾을수 없음: {}", file);
+                                }
+
                                 RSync rsync = new RSync()
                                         .source(rsyncIp+"::" + rsyncPath+"/linkExt_"+groupSeqNumber)
                                         .destination(path)
@@ -312,12 +336,6 @@ public class IndexJobRunner implements Runnable {
                                         .compress(true)
                                         .bwlimit(bwlimit)
                                         .inplace(true);
-
-                                File file = new File(path +"/linkExt_"+groupSeqNumber);
-                                if (file.exists()) {
-                                    logger.info("기존 파일 삭제 : {}", file);
-                                    file.delete();
-                                }
 
                                 //프로시저 결과 True, R 스킵X or 프로시저 스킵 and rsync 스킵X
                                 if((execProdure && rsyncSkip == false) || (procedureSkip && rsyncSkip == false)) {
