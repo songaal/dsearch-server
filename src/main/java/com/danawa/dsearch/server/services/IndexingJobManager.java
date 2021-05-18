@@ -102,7 +102,7 @@ public class IndexingJobManager {
                     idxStat.setEndTime(System.currentTimeMillis());
                     indexingProcessQueue.put(id, idxStat);
                     jobs.remove(id);
-                    logger.debug("expose success. collection: {}", collection.getId());
+                    logger.info("Expose Success. id: {}, collection: {}, indexingStatus: {}", id, collection.getId(), indexingStatus.toString());
                     try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
                         indexingJobService.stopIndexing(indexingStatus.getScheme(), indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId());
                         deleteLastIndexStatus(client, indexingStatus.getIndex(), -1);
@@ -272,6 +272,7 @@ public class IndexingJobManager {
 
             IndexStep nextStep = indexingStatus.getNextStep().poll();
             if ("SUCCESS".equalsIgnoreCase(status) && nextStep != null) {
+                logger.info("Indexing {}, id: {}, indexingStatus: {}", status, id, indexingStatus.toString());
                 // 다음 작업이 있을 경우.
                 indexingStatus = indexingJobService.propagate(clusterId, true, indexingStatus.getCollection(), indexingStatus.getNextStep(), index);
                 addLastIndexStatus(clusterId, indexingStatus.getCollection().getId(), index, indexingStatus.getStartTime(), "RUNNING", indexingStatus.getCurrentStep().name(), id);
@@ -283,6 +284,7 @@ public class IndexingJobManager {
 //                indexingProcessQueue.put(id, idxStat);
                 logger.debug("next Step >> {}", nextStep);
             } else if ("ERROR".equalsIgnoreCase(status) || "STOP".equalsIgnoreCase(status)) {
+                logger.info("Indexing {}, id: {}, indexingStatus: {}", status, id, indexingStatus.toString());
                 indexingJobService.expose(clusterId, indexingStatus.getCollection());
             } else {
                 // 다음 작업이 없으면 제거.
@@ -336,7 +338,7 @@ public class IndexingJobManager {
                 deleteLastIndexStatus(client, index, startTime);
                 addIndexHistory(client, index, step.name(), startTime, System.currentTimeMillis(), indexingStatus.isAutoRun(), docSize, "SUCCESS", store);
 
-                logger.info("PROPAGATE Success");
+                logger.info("PROPAGATE Success, id: {}, indexingStatus: {}", id, indexingStatus.toString());
 
                 IndexStep nextStep = indexingStatus.getNextStep().poll();
                 if (nextStep != null) {

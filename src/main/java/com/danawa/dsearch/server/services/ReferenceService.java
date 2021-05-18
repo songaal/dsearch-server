@@ -6,16 +6,19 @@ import com.danawa.dsearch.server.entity.ReferenceOrdersRequest;
 import com.danawa.dsearch.server.entity.ReferenceResult;
 import com.danawa.dsearch.server.entity.ReferenceTemp;
 import com.danawa.dsearch.server.utils.JsonUtils;
+import com.google.gson.Gson;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.*;
+import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
@@ -31,7 +34,7 @@ import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
 @Service
 public class ReferenceService {
-    private static Logger logger = LoggerFactory.getLogger(DictionaryService.class);
+    private static Logger logger = LoggerFactory.getLogger(ReferenceService.class);
 
     private String referenceIndex;
     private final String REFERENCE_INDEX_JSON = "reference.json";
@@ -229,5 +232,32 @@ public class ReferenceService {
 
             }
         }
+    }
+
+    public String download(UUID clusterId){
+        StringBuffer sb = new StringBuffer();
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            SearchRequest searchRequest = new SearchRequest();
+            searchRequest.indices(referenceIndex).source(new SearchSourceBuilder().query(QueryBuilders.matchAllQuery()).size(10000).from(0));
+            SearchResponse response = client.search(searchRequest, RequestOptions.DEFAULT);
+            SearchHit[] hits = response.getHits().getHits();
+
+            Gson gson = new Gson();
+            for(SearchHit hit : hits){
+                Map<String, Object> body = new HashMap<>();
+                body.put("_index", referenceIndex);
+                body.put("_type", "_doc");
+                body.put("_id", hit.getId());
+                body.put("_score", hit.getScore());
+                body.put("_source", hit.getSourceAsMap());
+                String stringBody = gson.toJson(body);
+                logger.info("{}", stringBody);
+                sb.append(stringBody);
+                sb.append("\n");
+            }
+        } catch (IOException e) {
+            logger.error("{}", e);
+        }
+        return sb.toString();
     }
 }

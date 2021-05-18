@@ -2,9 +2,11 @@ package com.danawa.dsearch.server.controller;
 
 import com.danawa.dsearch.server.services.IndexTemplateService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -31,4 +33,5 @@ public class IndexTemplateController {
         service.setTemplateComment(clusterId, map);
         return new ResponseEntity<>(HttpStatus.OK);
     }
+
 }

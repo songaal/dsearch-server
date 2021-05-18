@@ -5,6 +5,7 @@ import com.danawa.dsearch.server.entity.*;
 import com.danawa.dsearch.server.entity.Collection;
 import com.danawa.dsearch.server.excpetions.DuplicateException;
 import com.danawa.dsearch.server.excpetions.IndexingJobFailureException;
+import com.danawa.dsearch.server.utils.JsonUtils;
 import com.google.gson.Gson;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
@@ -629,5 +630,98 @@ public class CollectionService {
             }
         }
         return result;
+    }
+
+
+    public void flushSchedule(UUID clusterId){
+        for( String key : scheduled.keySet()){
+            if(key.contains(clusterId.toString())){
+                logger.info("스케줄 제거, clusterId: {}, scheduled key: {}", clusterId, key);
+                scheduled.get(key).cancel(true);
+                scheduled.remove(key);
+            }
+        }
+    }
+
+    public void registerSchedule(UUID clusterId){
+        try {
+//                2. 컬렉션의 스케쥴이 enabled 이면 다시 스케쥴을 등록한다.
+            List<Collection> collectionList = findAll(clusterId);
+            if (collectionList != null) {
+                collectionList.forEach(collection -> {
+                    try {
+                        if(collection.isScheduled()) {
+                            String cron = collection.getCron();
+                            String scheduledKey = String.format("%s-%s", clusterId, collection.getId());
+                            logger.info("스케줄 재등록, cron: 0 {}, clusterId: {}, collectionId: {}, schedule key: {}", cron, clusterId, collection.getId(), scheduledKey);
+                            scheduled.put(scheduledKey, Objects.requireNonNull(scheduler.schedule(() -> {
+                                try {
+                                    IndexingStatus indexingStatus = indexingJobManager.findById(collection.getId());
+                                    if (indexingStatus != null) {
+                                        return;
+                                    }
+                                    Deque<IndexStep> nextStep = new ArrayDeque<>();
+                                    nextStep.add(IndexStep.PROPAGATE);
+                                    nextStep.add(IndexStep.EXPOSE);
+                                    IndexingStatus status = indexingJobService.indexing(clusterId, collection, true, IndexStep.FULL_INDEX, nextStep);
+                                    indexingJobManager.add(collection.getId(), status);
+                                    logger.debug("enabled scheduled collection: {}", collection.getId());
+                                } catch (IndexingJobFailureException e) {
+                                    logger.error("[Register schedule ERROR] ", e);
+                                }
+                            }, new CronTrigger("0 " + cron))));
+                        }
+                    } catch (Exception e) {
+                        logger.error("[Register schedule ERROR] ", e);
+                    }
+                });
+            }
+        } catch (Exception e) {
+            logger.error("[Register schedule ERROR]", e);
+        }
+    }
+
+    public String download(UUID clusterId, Map<String, Object> message){
+        StringBuffer sb = new StringBuffer();
+        Map<String, Object> collection = new HashMap<>();
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            SearchRequest searchRequest = new SearchRequest();
+            searchRequest.indices(collectionIndex).source(new SearchSourceBuilder().query(QueryBuilders.matchAllQuery()).size(10000).from(0));
+            SearchResponse response = client.search(searchRequest, RequestOptions.DEFAULT);
+            SearchHit[] hits = response.getHits().getHits();
+
+            List<String> list = new ArrayList<>();
+
+            Gson gson = JsonUtils.createCustomGson();
+            int count = 0;
+            for(SearchHit hit : hits){
+                if(count != 0){
+                    sb.append(",\n");
+                }
+                Map<String, Object> body = new HashMap<>();
+                body.put("_index", collectionIndex);
+                body.put("_type", "_doc");
+                body.put("_id", hit.getId());
+                body.put("_score", hit.getScore());
+                body.put("_source", hit.getSourceAsMap());
+                list.add(hit.getSourceAsMap().get("baseId") + "");
+//                list.add(hit.getSourceAsMap().get("name") + " [" + hit.getSourceAsMap().get("baseId") + "]");
+                String stringBody = gson.toJson(body);
+                sb.append(stringBody);
+                count++;
+            }
+            collection.put("result", true);
+            collection.put("count", hits.length);
+            collection.put("list", list);
+
+        } catch (IOException e) {
+            collection.put("result", false);
+            collection.put("count", 0);
+            collection.put("message", e.getMessage());
+            collection.put("list", new ArrayList<>());
+            logger.error("{}", e);
+        }
+        message.put("collection", collection);
+        return sb.toString();
     }
 }

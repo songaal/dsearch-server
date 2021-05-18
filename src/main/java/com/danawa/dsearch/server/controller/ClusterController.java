@@ -8,9 +8,11 @@ import com.danawa.dsearch.server.services.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.*;
@@ -134,4 +136,19 @@ public class ClusterController {
         return new ResponseEntity<>(editCluster, HttpStatus.OK);
     }
 
+    @GetMapping("/check")
+    public ResponseEntity<?> check(@RequestHeader(value = "cluster-id") UUID clusterId,
+                                   @RequestParam Boolean flag)  {
+
+        if(flag){
+            // 해당 클러스터의 스케줄 제거
+            logger.info("클러스터 점검 시작, clusterId: {}", clusterId);
+            collectionService.flushSchedule(clusterId);
+        }else{
+            // 해당 클러스터의 스케줄 재 등록
+            logger.info("클러스터 점검 완료, clusterId: {}", clusterId);
+            collectionService.registerSchedule(clusterId);
+        }
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
 }

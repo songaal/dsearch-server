@@ -8,14 +8,15 @@ import com.danawa.dsearch.server.entity.IndexingStatus;
 import com.danawa.dsearch.server.excpetions.IndexingJobFailureException;
 import com.danawa.fastcatx.indexer.IndexJobManager;
 import com.danawa.fastcatx.indexer.entity.Job;
+import com.google.gson.Gson;
+import org.apache.http.util.EntityUtils;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.*;
 import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.MatchQueryBuilder;
@@ -87,8 +88,9 @@ public class IndexingJobService {
             Collection.Index indexB = collection.getIndexB();
 
 //            1. 대상 인덱스 찾기.
-            logger.info("{} 대상 인덱스 찾기", collection.getBaseId());
-            Collection.Index index = getTargetIndex(collection.getBaseId(), indexA, indexB);
+            logger.info("clusterId: {}, baseId: {}, 대상 인덱스 찾기", clusterId, collection.getBaseId());
+//            Collection.Index index = getTargetIndex(collection.getBaseId(), indexA, indexB);
+            Collection.Index index = getTargetIndex(client, collection.getBaseId(), indexA, indexB);
 
 //            2. 인덱스 설정 변경.
 //            editPreparations(client, index); // 이전버전
@@ -387,6 +389,7 @@ public class IndexingJobService {
             Collection.Index indexB = collection.getIndexB();
 //            1. 대상 인덱스 찾기.
             Collection.Index index = getTargetIndex(collection.getBaseId(), indexA, indexB);
+//            Collection.Index index = getTargetIndex(client, collection.getBaseId(), indexA, indexB);
 
 //            2. 인덱스 설정 변경.
             index.setStatus("STOP");
@@ -412,6 +415,45 @@ public class IndexingJobService {
         return index;
     }
 
+
+    private Collection.Index getTargetIndex(RestHighLevelClient client, String baseId, Collection.Index indexA, Collection.Index indexB) {
+        Collection.Index index = indexA;
+        // 인덱스에 대한 alias를 확인
+        if (indexA.getAliases().size() == 0 && indexB.getAliases().size() == 0) {
+            return index;
+        }
+
+        try{
+            RestClient lowLevelClient = client.getLowLevelClient();
+            Request request = new Request("GET", "_cat/aliases");
+            request.addParameter("format", "json");
+            Response response = lowLevelClient.performRequest(request);
+            String entityString = EntityUtils.toString(response.getEntity());
+            List<Map<String, Object>> entityMap = new Gson().fromJson(entityString, List.class);
+
+            for(Map<String, Object> item : entityMap){
+                if(item.get("alias").equals(baseId)){
+                    String currentIndex = (String) item.get("index");
+                    String suffix = currentIndex.substring(currentIndex.length()-2);
+
+                    if(suffix.equals("-a")){
+                        index = indexB;
+                    }else if(suffix.equals("-b")){
+                        index = indexA;
+                    }else{
+                        index = indexA;
+                    }
+                    break;
+                }
+            }
+
+        }catch (IOException e){
+            logger.error("{}", e);
+        }
+
+        return index;
+    }
+
     private void editPreparations(RestHighLevelClient client, Collection collection, Collection.Index index) throws IOException {
         // 인덱스 존재하지 않기 때문에 생성해주기.
         // 인덱스 템플릿이 존재하기 때문에 맵핑 설정 패쓰
@@ -429,12 +471,13 @@ public class IndexingJobService {
                 tmp.remove("index.routing.allocation.include.role");
                 tmp.remove("index.routing.allocation.exclude.role");
                 logger.info("ES 인덱스 없을 시, Createing indexing settings >>> {}", tmp);
-
+                logger.info("{}", index.getIndex());
 //                client.indices().create(new CreateIndexRequest("test-role").settings(tmp), RequestOptions.DEFAULT).isAcknowledged();
                 isAcknowledged = client.indices().create(new CreateIndexRequest(index.getIndex()).settings(tmp), RequestOptions.DEFAULT).isAcknowledged();
             }else{
                 indexing.replace("index.routing.allocation.include.role", "index");
                 indexing.replace("index.routing.allocation.exclude.role", "");
+                logger.info("{}", index.getIndex());
                 logger.info("ES 인덱스 없을 시, indexing settings >>> {}", indexing);
                 isAcknowledged = client.indices().create(new CreateIndexRequest(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
             }
