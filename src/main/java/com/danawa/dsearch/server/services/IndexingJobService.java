@@ -6,8 +6,8 @@ import com.danawa.dsearch.server.entity.Collection;
 import com.danawa.dsearch.server.entity.IndexStep;
 import com.danawa.dsearch.server.entity.IndexingStatus;
 import com.danawa.dsearch.server.excpetions.IndexingJobFailureException;
-import com.danawa.dsearch.indexer.IndexJobManager;
-import com.danawa.dsearch.indexer.entity.Job;
+import com.danawa.fastcatx.indexer.IndexJobManager;
+import com.danawa.fastcatx.indexer.entity.Job;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.get.GetRequest;
@@ -49,7 +49,7 @@ public class IndexingJobService {
     private final String indexHistory = ".dsearch_index_history";
 
     private final String jdbcSystemIndex;
-    private final com.danawa.dsearch.indexer.IndexJobManager indexerJobManager;
+    private final com.danawa.fastcatx.indexer.IndexJobManager indexerJobManager;
 
     private Map<String, Object> params;
     private Map<String, Object> indexing;
@@ -68,7 +68,7 @@ public class IndexingJobService {
         restTemplate = new RestTemplate(factory);
     }
 
-    public com.danawa.dsearch.indexer.IndexJobManager getIndexerJobManager() {
+    public com.danawa.fastcatx.indexer.IndexJobManager getIndexerJobManager() {
         return this.indexerJobManager;
     }
 
