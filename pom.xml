@@ -155,7 +155,7 @@
             <artifactId>Altibase</artifactId>
             <version>1.0.0</version>
             <scope>system</scope>
-            <systemPath>${project.lib.path}/Altibase.jar</systemPath>
+            <systemPath>${project.lib.path}/Altibase/Altibase/1.0.0/Altibase.jar</systemPath>
         </dependency>
         <!-- indexer -->
         <dependency>
@@ -295,7 +295,7 @@
                             <repositoryLayout>default</repositoryLayout>
                             <groupId>com.danawa.fastcatx</groupId>
                             <artifactId>indexer</artifactId>
-                            <version>1.1.0-v1</version>
+                            <version>1.1.0</version>
                             <packaging>jar</packaging>
                             <generatePom>true</generatePom>
                         </configuration>

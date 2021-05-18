@@ -48,7 +48,7 @@
             <AppenderRef ref="errorFile" />
         </Logger>
 
-        <Logger name="com.danawa.dsearch.indexer" level="all" additivity="false">
+        <Logger name="com.danawa.fastcatx.indexer" level="all" additivity="false">
             <AppenderRef ref="console" />
             <AppenderRef ref="indexer_file" />
             <AppenderRef ref="errorFile" />
