@@ -537,6 +537,16 @@ public class IndexingJobService {
         } catch (Exception ignore) { }
     }
 
+    public void subStart(String scheme, String host, int port, String jobId, String groupSeq) {
+        try {
+            restTemplate.exchange(new URI(String.format("%s://%s:%d/async/%s/sub_start?groupSeq=%s", scheme, host, port, jobId, groupSeq)),
+                    HttpMethod.PUT,
+                    new HttpEntity(new HashMap<>()),
+                    String.class
+            );
+        } catch (Exception ignore) { }
+    }
+
     public Map<String, Object> getParams() {
         return params;
     }

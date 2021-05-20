@@ -16,6 +16,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.Yaml;
 
 import java.io.IOException;
 import java.util.*;
@@ -194,6 +196,7 @@ public class CollectionController {
     public ResponseEntity<?> idxp(@RequestParam String host,
                                       @RequestParam String port,
                                       @RequestParam String collectionName,
+                                      @RequestParam(required = false) String groupSeq,
                                       @RequestParam String action) throws IndexingJobFailureException, IOException {
         Map<String, Object> response = new HashMap<>();
 
@@ -257,6 +260,24 @@ public class CollectionController {
 
         UUID clusterId = cluster.getId();
         String id = collection.getId();
+
+//        IDXP에서 groupSeq가 넘어오면서 전체 색인을 시작한다.
+//        일반적으로 관리도구 설정과 동일할거같지만... IDXP 파라미터가 있을 경우 groupSeq 를 변경한다.
+//        TODO IDXP 개선때 변경예정
+        if (("all".equalsIgnoreCase(action) || "indexing".equalsIgnoreCase(action)) && groupSeq != null && !"".equals(groupSeq)) {
+            try {
+                Map<String ,Object> yamlToMap = indexingJobService.convertRequestParams(collection.getLauncher().getYaml());
+                if (yamlToMap.get("groupSeq") != null && !"".equals(yamlToMap.get("groupSeq"))) {
+                    yamlToMap.put("groupSeq", groupSeq);
+                    DumperOptions options = new DumperOptions();
+                    options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+                    options.setPrettyFlow(true);
+                    collection.getLauncher().setYaml(new Yaml(options).dump(yamlToMap));
+                }
+            } catch(Exception e) {
+                logger.error("", e);
+            }
+        }
 
         if ("all".equalsIgnoreCase(action)) {
             synchronized (obj) {
@@ -338,6 +359,19 @@ public class CollectionController {
                     response.put("result", "fail");
                 }
             }
+        } else if ("sub_start".equalsIgnoreCase(action)) {
+            synchronized (obj) {
+                IndexingStatus indexingStatus = indexingJobManager.findById(id);
+                if (indexingStatus != null && (indexingStatus.getCurrentStep() == IndexStep.FULL_INDEX || indexingStatus.getCurrentStep() == IndexStep.DYNAMIC_INDEX) && groupSeq != null && !"".equalsIgnoreCase(groupSeq) ) {
+                    Collection.Launcher launcher = collection.getLauncher();
+                    indexingJobService.subStart(indexingStatus.getScheme(), launcher.getHost(), launcher.getPort(), indexingStatus.getIndexingJobId(), groupSeq);
+                    response.put("indexingStatus", indexingStatus);
+                    response.put("result", "success");
+                } else {
+                    response.put("result", "fail");
+                }
+            }
+
         } else {
             response.put("message", "Not Found Action. Please Select Action in this list (all / indexing / propagate / expose / stop_indexing / stop_propagation)");
             response.put("result", "success");
