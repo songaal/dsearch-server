@@ -363,6 +363,7 @@ public class CollectionController {
             synchronized (obj) {
                 IndexingStatus indexingStatus = indexingJobManager.findById(id);
                 if (indexingStatus != null && (indexingStatus.getCurrentStep() == IndexStep.FULL_INDEX || indexingStatus.getCurrentStep() == IndexStep.DYNAMIC_INDEX) && groupSeq != null && !"".equalsIgnoreCase(groupSeq) ) {
+                    logger.info("sub_start >>>> {}, groupSeq: {}", collectionName, groupSeq);
                     Collection.Launcher launcher = collection.getLauncher();
                     indexingJobService.subStart(indexingStatus.getScheme(), launcher.getHost(), launcher.getPort(), indexingStatus.getIndexingJobId(), groupSeq);
                     response.put("indexingStatus", indexingStatus);

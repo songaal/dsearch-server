@@ -544,7 +544,9 @@ public class IndexingJobService {
                     new HttpEntity(new HashMap<>()),
                     String.class
             );
-        } catch (Exception ignore) { }
+        } catch (Exception e) {
+            logger.error("", e);
+        }
     }
 
     public Map<String, Object> getParams() {
