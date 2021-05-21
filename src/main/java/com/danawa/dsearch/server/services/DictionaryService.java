@@ -416,6 +416,7 @@ public class DictionaryService {
         response.put("remote", !remoteClusterId.equals(clusterId));
         response.put("host", cluster.getHost());
         response.put("port", cluster.getPort());
+        response.put("remoteClusterId", remoteClusterId);
         return response;
     }
 

@@ -121,7 +121,20 @@ public class DictionaryController {
     public ResponseEntity<?> searchDictionaries(@RequestHeader(value = "cluster-id") UUID clusterId,
                                                 @RequestBody DictionarySearchRequest dictionarySearchRequest) throws IOException{
 
-        Response findDictResponse = dictionaryService.findDict(clusterId, dictionarySearchRequest);
+        logger.info("DictionarySearchRequest: {}", dictionarySearchRequest);
+        Map<String, Object> map = dictionaryService.getRemoteInfo(clusterId);
+
+        boolean isRemote = (Boolean) map.get("remote");
+
+        logger.info("Remote Info: {}", map);
+        Response findDictResponse = null;
+        if(isRemote){
+            UUID remoteClusterId = (UUID) map.get("remoteClusterId");
+            findDictResponse = dictionaryService.findDict(remoteClusterId, dictionarySearchRequest);
+        }else{
+            findDictResponse = dictionaryService.findDict(clusterId, dictionarySearchRequest);
+        }
+
         String response = EntityUtils.toString(findDictResponse.getEntity());
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
