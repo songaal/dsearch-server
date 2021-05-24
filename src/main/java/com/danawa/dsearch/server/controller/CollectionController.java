@@ -365,7 +365,7 @@ public class CollectionController {
                 if (indexingStatus != null && (indexingStatus.getCurrentStep() == IndexStep.FULL_INDEX || indexingStatus.getCurrentStep() == IndexStep.DYNAMIC_INDEX) && groupSeq != null && !"".equalsIgnoreCase(groupSeq) ) {
                     logger.info("sub_start >>>> {}, groupSeq: {}", collectionName, groupSeq);
                     Collection.Launcher launcher = collection.getLauncher();
-                    indexingJobService.subStart(indexingStatus.getScheme(), launcher.getHost(), launcher.getPort(), indexingStatus.getIndexingJobId(), groupSeq);
+                    indexingJobService.subStart(indexingStatus.getScheme(), launcher.getHost(), launcher.getPort(), indexingStatus.getIndexingJobId(), groupSeq, collection.isExtIndexer());
                     response.put("indexingStatus", indexingStatus);
                     response.put("result", "success");
                 } else {

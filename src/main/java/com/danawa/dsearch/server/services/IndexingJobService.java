@@ -537,15 +537,26 @@ public class IndexingJobService {
         } catch (Exception ignore) { }
     }
 
-    public void subStart(String scheme, String host, int port, String jobId, String groupSeq) {
-        try {
-            restTemplate.exchange(new URI(String.format("%s://%s:%d/async/%s/sub_start?groupSeq=%s", scheme, host, port, jobId, groupSeq)),
-                    HttpMethod.PUT,
-                    new HttpEntity(new HashMap<>()),
-                    String.class
-            );
-        } catch (Exception e) {
-            logger.error("", e);
+    public void subStart(String scheme, String host, int port, String jobId, String groupSeq, boolean isExtIndexer) {
+        if (isExtIndexer) {
+            logger.info(">>>>> Ext call sub_start: id: {}, groupSeq: {}", jobId, groupSeq);
+            try {
+                restTemplate.exchange(new URI(String.format("%s://%s:%d/async/%s/sub_start?groupSeq=%s", scheme, host, port, jobId, groupSeq)),
+                        HttpMethod.PUT,
+                        new HttpEntity(new HashMap<>()),
+                        String.class
+                );
+            } catch (Exception e) {
+                logger.error("", e);
+            }
+        } else {
+            try {
+                logger.info(">>>>> Local call sub_start: id: {}, groupSeq: {}", jobId, groupSeq);
+                Job job = indexerJobManager.status(UUID.fromString(jobId));
+                job.getGroupSeq().add(Integer.parseInt(groupSeq));
+            } catch (Exception e) {
+                logger.error("", e);
+            }
         }
     }
 
