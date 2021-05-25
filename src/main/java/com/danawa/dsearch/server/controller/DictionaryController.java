@@ -227,8 +227,6 @@ public class DictionaryController {
                 break;
             case "custom":
                 dictionaryList.remove("type");
-                dictionaryList.remove("createdTime");
-                dictionaryList.remove("updatedTime");
                 result = dictionaryService.insertDictFileToIndex(clusterId, dictionaryName, dictionaryType.toLowerCase(), file, dictionaryList);
                 break;
             default:
