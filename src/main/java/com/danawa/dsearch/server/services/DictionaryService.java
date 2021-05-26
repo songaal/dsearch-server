@@ -176,6 +176,7 @@ public class DictionaryService {
         }
 
         SearchSourceBuilder builder = new SearchSourceBuilder()
+                .trackTotalHits(true)
                 .query(boolQueryBuilder)
                 .sort(new FieldSortBuilder("updatedTime").order(SortOrder.DESC)) // 추가
                 .sort(new FieldSortBuilder("createdTime").order(SortOrder.DESC)) // 추가

@@ -195,7 +195,7 @@ public class DictionaryController {
                 break;
             case "space":
                 dictionaryList.remove("id");
-                dictionaryList.remove("keyword");
+                dictionaryList.remove("value");
                 dictionaryList.remove("type");
                 result = dictionaryService.insertDictFileToIndex(clusterId, dictionaryName, dictionaryType.toLowerCase(), file, dictionaryList);
                 break;
