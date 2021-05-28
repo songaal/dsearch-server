@@ -385,7 +385,7 @@ public class CollectionController {
     @GetMapping("/idxp/status")
     public ResponseEntity<?> getIdxpStatus(@RequestParam String host,
                                   @RequestParam String port,
-                                  @RequestParam String collectionName) throws IndexingJobFailureException, IOException {
+                                  @RequestParam String collectionName) throws IOException {
         Map<String, Object> response = new HashMap<>();
 
         // 에러 처리
@@ -431,26 +431,45 @@ public class CollectionController {
             return new ResponseEntity<>(response, HttpStatus.OK);
         }
 
-        String id = collection.getId();
-        IndexingStatus indexingStatus = indexingJobManager.getIndexingStatus(id);
-        if(indexingStatus == null){
-            Map<String, String> map = new HashMap<>();
-            map.put("status", "NOT_STARTED");
-            response.put("message", "Not Found Status (색인을 시작하지 않았습니다)");
-            response.put("result", "success");
-            response.put("info", map);
-            return new ResponseEntity<>(response, HttpStatus.OK);
+
+        // 불필요한 정보 제거하고, 상태만 리턴함.
+//        String id = collection.getId();
+//        IndexingStatus indexingStatus = indexingJobManager.getIndexingStatus(id);
+//        if(indexingStatus == null){
+//            Map<String, String> map = new HashMap<>();
+//            map.put("status", "NOT_STARTED");
+//            response.put("message", "Not Found Status (색인을 시작하지 않았습니다)");
+//            response.put("result", "success");
+//            response.put("info", map);
+//            return new ResponseEntity<>(response, HttpStatus.OK);
+//        }
+
+        IndexingStatus indexingStatus = indexingJobManager.findById(collection.getId());
+        Map<String, Object> status = new HashMap<>();
+        Map<String, Object> info = new HashMap<>();
+        if (indexingStatus != null) {
+            info.put("status", "RUNNING");
+
+            status.put("message", "");
+            status.put("result", "success");
+            status.put("info", info);
+        } else {
+            info.put("status", "NOT_STARTED");
+
+            status.put("message", "Not Found Status (색인을 시작하지 않았습니다)");
+            status.put("result", "success");
+            status.put("info", info);
         }
 
-        // KEY: collection id, value: Indexing status
-//        Map<String, Object> server = (Map<String, Object>) indexingStatus.get(id);
-//        response.put("info", server.get("server"));
-        response.put("message", "");
-        response.put("info",  indexingStatus);
-        response.put("step",  indexingStatus.getCurrentStep());
-        response.put("result", "success");
-
-        return new ResponseEntity<>(response, HttpStatus.OK);
+//        // KEY: collection id, value: Indexing status
+////        Map<String, Object> server = (Map<String, Object>) indexingStatus.get(id);
+////        response.put("info", server.get("server"));
+//        response.put("message", "");
+//        response.put("info",  info);
+////        response.put("step",  indexingStatus.getCurrentStep());
+//        response.put("result", "success");
+//
+        return new ResponseEntity<>(status, HttpStatus.OK);
     }
 
     @GetMapping("/setTimeout")
