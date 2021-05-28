@@ -180,21 +180,53 @@ public class DictionaryController {
             dictionaryService.resetDict(clusterId, dictionaryName);
         }
 
+//        dictionaryList => ["updatedTime", "createdTime", "id", "keyword", "type", "value"]
+        dictionaryList.remove("createdTime");
+        dictionaryList.remove("updatedTime");
+
         switch (dictionaryType.toLowerCase()){
-            // 1개 남는 것
             case "set":
-            case "space":
-            case "synonym_2way":
-                dictionaryList.remove("value");
-            // 2개 남는 것
-            case "compound":
-            case "synonym":
+//              "type" : "keyword",
+//              "label" : "단어"
                 dictionaryList.remove("id");
-            // 3개 전부 있는 것
+                dictionaryList.remove("value");
+                dictionaryList.remove("type");
+                result = dictionaryService.insertDictFileToIndex(clusterId, dictionaryName, dictionaryType.toLowerCase(), file, dictionaryList);
+                break;
+            case "space":
+                dictionaryList.remove("id");
+                dictionaryList.remove("value");
+                dictionaryList.remove("type");
+                result = dictionaryService.insertDictFileToIndex(clusterId, dictionaryName, dictionaryType.toLowerCase(), file, dictionaryList);
+                break;
+            case "synonym_2way":
+                // "type" : "value",
+                // "label" : "유사어"
+                dictionaryList.remove("id");
+                dictionaryList.remove("keyword");
+                dictionaryList.remove("type");
+                result = dictionaryService.insertDictFileToIndex(clusterId, dictionaryName, dictionaryType.toLowerCase(), file, dictionaryList);
+                break;
+            case "compound":
+//                "type" : "keyword",
+//                    "label" : "단어"
+//                "type" : "value",
+//                    "label" : "값"
+                dictionaryList.remove("id");
+                dictionaryList.remove("type");
+                result = dictionaryService.insertDictFileToIndex(clusterId, dictionaryName, dictionaryType.toLowerCase(), file, dictionaryList);
+                break;
+            case "synonym":
+//                "type" : "keyword",
+//                    "label" : "키워드"
+//                "type" : "value",
+//                    "label" : "유사어"
+                dictionaryList.remove("id");
+                dictionaryList.remove("type");
+                result = dictionaryService.insertDictFileToIndex(clusterId, dictionaryName, dictionaryType.toLowerCase(), file, dictionaryList);
+                break;
             case "custom":
                 dictionaryList.remove("type");
-                dictionaryList.remove("createdTime");
-                dictionaryList.remove("updatedTime");
                 result = dictionaryService.insertDictFileToIndex(clusterId, dictionaryName, dictionaryType.toLowerCase(), file, dictionaryList);
                 break;
             default:

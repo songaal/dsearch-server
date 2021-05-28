@@ -176,6 +176,7 @@ public class DictionaryService {
         }
 
         SearchSourceBuilder builder = new SearchSourceBuilder()
+                .trackTotalHits(true)
                 .query(boolQueryBuilder)
                 .sort(new FieldSortBuilder("updatedTime").order(SortOrder.DESC)) // 추가
                 .sort(new FieldSortBuilder("createdTime").order(SortOrder.DESC)) // 추가
@@ -509,6 +510,7 @@ public class DictionaryService {
 
         int count = 0;
         BulkRequest bulkRequest = new BulkRequest();
+        String line = null;
         try (RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
 //                    String output = new DateTime( DateTimeZone.UTC );
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
@@ -519,10 +521,9 @@ public class DictionaryService {
             InputStream in = file.getInputStream();
             BufferedInputStream bis = new BufferedInputStream(in);
             BufferedReader br = new BufferedReader(new InputStreamReader(bis));
-            String line = null;
             while((line = br.readLine()) != null){
                 String[] split = line.split("\t");
-                if(dictType.equals("custom")){
+                if(dictType.equals("custom") && split.length == 3){
                     String id = split[0];
                     String keyword = split[1];
                     String value = split[2];
@@ -537,7 +538,7 @@ public class DictionaryService {
 
                     bulkRequest.add(new IndexRequest().index(dictionaryIndex).source(source));
                     count++;
-                }else if(dictType.equals("synonym")){
+                }else if(dictType.equals("synonym") && split.length == 2){
                     String keyword = split[0];
                     String value = split[1];
 
@@ -550,7 +551,7 @@ public class DictionaryService {
 
                     bulkRequest.add(new IndexRequest().index(dictionaryIndex).source(source));
                     count++;
-                }else if(dictType.equals("set")){
+                }else if(dictType.equals("set") && split.length == 1){
                     String keyword = split[0];
 
                     Map<String, Object> source = new HashMap<>();
@@ -560,7 +561,7 @@ public class DictionaryService {
                     source.put("type", dictName);
                     bulkRequest.add(new IndexRequest().index(dictionaryIndex).source(source));
                     count++;
-                }else if(dictType.equals("compound")){
+                }else if(dictType.equals("compound") && split.length == 2){
                     String keyword = split[0];
                     String value = split[1];
 
@@ -572,7 +573,7 @@ public class DictionaryService {
                     source.put("type", dictName);
                     bulkRequest.add(new IndexRequest().index(dictionaryIndex).source(source));
                     count++;
-                }else if(dictType.equals("space")){
+                }else if(dictType.equals("space") && split.length == 1){
                     String keyword = split[0];
 
                     Map<String, Object> source = new HashMap<>();
@@ -582,7 +583,7 @@ public class DictionaryService {
                     source.put("type", dictName);
                     bulkRequest.add(new IndexRequest().index(dictionaryIndex).source(source));
                     count++;
-                }else if(dictType.equals("synonym_2way")){
+                }else if(dictType.equals("synonym_2way") && split.length == 1){
                     String value = split[0];
                     Map<String, Object> source = new HashMap<>();
                     source.put(fields.get(0), value);
@@ -614,7 +615,7 @@ public class DictionaryService {
             return result;
         }catch (ArrayIndexOutOfBoundsException e){
             result.put("result", false);
-            result.put("message", "형식에 맞지 않은 파일입니다.");
+            result.put("message", "형식에 맞지 않은 파일입니다. [line = " + line + "]");
             logger.error("{}", e);
             return result;
         }
