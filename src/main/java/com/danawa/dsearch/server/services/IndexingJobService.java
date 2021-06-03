@@ -248,12 +248,15 @@ public class IndexingJobService {
                 tmp.replace("refresh_interval", collection.getRefresh_interval() + "s");
             }
 
-            if(collection.getReplicas() != null && collection.getReplicas() >= 0){
-                tmp.replace("index.number_of_replicas",collection.getReplicas());
+            if(collection.getReplicas() == null){
+                tmp.replace("index.number_of_replicas", 1);
+            } else if(collection.getReplicas() == 0){
+                tmp.replace("index.number_of_replicas", 0);
+            } else {
+                tmp.replace("index.number_of_replicas", collection.getReplicas());
             }
             
-//            logger.info("propagate 시 셋팅 : {}", tmp);
-
+            logger.info("propagate 셋팅 : {}", tmp);
             client.indices().putSettings(new UpdateSettingsRequest().indices(target).settings(tmp), RequestOptions.DEFAULT);
             IndexingStatus indexingStatus = new IndexingStatus();
             indexingStatus.setClusterId(clusterId);

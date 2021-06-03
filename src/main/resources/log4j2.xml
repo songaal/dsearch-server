@@ -2,6 +2,7 @@
 <Configuration status="error">
     <Appenders>
         <Console name="console" target="SYSTEM_OUT">
+<!--            <LevelRangeFilter minLevel="INFO" maxLevel="INFO" onMatch="ACCEPT" onMismatch="DENY"/>-->
             <PatternLayout
                     pattern="[%d{yyyy-MM-dd HH:mm:ss.SSS} %p] [%t] (%F:%L\) - %m%n" />
         </Console>
