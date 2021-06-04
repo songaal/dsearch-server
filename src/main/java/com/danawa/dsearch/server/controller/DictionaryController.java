@@ -143,7 +143,6 @@ public class DictionaryController {
     public ResponseEntity<?> compileDictionaries(@RequestHeader(value = "cluster-id") UUID clusterId,
                                                 @RequestBody DictionaryCompileRequest dictionaryCompileRequest) throws IOException{
 
-        System.out.println(dictionaryCompileRequest.getType());
         Response compileDictResponse = dictionaryService.compileDict(clusterId, dictionaryCompileRequest);
         String[] ids = dictionaryCompileRequest.getIds().trim().split(",");
         for(String id : ids){

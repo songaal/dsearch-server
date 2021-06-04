@@ -389,8 +389,8 @@ public class DictionaryService {
             if (!remoteCluster.getId().equals(clusterId)) {
                 setJson = "{ \n" +
                         "\"index\": \"" + dictionaryIndex + "\", \n" +
-                        "\"exportFile\": false, \n" +
-                        "\"distribute\": false, \n" +
+                        "\"exportFile\": true, \n" +
+                        "\"distribute\": true, \n" +
                         "\"type\": \"" + type+ "\", \n" +
                         "\"host\": \"" + remoteCluster.getHost() + "\", \n" +
                         "\"port\": \"" + remoteCluster.getPort() + "\" \n" +
@@ -398,9 +398,9 @@ public class DictionaryService {
             } else {
                 setJson = "{ \n" +
                         "\"index\": \"" + dictionaryIndex + "\", \n" +
-                        "\"exportFile\": false, \n" +
-                        "\"distribute\": false, \n" +
-                        "\"type\": \"" + type+ "\" \n" +
+                        "\"exportFile\": true, \n" +
+                        "\"distribute\": true, \n" +
+                        "\"type\": \"" + type + "\" \n" +
                         "}";
             }
 
