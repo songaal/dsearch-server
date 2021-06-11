@@ -42,6 +42,8 @@ public class ElasticsearchProxyService {
             }
         }
 
+        NStringEntity entity = new NStringEntity(new String(body), ContentType.APPLICATION_JSON);
+        logger.info("{}, {}", new String(body), entity.toString());
         if (body != null) {
             req.setEntity(new NStringEntity(new String(body), ContentType.APPLICATION_JSON));
         }
