@@ -81,6 +81,32 @@ public class CollectionService {
         }
     }
 
+    private void registerCron(UUID clusterId, String collectionId, String crons){
+        String[] cronList = crons.split("\\|\\|");
+        for(String cron : cronList){
+            String scheduledKey = String.format("%s-%s-%s", clusterId, collectionId, cron);
+            logger.info("Schedule Register  ClusterId: {}, CollectionId: {}, Cron: {}", clusterId, collectionId, cron);
+            scheduled.put(scheduledKey, Objects.requireNonNull(scheduler.schedule(() -> {
+                try {
+                    // 변경사항이 있을수 있으므로, 컬렉션 정보를 새로 가져온다.
+                    Collection registerCollection2 = findById(clusterId, collectionId);
+                    IndexingStatus indexingStatus = indexingJobManager.findById(registerCollection2.getId());
+                    if (indexingStatus != null) {
+                        return;
+                    }
+                    Deque<IndexStep> nextStep = new ArrayDeque<>();
+                    nextStep.add(IndexStep.PROPAGATE);
+                    nextStep.add(IndexStep.EXPOSE);
+                    IndexingStatus status = indexingJobService.indexing(clusterId, registerCollection2, true, IndexStep.FULL_INDEX, nextStep);
+                    indexingJobManager.add(registerCollection2.getId(), status);
+                    logger.debug("enabled scheduled collection: {}", registerCollection2.getId());
+                } catch (IndexingJobFailureException | IOException e) {
+                    logger.error("[INIT ERROR] ", e);
+                }
+            }, new CronTrigger("0 " + cron))));
+        }
+    }
+
     @PostConstruct
     public void init() {
 //        1. 등록된 모든 클러스터 조회
@@ -150,27 +176,32 @@ public class CollectionService {
                     collectionList.forEach(collection -> {
                         try {
                             if(collection.isScheduled()) {
-                                String cron = collection.getCron();
-                                String scheduledKey = String.format("%s-%s", cluster.getId(), collection.getId());
-//                                logger.info("initial Scheduling.. cron: 0 {}, ClusterId: {}, CollectionId: {}", cron, cluster.getId(), collection.getId());
-                                scheduled.put(scheduledKey, Objects.requireNonNull(scheduler.schedule(() -> {
-                                    try {
-                                        // 변경사항이 있을수 있으므로, 컬렉션 정보를 새로 가져온다.
-                                        Collection registerCollection2 = findById(cluster.getId(), collection.getId());
-                                        IndexingStatus indexingStatus = indexingJobManager.findById(registerCollection2.getId());
-                                        if (indexingStatus != null) {
-                                            return;
-                                        }
-                                        Deque<IndexStep> nextStep = new ArrayDeque<>();
-                                        nextStep.add(IndexStep.PROPAGATE);
-                                        nextStep.add(IndexStep.EXPOSE);
-                                        IndexingStatus status = indexingJobService.indexing(cluster.getId(), registerCollection2, true, IndexStep.FULL_INDEX, nextStep);
-                                        indexingJobManager.add(registerCollection2.getId(), status);
-                                        logger.debug("enabled scheduled collection: {}", registerCollection2.getId());
-                                    } catch (IndexingJobFailureException | IOException e) {
-                                        logger.error("[INIT ERROR] ", e);
-                                    }
-                                }, new CronTrigger("0 " + cron))));
+//                                String cron = collection.getCron();
+                                registerCron(cluster.getId(), collection.getId(), collection.getCron());
+
+//                                String crons = collection.getCron();
+//                                String[] cronList = crons.split("||");
+//                                for(String cron : cronList){
+//                                    String scheduledKey = String.format("%s-%s-%s", cluster.getId(), collection.getId(), cron);
+//                                    scheduled.put(scheduledKey, Objects.requireNonNull(scheduler.schedule(() -> {
+//                                        try {
+//                                            // 변경사항이 있을수 있으므로, 컬렉션 정보를 새로 가져온다.
+//                                            Collection registerCollection2 = findById(cluster.getId(), collection.getId());
+//                                            IndexingStatus indexingStatus = indexingJobManager.findById(registerCollection2.getId());
+//                                            if (indexingStatus != null) {
+//                                                return;
+//                                            }
+//                                            Deque<IndexStep> nextStep = new ArrayDeque<>();
+//                                            nextStep.add(IndexStep.PROPAGATE);
+//                                            nextStep.add(IndexStep.EXPOSE);
+//                                            IndexingStatus status = indexingJobService.indexing(cluster.getId(), registerCollection2, true, IndexStep.FULL_INDEX, nextStep);
+//                                            indexingJobManager.add(registerCollection2.getId(), status);
+//                                            logger.debug("enabled scheduled collection: {}", registerCollection2.getId());
+//                                        } catch (IndexingJobFailureException | IOException e) {
+//                                            logger.error("[INIT ERROR] ", e);
+//                                        }
+//                                    }, new CronTrigger("0 " + cron))));
+//                                }
                             }
                         } catch (Exception e) {
                             logger.error("[INIT ERROR] ", e);
@@ -583,40 +614,66 @@ public class CollectionService {
                     .doc(sourceAsMap), RequestOptions.DEFAULT);
             Collection registerCollection = findById(clusterId, id);
 
-            String scheduledKey = String.format("%s-%s", clusterId.toString(), registerCollection.getId());
+            //            String scheduledKey = String.format("%s-%s", clusterId.toString(), registerCollection.getId());
             if (registerCollection.isScheduled()) {
-                String cron = registerCollection.getCron();
-//                logger.info("Edit Scheduling.. cron: 0 {}, ClusterId: {}, CollectionId: {}", cron, clusterId.toString(), collection.getId());
-                scheduled.put(scheduledKey, Objects.requireNonNull(scheduler.schedule(() -> {
-                    try {
-                        // 변경사항이 있을수 있으므로, 컬렉션 정보를 새로 가져온다.
-                        Collection registerCollection2 = findById(clusterId, id);
-                        IndexingStatus indexingStatus = indexingJobManager.findById(registerCollection2.getId());
-                        if (indexingStatus != null) {
-                            return;
+                String crons = registerCollection.getCron();
+
+                registerCron(clusterId, registerCollection.getId(), crons);
+
+//                String[] cronList = crons.split("||");
+//                for(String cron : cronList){
+//                    String scheduledKey = String.format("%s-%s-%s", clusterId.toString(), registerCollection.getId(), cron);
+//                    scheduled.put(scheduledKey, Objects.requireNonNull(scheduler.schedule(() -> {
+//                        try {
+//                            // 변경사항이 있을수 있으므로, 컬렉션 정보를 새로 가져온다.
+//                            Collection registerCollection2 = findById(clusterId, id);
+//                            IndexingStatus indexingStatus = indexingJobManager.findById(registerCollection2.getId());
+//                            if (indexingStatus != null) {
+//                                return;
+//                            }
+//                            Deque<IndexStep> nextStep = new ArrayDeque<>();
+//                            nextStep.add(IndexStep.PROPAGATE);
+//                            nextStep.add(IndexStep.EXPOSE);
+//                            IndexingStatus status = indexingJobService.indexing(clusterId, registerCollection2, true, IndexStep.FULL_INDEX, nextStep);
+//                            indexingJobManager.add(registerCollection2.getId(), status);
+//                        } catch (IndexingJobFailureException | IOException e) {
+//                            logger.error("", e);
+//                        }
+//                    }, new CronTrigger("0 " + cron))));
+//                }
+            }else{
+                String crons = registerCollection.getCron();
+                String[] cronList = crons.split("\\|\\|");
+
+                for(String cron : cronList){
+                    String scheduledKey = String.format("%s-%s-%s", clusterId.toString(), registerCollection.getId(), cron);
+                    ScheduledFuture<?> future = scheduled.get(scheduledKey);
+                    logger.info("Remove Scheduling.. scheduledKey: {}, future: {}", scheduledKey, future);
+                    if (future != null) {
+                        try {
+                            future.cancel(true);
+                            scheduled.remove(collection.getId());
+                            logger.debug("collection {} >> cancel {}", collection.getId(), future.isCancelled());
+                        } catch (NullPointerException e) {
+                            logger.warn("ignore exception {}", e.getMessage());
                         }
-                        Deque<IndexStep> nextStep = new ArrayDeque<>();
-                        nextStep.add(IndexStep.PROPAGATE);
-                        nextStep.add(IndexStep.EXPOSE);
-                        IndexingStatus status = indexingJobService.indexing(clusterId, registerCollection2, true, IndexStep.FULL_INDEX, nextStep);
-                        indexingJobManager.add(registerCollection2.getId(), status);
-                    } catch (IndexingJobFailureException | IOException e) {
-                        logger.error("", e);
-                    }
-                }, new CronTrigger("0 " + cron))));
-            } else {
-                ScheduledFuture<?> future = scheduled.get(scheduledKey);
-                logger.info("Remove Scheduling.. scheduledKey: {}, future: {}", scheduledKey, future);
-                if (future != null) {
-                    try {
-                        future.cancel(true);
-                        scheduled.remove(collection.getId());
-                        logger.debug("collection {} >> cancel {}", collection.getId(), future.isCancelled());
-                    } catch (NullPointerException e) {
-                        logger.warn("ignore exception {}", e.getMessage());
                     }
                 }
             }
+
+//            else {
+//                ScheduledFuture<?> future = scheduled.get(scheduledKey);
+//                logger.info("Remove Scheduling.. scheduledKey: {}, future: {}", scheduledKey, future);
+//                if (future != null) {
+//                    try {
+//                        future.cancel(true);
+//                        scheduled.remove(collection.getId());
+//                        logger.debug("collection {} >> cancel {}", collection.getId(), future.isCancelled());
+//                    } catch (NullPointerException e) {
+//                        logger.warn("ignore exception {}", e.getMessage());
+//                    }
+//                }
+//            }
         }
     }
 
@@ -651,25 +708,27 @@ public class CollectionService {
                 collectionList.forEach(collection -> {
                     try {
                         if(collection.isScheduled()) {
-                            String cron = collection.getCron();
-                            String scheduledKey = String.format("%s-%s", clusterId, collection.getId());
-                            logger.info("스케줄 재등록, cron: 0 {}, clusterId: {}, collectionId: {}, schedule key: {}", cron, clusterId, collection.getId(), scheduledKey);
-                            scheduled.put(scheduledKey, Objects.requireNonNull(scheduler.schedule(() -> {
-                                try {
-                                    IndexingStatus indexingStatus = indexingJobManager.findById(collection.getId());
-                                    if (indexingStatus != null) {
-                                        return;
-                                    }
-                                    Deque<IndexStep> nextStep = new ArrayDeque<>();
-                                    nextStep.add(IndexStep.PROPAGATE);
-                                    nextStep.add(IndexStep.EXPOSE);
-                                    IndexingStatus status = indexingJobService.indexing(clusterId, collection, true, IndexStep.FULL_INDEX, nextStep);
-                                    indexingJobManager.add(collection.getId(), status);
-                                    logger.debug("enabled scheduled collection: {}", collection.getId());
-                                } catch (IndexingJobFailureException e) {
-                                    logger.error("[Register schedule ERROR] ", e);
-                                }
-                            }, new CronTrigger("0 " + cron))));
+                            String crons = collection.getCron();
+                            registerCron(clusterId, collection.getId(), crons);
+
+//                            String scheduledKey = String.format("%s-%s", clusterId, collection.getId());
+//                            logger.info("스케줄 재등록, cron: 0 {}, clusterId: {}, collectionId: {}, schedule key: {}", cron, clusterId, collection.getId(), scheduledKey);
+//                            scheduled.put(scheduledKey, Objects.requireNonNull(scheduler.schedule(() -> {
+//                                try {
+//                                    IndexingStatus indexingStatus = indexingJobManager.findById(collection.getId());
+//                                    if (indexingStatus != null) {
+//                                        return;
+//                                    }
+//                                    Deque<IndexStep> nextStep = new ArrayDeque<>();
+//                                    nextStep.add(IndexStep.PROPAGATE);
+//                                    nextStep.add(IndexStep.EXPOSE);
+//                                    IndexingStatus status = indexingJobService.indexing(clusterId, collection, true, IndexStep.FULL_INDEX, nextStep);
+//                                    indexingJobManager.add(collection.getId(), status);
+//                                    logger.debug("enabled scheduled collection: {}", collection.getId());
+//                                } catch (IndexingJobFailureException e) {
+//                                    logger.error("[Register schedule ERROR] ", e);
+//                                }
+//                            }, new CronTrigger("0 " + cron))));
                         }
                     } catch (Exception e) {
                         logger.error("[Register schedule ERROR] ", e);

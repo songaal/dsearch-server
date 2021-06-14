@@ -91,6 +91,7 @@ public class IndicesService {
                     .size((int) rowSize));
             SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
 
+            logger.info("{}",searchResponse);
             DocumentPagination documentPagination = new DocumentPagination();
             documentPagination.setTotalCount(searchResponse.getHits().getTotalHits().value);
             documentPagination.setHits(searchResponse.getHits().getHits());

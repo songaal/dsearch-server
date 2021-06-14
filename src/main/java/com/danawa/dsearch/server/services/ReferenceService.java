@@ -168,6 +168,7 @@ public class ReferenceService {
         int size = tempList.size();
         for (int i = 0; i < size; i++) {
             ReferenceTemp temp = tempList.get(i);
+
             String query = temp.getQuery()
                     .replace("\"${keyword}\"", "\"" + keyword + "\"")
                     .replace("${keyword}", keyword);
@@ -175,6 +176,7 @@ public class ReferenceService {
             SearchModule searchModule = new SearchModule(Settings.EMPTY, false, Collections.emptyList());
 
             if (!jsonUtils.validate(query)) {
+                logger.info("{}", query);
                 continue;
             }
 
@@ -182,6 +184,7 @@ public class ReferenceService {
                     .xContent(XContentType.JSON)
                     .createParser(new NamedXContentRegistry(searchModule.getNamedXContents()), DeprecationHandler.THROW_UNSUPPORTED_OPERATION, query)) {
                 searchSourceBuilder.parseXContent(parser);
+                logger.info("{}", searchSourceBuilder.toString());
                 DocumentPagination documentPagination = indicesService.findAllDocumentPagination(clusterId, temp.getIndices(), 0, 30, searchSourceBuilder);
                 result.add(new ReferenceResult(temp, documentPagination, query));
             } catch (Exception e) {
