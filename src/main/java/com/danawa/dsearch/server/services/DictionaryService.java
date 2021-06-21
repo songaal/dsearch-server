@@ -431,7 +431,6 @@ public class DictionaryService {
                             .startObject()
                             .field("appliedTime", new Date())
                             .endObject());
-
             client.update(updateRequest, RequestOptions.DEFAULT);
         } catch (Exception e) {
             logger.warn("dictionary appliedTime edit fail: {}", e.getMessage());

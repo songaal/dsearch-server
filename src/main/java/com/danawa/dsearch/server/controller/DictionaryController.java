@@ -121,7 +121,7 @@ public class DictionaryController {
     public ResponseEntity<?> searchDictionaries(@RequestHeader(value = "cluster-id") UUID clusterId,
                                                 @RequestBody DictionarySearchRequest dictionarySearchRequest) throws IOException{
 
-        logger.info("DictionarySearchRequest: {}", dictionarySearchRequest);
+        logger.info("clusterId: {} DictionarySearchRequest: {}", clusterId, dictionarySearchRequest);
         Map<String, Object> map = dictionaryService.getRemoteInfo(clusterId);
 
         boolean isRemote = (Boolean) map.get("remote");
@@ -156,9 +156,11 @@ public class DictionaryController {
     public ResponseEntity<?> updatedSettingsList(@RequestHeader(value = "cluster-id") UUID clusterId,
                                                  @RequestBody List<DictionarySetting> dictionarySettings
                                                  ) throws IOException {
+        logger.info("clusterId: {}, dictionarySettings: {}", clusterId, dictionarySettings);
         if(dictionarySettings.size() == 0){
             return new ResponseEntity<>(HttpStatus.METHOD_NOT_ALLOWED);
         }
+
         dictionaryService.updatedSettingsList(clusterId, dictionarySettings);
         return new ResponseEntity<>(HttpStatus.OK);
     }
@@ -243,6 +245,7 @@ public class DictionaryController {
     public ResponseEntity<?> removeAllDictData(@RequestHeader(value = "cluster-id") UUID clusterId,
                                         @RequestParam("dictionaryName") String dictionaryName
     ) {
+        logger.info("clusterId: {} dictionaryName: {}", clusterId, dictionaryName);
         dictionaryService.resetDict(clusterId, dictionaryName);
         return new ResponseEntity<>(HttpStatus.OK);
     }
