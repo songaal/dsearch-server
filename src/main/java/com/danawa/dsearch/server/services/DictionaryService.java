@@ -404,6 +404,7 @@ public class DictionaryService {
                         "}";
             }
 
+            logger.info("clusterId: {}, body: {}", clusterId, setJson);
             Request compileDictRequest = new Request(method, endPoint);
             compileDictRequest.setJsonEntity(setJson);
             return restClient.performRequest(compileDictRequest);

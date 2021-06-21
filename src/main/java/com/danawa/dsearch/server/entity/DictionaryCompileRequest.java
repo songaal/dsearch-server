@@ -21,4 +21,10 @@ public class DictionaryCompileRequest implements Serializable {
     public String getIds() {
         return ids;
     }
+
+    @Override
+    public String toString() {
+        return "\n{\n  type: " + type + ",\n  " +
+                "ids: " + ids + "\n}";
+    }
 }
