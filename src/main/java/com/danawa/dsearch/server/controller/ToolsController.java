@@ -98,7 +98,7 @@ public class ToolsController {
         }
 
         for(String item : removeSet){
-            if(sb.length() > 0) sb.append(", " + item);
+            if(sb.length() > 0) sb.append("," + item);
             else sb.append(item);
         }
 
@@ -124,7 +124,7 @@ public class ToolsController {
 
         // 3) 최종 결과
         str = finalResult.get("value");
-        strList = str.split(", ");
+        strList = str.split(",");
         removeSet = new LinkedHashSet<>();
         for( String item : strList){
             item = item.trim();
@@ -132,7 +132,7 @@ public class ToolsController {
         }
 
         for(String item : removeSet){
-            if(sb.length() > 0) sb.append(", " + item);
+            if(sb.length() > 0) sb.append("," + item);
             else sb.append(item);
         }
 
