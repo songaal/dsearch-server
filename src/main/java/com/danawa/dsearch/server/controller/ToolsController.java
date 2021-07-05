@@ -124,11 +124,11 @@ public class ToolsController {
 
         // 3) 최종 결과
         str = finalResult.get("value");
-        strList = str.split(",");
+        strList = str.split(", ");
         removeSet = new LinkedHashSet<>();
-        for( String item : strList){
-            item = item.trim();
-            removeSet.add(item);
+
+        for(String item: strList){
+            removeSet.add(item.trim());
         }
 
         for(String item : removeSet){
