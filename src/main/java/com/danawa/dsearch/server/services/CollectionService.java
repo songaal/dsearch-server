@@ -88,6 +88,8 @@ public class CollectionService {
             String key = keys.next();
             if(key.contains(prefix)){
                 logger.info("Schedule Removed key : {}", key);
+                ScheduledFuture<?> future = scheduled.get(key);
+                future.cancel(true);
                 scheduled.remove(key);
             }
         }
