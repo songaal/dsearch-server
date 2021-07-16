@@ -124,7 +124,8 @@ public class ToolsController {
 
         // 3) 최종 결과
         str = finalResult.get("value");
-        strList = str.split(", ");
+
+        strList = str.split(", "); // 분석 예시: 10,000tb
         removeSet = new LinkedHashSet<>();
 
         for(String item: strList){

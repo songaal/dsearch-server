@@ -90,13 +90,13 @@ public class CollectionController {
     public ResponseEntity<?> editCollection(@RequestHeader(value = "cluster-id") UUID clusterId,
                                             @RequestParam String action,
                                             @PathVariable String id,
-                                            @RequestBody Collection collection) throws IOException, DuplicateException {
+                                            @RequestBody Collection collection) throws IOException {
 
-        logger.info("action: {}, id: {}, collection: {}", action, id, collection);
+        logger.info("action: {}, id: {}, collection: {}", action, id, collection.getBaseId());
         if ("source".equalsIgnoreCase(action)) {
             collectionService.editSource(clusterId, id, collection);
         } else if ("schedule".equalsIgnoreCase(action)) {
-            collectionService.editSchedule(clusterId, id, collection);
+            collectionService.editSchedule(clusterId, id, collection, true);
         }
 
         return new ResponseEntity<>(HttpStatus.OK);

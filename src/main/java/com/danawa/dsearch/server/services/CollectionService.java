@@ -81,11 +81,24 @@ public class CollectionService {
         }
     }
 
+    private void removeCron(UUID clusterId, String collectionId){
+        String prefix = String.format("%s-%s", clusterId, collectionId);
+        Iterator<String> keys = scheduled.keySet().iterator();
+        while (keys.hasNext()){
+            String key = keys.next();
+            if(key.contains(prefix)){
+                logger.info("Schedule Removed key : {}", key);
+                scheduled.remove(key);
+            }
+        }
+    }
+
     private void registerCron(UUID clusterId, String collectionId, String crons){
         String[] cronList = crons.split("\\|\\|");
         for(String cron : cronList){
             String scheduledKey = String.format("%s-%s-%s", clusterId, collectionId, cron);
             logger.info("Schedule Register  ClusterId: {}, CollectionId: {}, Cron: {}", clusterId, collectionId, cron);
+
             scheduled.put(scheduledKey, Objects.requireNonNull(scheduler.schedule(() -> {
                 try {
                     // 변경사항이 있을수 있으므로, 컬렉션 정보를 새로 가져온다.
@@ -554,6 +567,8 @@ public class CollectionService {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             GetResponse getResponse = client.get(new GetRequest().index(collectionIndex).id(id), RequestOptions.DEFAULT);
             Map<String, Object> sourceAsMap = getResponse.getSourceAsMap();
+            boolean isScheduled = (boolean) sourceAsMap.get("scheduled");
+
             if(collection.getName() != null && collection.getName().length() > 0)
                 sourceAsMap.put("name", collection.getName());
             sourceAsMap.put("cron", collection.getCron());
@@ -597,12 +612,25 @@ public class CollectionService {
                     doc(sourceAsMap), RequestOptions.DEFAULT);
 
             logger.debug("update Response: {}", updateResponse);
+
+            // 스케줄이 있다면
+            if(isScheduled){
+                collection.setScheduled(true); // collection에는 따로 셋팅해서 넘겨준다. -> sourceAsMap에는 있지만 Collection에는 false로 등록되어 있을 수 있기 때문에.
+                removeCron(clusterId, id); // 기존 스케줄을 전부 지우고
+                editSchedule(clusterId, id, collection); //새로 스케줄을 등록한다
+            }
         }
     }
 
-    public void editSchedule(UUID clusterId, String id, Collection collection) throws IOException {
-//        logger.info("Edit init Scheduling.. id : {}, collectionId", id, collection);
+    public void editSchedule(UUID clusterId, String id, Collection collection, boolean isRemoveCronSchedule) throws IOException {
+        if(isRemoveCronSchedule){
+            removeCron(clusterId, id);
+        }
 
+        editSchedule(clusterId,id,collection);
+    }
+
+    public void editSchedule(UUID clusterId, String id, Collection collection) throws IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             GetResponse getResponse = client.get(new GetRequest().index(collectionIndex).id(id), RequestOptions.DEFAULT);
 //            logger.info("Response.. : {}", getResponse.getSourceAsMap());
