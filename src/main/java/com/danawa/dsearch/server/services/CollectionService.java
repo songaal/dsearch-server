@@ -624,18 +624,9 @@ public class CollectionService {
         }
     }
 
-    public void editSchedule(UUID clusterId, String id, Collection collection, boolean isRemoveCronSchedule) throws IOException {
-        if(isRemoveCronSchedule){
-            removeCron(clusterId, id);
-        }
-
-        editSchedule(clusterId,id,collection);
-    }
-
     public void editSchedule(UUID clusterId, String id, Collection collection) throws IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             GetResponse getResponse = client.get(new GetRequest().index(collectionIndex).id(id), RequestOptions.DEFAULT);
-//            logger.info("Response.. : {}", getResponse.getSourceAsMap());
             Map<String, Object> sourceAsMap = getResponse.getSourceAsMap();
             sourceAsMap.put("scheduled", collection.isScheduled());
             client.update(new UpdateRequest()
@@ -644,33 +635,9 @@ public class CollectionService {
                     .doc(sourceAsMap), RequestOptions.DEFAULT);
             Collection registerCollection = findById(clusterId, id);
 
-            //            String scheduledKey = String.format("%s-%s", clusterId.toString(), registerCollection.getId());
             if (registerCollection.isScheduled()) {
                 String crons = registerCollection.getCron();
-
                 registerCron(clusterId, registerCollection.getId(), crons);
-
-//                String[] cronList = crons.split("||");
-//                for(String cron : cronList){
-//                    String scheduledKey = String.format("%s-%s-%s", clusterId.toString(), registerCollection.getId(), cron);
-//                    scheduled.put(scheduledKey, Objects.requireNonNull(scheduler.schedule(() -> {
-//                        try {
-//                            // 변경사항이 있을수 있으므로, 컬렉션 정보를 새로 가져온다.
-//                            Collection registerCollection2 = findById(clusterId, id);
-//                            IndexingStatus indexingStatus = indexingJobManager.findById(registerCollection2.getId());
-//                            if (indexingStatus != null) {
-//                                return;
-//                            }
-//                            Deque<IndexStep> nextStep = new ArrayDeque<>();
-//                            nextStep.add(IndexStep.PROPAGATE);
-//                            nextStep.add(IndexStep.EXPOSE);
-//                            IndexingStatus status = indexingJobService.indexing(clusterId, registerCollection2, true, IndexStep.FULL_INDEX, nextStep);
-//                            indexingJobManager.add(registerCollection2.getId(), status);
-//                        } catch (IndexingJobFailureException | IOException e) {
-//                            logger.error("", e);
-//                        }
-//                    }, new CronTrigger("0 " + cron))));
-//                }
             }else{
                 String crons = registerCollection.getCron();
                 String[] cronList = crons.split("\\|\\|");
@@ -678,8 +645,8 @@ public class CollectionService {
                 for(String cron : cronList){
                     String scheduledKey = String.format("%s-%s-%s", clusterId.toString(), registerCollection.getId(), cron);
                     ScheduledFuture<?> future = scheduled.get(scheduledKey);
-                    logger.info("Remove Scheduling.. scheduledKey: {}, future: {}", scheduledKey, future);
                     if (future != null) {
+                        logger.info("Remove Scheduling.. scheduledKey: {}, future: {}", scheduledKey, future);
                         try {
                             future.cancel(true);
                             scheduled.remove(collection.getId());
@@ -690,20 +657,6 @@ public class CollectionService {
                     }
                 }
             }
-
-//            else {
-//                ScheduledFuture<?> future = scheduled.get(scheduledKey);
-//                logger.info("Remove Scheduling.. scheduledKey: {}, future: {}", scheduledKey, future);
-//                if (future != null) {
-//                    try {
-//                        future.cancel(true);
-//                        scheduled.remove(collection.getId());
-//                        logger.debug("collection {} >> cancel {}", collection.getId(), future.isCancelled());
-//                    } catch (NullPointerException e) {
-//                        logger.warn("ignore exception {}", e.getMessage());
-//                    }
-//                }
-//            }
         }
     }
 

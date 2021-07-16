@@ -96,7 +96,7 @@ public class CollectionController {
         if ("source".equalsIgnoreCase(action)) {
             collectionService.editSource(clusterId, id, collection);
         } else if ("schedule".equalsIgnoreCase(action)) {
-            collectionService.editSchedule(clusterId, id, collection, true);
+            collectionService.editSchedule(clusterId, id, collection);
         }
 
         return new ResponseEntity<>(HttpStatus.OK);
