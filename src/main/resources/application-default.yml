@@ -73,6 +73,8 @@ dsearch:
   build:
     name: asdf
     version: asdf
-  timeout: 28800000
+#  timeout: 28800000
+  # 12시간
+  timeout: 43200000
   comments:
     setting: .dsearch_mapping_comments
