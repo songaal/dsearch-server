@@ -44,6 +44,7 @@ dsearch:
     password: admin
     email: admin@example.com
   dictionary:
+    apply: .dsearch_dict_apply
     setting: .dsearch_dict_setting
     index: .dsearch_dict
 #    index: .dsearch_dictionary

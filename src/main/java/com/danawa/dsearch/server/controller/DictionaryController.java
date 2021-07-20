@@ -105,8 +105,6 @@ public class DictionaryController {
 
         // 2. Dictionary 정보 필요 (_analysis-product-name/info-dict)
         String dictionaryInfo  = dictionaryService.getDictionaryInfo(clusterId);
-        // 3. Time 가져오기
-//        SearchResponse dictionaryTimes = dictionaryService.getDictionaryTimes(clusterId);
 
         entity.put("dictionarySettings", dictionarySettings);
         entity.put("dictionaryInfo", dictionaryInfo);

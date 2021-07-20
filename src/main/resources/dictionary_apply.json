@@ -12,7 +12,9 @@
         "type": "integer"
       },
       "appliedTime": {
-        "type": "date"
+        "type": "date",
+        "ignore_malformed": true,
+        "format": "yyyy-MM-dd HH:mm:ss"
       }
     }
   }

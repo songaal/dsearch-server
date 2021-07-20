@@ -51,19 +51,23 @@ public class DictionaryService {
 
     private String settingIndex;
     private String dictionaryIndex;
+    private String dictionaryApplyIndex;
 
     private final String SETTING_JSON = "dictionary_setting.json";
     private final String INDEX_JSON = "dictionary.json";
+    private final String DICT_APPLY_JSON = "dictionary_apply.json";
     private final ElasticsearchFactory elasticsearchFactory;
 
     public DictionaryService(@Value("${dsearch.dictionary.setting}") String settingIndex,
                              @Value("${dsearch.dictionary.index}") String dictionaryIndex,
+                             @Value("${dsearch.dictionary.apply}") String dictionaryApplyIndex,
                              IndicesService indicesService,
                              ClusterService clusterService,
                              ElasticsearchFactory elasticsearchFactory) {
         this.indicesService = indicesService;
         this.settingIndex = settingIndex;
         this.dictionaryIndex = dictionaryIndex;
+        this.dictionaryApplyIndex = dictionaryApplyIndex;
         this.clusterService = clusterService;
         this.elasticsearchFactory = elasticsearchFactory;
     }
@@ -71,6 +75,7 @@ public class DictionaryService {
     public void fetchSystemIndex(UUID clusterId) throws IOException {
         indicesService.createSystemIndex(clusterId, settingIndex, SETTING_JSON);
         indicesService.createSystemIndex(clusterId, dictionaryIndex, INDEX_JSON);
+        indicesService.createSystemIndex(clusterId, dictionaryApplyIndex, DICT_APPLY_JSON);
     }
 
     public DictionarySetting getSetting(UUID clusterId, String dictionary) throws IOException {
