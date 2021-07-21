@@ -13,6 +13,33 @@ public class DictionarySetting implements Serializable {
     private String appliedTime;
     private Integer index;
     private List<Column> columns;
+    private Integer count;
+    private Integer indexCount;
+    private Integer words;
+
+    public Integer getCount() {
+        return count;
+    }
+
+    public void setCount(Integer count) {
+        this.count = count;
+    }
+
+    public Integer getIndexCount() {
+        return indexCount;
+    }
+
+    public void setIndexCount(Integer indexCount) {
+        this.indexCount = indexCount;
+    }
+
+    public Integer getWords() {
+        return words;
+    }
+
+    public void setWords(Integer words) {
+        this.words = words;
+    }
 
     public static class Column {
         private String type;

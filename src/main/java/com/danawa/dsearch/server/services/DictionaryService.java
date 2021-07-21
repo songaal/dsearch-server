@@ -52,24 +52,20 @@ public class DictionaryService {
     private IndicesService indicesService;
     private final ClusterService clusterService;
 
-    private String settingIndex;
     private String dictionaryIndex;
     private String dictionaryApplyIndex;
 
-//    private final String SETTING_JSON = "dictionary_setting.json";
     private final String INDEX_JSON = "dictionary.json";
     private final String DICT_APPLY_JSON = "dictionary_apply.json";
     private final ElasticsearchFactory elasticsearchFactory;
     private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-    public DictionaryService(@Value("${dsearch.dictionary.setting}") String settingIndex,
-                             @Value("${dsearch.dictionary.index}") String dictionaryIndex,
+    public DictionaryService(@Value("${dsearch.dictionary.index}") String dictionaryIndex,
                              @Value("${dsearch.dictionary.apply}") String dictionaryApplyIndex,
                              IndicesService indicesService,
                              ClusterService clusterService,
                              ElasticsearchFactory elasticsearchFactory) {
         this.indicesService = indicesService;
-        this.settingIndex = settingIndex;
         this.dictionaryIndex = dictionaryIndex;
         this.dictionaryApplyIndex = dictionaryApplyIndex;
         this.clusterService = clusterService;
@@ -77,42 +73,8 @@ public class DictionaryService {
     }
 
     public void fetchSystemIndex(UUID clusterId) throws IOException {
-//        indicesService.createSystemIndex(clusterId, settingIndex, SETTING_JSON);
         indicesService.createSystemIndex(clusterId, dictionaryIndex, INDEX_JSON);
         indicesService.createSystemIndex(clusterId, dictionaryApplyIndex, DICT_APPLY_JSON);
-    }
-
-    public DictionarySetting getSetting(UUID clusterId, String dictionary) throws IOException {
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
-            SearchResponse response = client.search(new SearchRequest()
-                            .indices(settingIndex)
-                            .source(new SearchSourceBuilder()
-                                    .from(0)
-                                    .size(1)
-                                    .query(new MatchQueryBuilder("id", dictionary))),
-                    RequestOptions.DEFAULT);
-            return fillSettingValue(response.getHits().getHits()[0], response.getHits().getHits()[0].getId());
-        }
-    }
-
-    /**
-     * getAnalysisPluginSettings 사용
-      */
-    @Deprecated
-    public List<DictionarySetting> getSettings(UUID clusterId) throws IOException {
-        try(RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
-            logger.debug("dictionary setting index: {}", settingIndex);
-            List<DictionarySetting> settings = new ArrayList<>();
-            SearchResponse response = client.search(new SearchRequest()
-                    .indices(settingIndex)
-                    .source(new SearchSourceBuilder().size(10000).sort("id")), RequestOptions.DEFAULT);
-            SearchHit[] searchHits = response.getHits().getHits();
-            int hitsSize = searchHits.length;
-            for (int i = 0; i < hitsSize; i++) {
-                settings.add(fillSettingValue(searchHits[i], searchHits[i].getId()));
-            }
-            return settings;
-        }
     }
 
     public List<DictionarySetting> getAnalysisPluginSettings(UUID clusterId) throws IOException {
@@ -128,7 +90,7 @@ public class DictionaryService {
                         DictionarySetting tmp = new DictionarySetting();
                         tmp.setId(dictSetting.get("type") == null ? "" : dictSetting.get("type").toString());
                         if ("SYSTEM".equalsIgnoreCase(tmp.getId())) {
-                            tmp.setType("SYSTEM");
+                            tmp.setType("PRODUCT");
                         } else {
                             tmp.setType(dictSetting.get("dictType") == null ? null : dictSetting.get("dictType").toString());
                         }
@@ -136,9 +98,12 @@ public class DictionaryService {
                         tmp.setIgnoreCase(dictSetting.get("ignoreCase") == null ? null : dictSetting.get("ignoreCase").toString());
                         tmp.setTokenType(dictSetting.get("tokenType") == null ? null : dictSetting.get("tokenType").toString());
                         tmp.setIndex(dictSetting.get("seq") == null ? null : (int) Double.parseDouble(dictSetting.get("seq").toString()));
-//                        TODO 적용시간, 수정시간 추가 필요.
-//                        tmp.setAppliedTime();
-//                        tmp.setUpdatedTime();
+                        tmp.setDocumentId(tmp.getId());
+                        tmp.setCount(dictSetting.get("count") == null ? null : (int) Double.parseDouble(dictSetting.get("count").toString()));
+                        tmp.setIndexCount(dictSetting.get("indexCount") == null ? null : (int) Double.parseDouble(dictSetting.get("indexCount").toString()));
+                        tmp.setWords(dictSetting.get("words") == null ? null : (int) Double.parseDouble(dictSetting.get("words").toString()));
+                        tmp.setUpdatedTime(dictSetting.get("updatedTime") == null ? null : dictSetting.get("updatedTime").toString());
+                        tmp.setAppliedTime(dictSetting.get("appliedTime") == null ? null : dictSetting.get("appliedTime").toString());
 
                         tmp.setColumns(new ArrayList<>());
                         if (dictSetting.get("dictType") != null) {
@@ -175,38 +140,6 @@ public class DictionaryService {
             }
             return settings;
         }
-    }
-
-
-
-    private DictionarySetting fillSettingValue(SearchHit searchHit, String documentId) {
-        Map<String, Object> source = searchHit.getSourceAsMap();
-        DictionarySetting setting = new DictionarySetting();
-        setting.setDocumentId(documentId);
-        setting.setId((String) source.get("id"));
-        setting.setName((String) source.get("name"));
-        setting.setType((String) source.get("type"));
-        setting.setIgnoreCase((String) source.get("ignoreCase"));
-        setting.setTokenType((String) source.get("tokenType"));
-        setting.setUpdatedTime((String) source.get("updatedTime"));
-        setting.setAppliedTime((String) source.get("appliedTime"));
-        setting.setIndex((Integer) source.get("index"));
-
-        List<Map> columnList = (List<Map>) source.get("columns");
-        List<DictionarySetting.Column> columns = new ArrayList<>();
-        for (int i = 0; i < columnList.size(); i++) {
-            Map<String, Object> columnMap = (Map<String, Object>) columnList.get(i);
-            DictionarySetting.Column column = new DictionarySetting.Column();
-            if (columnMap.get("label") != null) {
-                column.setLabel(String.valueOf(columnMap.get("label")));
-            }
-            if (columnMap.get("type") != null) {
-                column.setType(String.valueOf(columnMap.get("type")));
-            }
-            columns.add(column);
-        }
-        setting.setColumns(columns);
-        return setting;
     }
 
     public List<SearchHit> findAll(UUID clusterId, String type) throws IOException {
@@ -360,9 +293,17 @@ public class DictionaryService {
 
     public StringBuffer download(UUID clusterId, String dictionary) throws IOException {
         List<SearchHit> documentList = findAll(clusterId, dictionary);
-        DictionarySetting setting = getSetting(clusterId, dictionary);
-
+        List<DictionarySetting> settings = getAnalysisPluginSettings(clusterId);
+        DictionarySetting setting = null;
+        for (DictionarySetting dictionarySetting : settings) {
+            if (dictionarySetting.getId().equalsIgnoreCase(dictionary)) {
+                setting = dictionarySetting;
+            }
+        }
         StringBuffer sb = new StringBuffer();
+        if (setting == null) {
+            return sb;
+        }
         int size = documentList.size();
         for (int i = 0; i < size; i++) {
             Map<String, Object> source = documentList.get(i).getSourceAsMap();
@@ -383,7 +324,7 @@ public class DictionaryService {
     public void refreshUpdateTime(UUID clusterId, String type) {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
             SearchRequest searchRequest = new SearchRequest()
-                    .indices(settingIndex).source(new SearchSourceBuilder()
+                    .indices(dictionaryApplyIndex).source(new SearchSourceBuilder()
                             .query(new MatchQueryBuilder("id", type))
                             .from(0)
                             .size(1));
@@ -395,7 +336,6 @@ public class DictionaryService {
             SearchHit searchHit = searchResponse.getHits().getHits()[0];
 
             UpdateRequest updateRequest = new UpdateRequest()
-//                    .index(settingIndex)
                     .index(dictionaryApplyIndex)
                     .doc(jsonBuilder()
                             .startObject()
@@ -421,21 +361,6 @@ public class DictionaryService {
             Request findDictRequest = new Request(method, endPoint);
             findDictRequest.setJsonEntity(setJson);
             return restClient.performRequest(findDictRequest);
-        }
-    }
-
-    public String getDictionaryInfo(UUID clusterId) throws IOException{
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            RestClient restClient = client.getLowLevelClient();
-            Cluster remoteCluster = clusterService.find(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId));
-
-            Request request = new Request("GET", "/_analysis-product-name/info-dict");
-            if (!remoteCluster.getId().equals(clusterId)) {
-                request.addParameter("host", remoteCluster.getHost());
-                request.addParameter("port", String.valueOf(remoteCluster.getPort()));
-            }
-            Response response = restClient.performRequest(request);
-            return EntityUtils.toString(response.getEntity());
         }
     }
 
@@ -487,7 +412,7 @@ public class DictionaryService {
     public void updateTime(UUID clusterId, String id) throws IOException{
         try (RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
             UpdateRequest updateRequest = new UpdateRequest()
-                    .index(settingIndex)
+                    .index(dictionaryApplyIndex)
                     .id(id)
                     .doc(jsonBuilder()
                             .startObject()
@@ -499,75 +424,6 @@ public class DictionaryService {
         }
     }
 
-    public void addSetting(UUID clusterId, DictionarySetting setting) throws IOException {
-        int index = getSettings(clusterId).size();
-
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
-            XContentBuilder builder = jsonBuilder()
-                    .startObject()
-                    .field("id", setting.getId())
-                    .field("name", setting.getName())
-                    .field("type", setting.getType())
-                    .field("tokenType", setting.getTokenType())
-                    .field("ignoreCase", setting.getIgnoreCase())
-                    .field("index", index)
-                    .startArray("columns");
-
-            for (int i = 0; i < setting.getColumns().size(); i++) {
-                DictionarySetting.Column column = setting.getColumns().get(i);
-                if (column != null && column.getType() != null) {
-                    builder.startObject()
-                            .field("type", column.getType())
-                            .field("label", column.getLabel())
-                            .endObject();
-                }
-            }
-            builder.endArray().endObject();
-
-            client.index(new IndexRequest()
-                            .index(settingIndex)
-                            .source(builder)
-                    , RequestOptions.DEFAULT);
-
-            createDocumentDictApplyIndex(dictionaryApplyIndex, clusterId, setting);
-        } catch (Exception e) {
-            logger.warn("dictionary appliedTime edit fail: {}", e.getMessage());
-        }
-    }
-
-    public void removeSetting(UUID clusterId, String id) throws IOException {
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
-            GetResponse doc = client.get(new GetRequest(settingIndex).id(id), RequestOptions.DEFAULT);
-            if(doc.getSourceAsMap() != null && doc.getSourceAsMap().get("id") != null) {
-                client.deleteByQueryAsync(new DeleteByQueryRequest(dictionaryIndex)
-                                .setQuery(QueryBuilders.matchQuery("type", doc.getSourceAsMap().get("id")))
-                        , RequestOptions.DEFAULT
-                        , new ActionListener<BulkByScrollResponse>() {
-                            @Override public void onResponse(BulkByScrollResponse bulkByScrollResponse) {}
-                            @Override public void onFailure(Exception e) {}
-                        });
-            }
-            client.delete(new DeleteRequest(settingIndex).id(id), RequestOptions.DEFAULT);
-        }
-    }
-
-
-    public void updatedSettingsList(UUID clusterId, List<DictionarySetting> settings) throws IOException {
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
-
-            for(DictionarySetting setting : settings){
-                XContentBuilder builder = jsonBuilder()
-                        .startObject()
-                        .field("index", setting.getIndex())
-                        .endObject();
-                UpdateResponse updateResponse = client.update(new UpdateRequest()
-                                .index(settingIndex)
-                                .id(setting.getDocumentId())
-                                .doc(builder)
-                        , RequestOptions.DEFAULT);
-            }
-        }
-    }
 
     public Map<String, Object> insertDictFileToIndex(UUID clusterId, String dictName, String dictType, MultipartFile file, List<String> fields){
         Map<String, Object> result = new HashMap<>();
@@ -704,29 +560,6 @@ public class DictionaryService {
         }
     }
 
-    private void createDocumentDictApplyIndex(String index, UUID clusterId, DictionarySetting setting) {
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
-            // 사전이 생성될때 추가
-            String id = setting.getId().toLowerCase();
-            String type = setting.getType().toLowerCase();
-
-            XContentBuilder builder = jsonBuilder()
-                    .startObject()
-                    .field("id", id)
-                    .field("updatedTime", sdf.format(new Date()))
-                    .field("appliedTime", sdf.format(new Date()))
-                    .field("count", 0)
-                    .endObject();
-            logger.info("{}, {}", id, type);
-
-            UpdateRequest request = new UpdateRequest(index, id).docAsUpsert(true).upsert(builder).doc(builder);
-            UpdateResponse response = client.update(request, RequestOptions.DEFAULT);
-            logger.info("status code: {}", response.status().getStatus());
-        }catch (Exception e){
-            logger.warn("dict_apply fail : {}", e.getMessage());
-        }
-    }
-
     private void updateDocumentDictApplyIndex(String index, UUID clusterId, String id) {
         // 사전 데이터가 변경되거나 추가/삭제 될 때 apply 인덱스의 doc을 업데이트
 
@@ -745,4 +578,23 @@ public class DictionaryService {
             logger.warn("dict_apply updated fail : {}", e.getMessage());
         }
     }
+
+    public List<Map<String, Object>> selectApplyList(UUID clusterId) {
+        List<Map<String, Object>> list = new ArrayList<>();
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            SearchRequest request = new SearchRequest();
+            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+            searchSourceBuilder.size(1000);
+            searchSourceBuilder.query(QueryBuilders.matchAllQuery());
+            request.indices(dictionaryApplyIndex).source(searchSourceBuilder);
+            SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+            for (SearchHit hit : response.getHits().getHits()) {
+                list.add(hit.getSourceAsMap());
+            }
+        } catch (Exception e) {
+            logger.error("", e);
+        }
+        return list;
+    }
+
 }

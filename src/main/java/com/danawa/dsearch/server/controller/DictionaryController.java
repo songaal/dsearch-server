@@ -12,10 +12,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.multipart.commons.CommonsMultipartFile;
 
-import java.io.*;
-import java.util.*;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/dictionaries")
@@ -31,20 +33,6 @@ public class DictionaryController {
     public ResponseEntity<?> settings(@RequestHeader(value = "cluster-id") UUID clusterId) throws IOException {
         return new ResponseEntity<>(dictionaryService.getAnalysisPluginSettings(clusterId), HttpStatus.OK);
     }
-
-//    @PostMapping("/settings")
-//    public ResponseEntity<?> addSetting(@RequestHeader(value = "cluster-id") UUID clusterId,
-//                                        @RequestBody DictionarySetting setting) throws IOException {
-//        dictionaryService.addSetting(clusterId, setting);
-//        return new ResponseEntity<>(HttpStatus.OK);
-//    }
-
-//    @DeleteMapping("/settings/{id}")
-//    public ResponseEntity<?> removeSetting(@RequestHeader(value = "cluster-id") UUID clusterId,
-//                                        @PathVariable String id) throws IOException {
-//        dictionaryService.removeSetting(clusterId, id);
-//        return new ResponseEntity<>(HttpStatus.OK);
-//    }
 
     @GetMapping("/{dictionary}/download")
     public ResponseEntity<?> download(@RequestHeader(value = "cluster-id") UUID clusterId,
@@ -103,12 +91,20 @@ public class DictionaryController {
         Map<String, Object> entity = new HashMap<String, Object>();
         // 1. setting 필요
         List<DictionarySetting> dictionarySettings = dictionaryService.getAnalysisPluginSettings(clusterId);
-
-        // 2. Dictionary 정보 필요 (_analysis-product-name/info-dict)
-//        String dictionaryInfo  = dictionaryService.getDictionaryInfo(clusterId);
+        // 자신의 클러스터에서 적용/수정 시간을 조회한다.
+//        List<Map<String, Object>> timeList = dictionaryService.selectApplyList(clusterId);
+//
+//        for (DictionarySetting setting : dictionarySettings) {
+//            for (Map<String, Object> t : timeList) {
+//                if (t.get("id") != null && setting.getId().equalsIgnoreCase(t.get("id").toString())) {
+//                    setting.setUpdatedTime(t.get("updatedTime") == null ? null : t.get("updatedTime").toString());
+//                    setting.setAppliedTime(t.get("appliedTime") == null ? null : t.get("appliedTime").toString());
+//                    break;
+//                }
+//            }
+//        }
 
         entity.put("dictionarySettings", dictionarySettings);
-        entity.put("dictionaryTimes", dictionarySettings);
 
         // 전송
         return new ResponseEntity<>(entity, HttpStatus.OK);
@@ -147,19 +143,6 @@ public class DictionaryController {
         }
         String response = EntityUtils.toString(compileDictResponse.getEntity());
         return new ResponseEntity<>(response, HttpStatus.OK);
-    }
-
-    @PostMapping("/settings/updateList")
-    public ResponseEntity<?> updatedSettingsList(@RequestHeader(value = "cluster-id") UUID clusterId,
-                                                 @RequestBody List<DictionarySetting> dictionarySettings
-                                                 ) throws IOException {
-        logger.info("clusterId: {}, dictionarySettings: {}", clusterId, dictionarySettings);
-        if(dictionarySettings.size() == 0){
-            return new ResponseEntity<>(HttpStatus.METHOD_NOT_ALLOWED);
-        }
-
-        dictionaryService.updatedSettingsList(clusterId, dictionarySettings);
-        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @PostMapping(value = "/fileUpload", headers = ("Content-Type=multipart/*"))
