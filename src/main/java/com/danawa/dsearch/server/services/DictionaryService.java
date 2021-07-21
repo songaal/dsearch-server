@@ -57,6 +57,7 @@ public class DictionaryService {
     private final String INDEX_JSON = "dictionary.json";
     private final String DICT_APPLY_JSON = "dictionary_apply.json";
     private final ElasticsearchFactory elasticsearchFactory;
+    private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     public DictionaryService(@Value("${dsearch.dictionary.setting}") String settingIndex,
                              @Value("${dsearch.dictionary.index}") String dictionaryIndex,
@@ -233,6 +234,8 @@ public class DictionaryService {
                     , RequestOptions.DEFAULT);
 
             refreshUpdateTime(clusterId, document.getType());
+
+            updateDocumentDictApplyIndex(dictionaryApplyIndex, clusterId, document.getType());
             return indexResponse;
         }
     }
@@ -251,6 +254,7 @@ public class DictionaryService {
                     , RequestOptions.DEFAULT);
 
             refreshUpdateTime(clusterId, dictionary);
+            updateDocumentDictApplyIndex(dictionaryApplyIndex, clusterId, type);
             return deleteResponse;
         }
     }
@@ -278,6 +282,7 @@ public class DictionaryService {
                 String type = String.valueOf(getResponse.getSourceAsMap().get("type"));
                 refreshUpdateTime(clusterId, type);
             }
+            updateDocumentDictApplyIndex(dictionaryApplyIndex, clusterId, document.getType());
             return updateResponse;
         }
     }
@@ -304,25 +309,6 @@ public class DictionaryService {
         return sb;
     }
 
-//    public SearchResponse getDictionaryTimes(UUID clusterId) throws IOException {
-//        try (RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
-//            SearchRequest searchRequest = new SearchRequest();
-//            searchRequest.indices(settingIndex);
-//
-//            String query = "{\n" +
-//                    "        \"size\": 10000\n" +
-//                    "      }";
-//            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-//            SearchModule searchModule = new SearchModule(Settings.EMPTY, false, Collections.emptyList());
-//            try (XContentParser parser = XContentFactory.xContent(XContentType.JSON).createParser(new NamedXContentRegistry(searchModule.getNamedXContents()), null, query)) {
-//                searchSourceBuilder.parseXContent(parser);
-//                searchRequest.source(searchSourceBuilder);
-//            }
-//            SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
-//            return searchResponse;
-//        }
-//    }
-
     public void refreshUpdateTime(UUID clusterId, String type) {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
             SearchRequest searchRequest = new SearchRequest()
@@ -338,8 +324,8 @@ public class DictionaryService {
             SearchHit searchHit = searchResponse.getHits().getHits()[0];
 
             UpdateRequest updateRequest = new UpdateRequest()
-                    .index(settingIndex)
-                    .id(searchHit.getId())
+//                    .index(settingIndex)
+                    .index(dictionaryApplyIndex)
                     .doc(jsonBuilder()
                             .startObject()
                             .field("updatedTime", new Date())
@@ -471,6 +457,8 @@ public class DictionaryService {
                             .index(settingIndex)
                             .source(builder)
                     , RequestOptions.DEFAULT);
+
+            createDocumentDictApplyIndex(dictionaryApplyIndex, clusterId, setting);
         } catch (Exception e) {
             logger.warn("dictionary appliedTime edit fail: {}", e.getMessage());
         }
@@ -517,7 +505,6 @@ public class DictionaryService {
         BulkRequest bulkRequest = new BulkRequest();
         String line = null;
         try (RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
-//                    String output = new DateTime( DateTimeZone.UTC );
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
             TimeZone utc = TimeZone.getTimeZone("UTC");
             sdf.setTimeZone(utc);
@@ -602,13 +589,17 @@ public class DictionaryService {
                 if(count % 1000 == 0){
                     logger.info("dictionaryName: {}, {} flushed !!",dictName, count);
                     client.bulk(bulkRequest, RequestOptions.DEFAULT);
-                    bulkRequest = new BulkRequest();
+                    bulkRequest.requests().clear();
                 }
             }
-            if( count != 0 ){
+
+            if( bulkRequest.requests().size() > 0 ){
                 logger.info("dictionaryName: {}, {} flushed !!",dictName, count);
                 client.bulk(bulkRequest, RequestOptions.DEFAULT);
+                bulkRequest.requests().clear();
             }
+
+            updateDocumentDictApplyIndex(dictionaryApplyIndex, clusterId, dictName);
 
             br.close();
             bis.close();
@@ -635,8 +626,52 @@ public class DictionaryService {
             DeleteByQueryRequest deleteByQueryRequest = new DeleteByQueryRequest();
             deleteByQueryRequest.setQuery(QueryBuilders.matchQuery("type", dictName)).indices(dictionaryIndex);
             client.deleteByQuery(deleteByQueryRequest, RequestOptions.DEFAULT);
+
+            updateDocumentDictApplyIndex(dictionaryApplyIndex, clusterId, dictName);
         }catch (IOException e){
             logger.error("{}", e);
+        }
+    }
+
+    private void createDocumentDictApplyIndex(String index, UUID clusterId, DictionarySetting setting) {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
+            // 사전이 생성될때 추가
+            String id = setting.getId().toLowerCase();
+            String type = setting.getType().toLowerCase();
+
+            XContentBuilder builder = jsonBuilder()
+                    .startObject()
+                    .field("id", id)
+                    .field("updatedTime", sdf.format(new Date()))
+                    .field("appliedTime", sdf.format(new Date()))
+                    .field("count", 0)
+                    .endObject();
+            logger.info("{}, {}", id, type);
+
+            UpdateRequest request = new UpdateRequest(index, id).docAsUpsert(true).upsert(builder).doc(builder);
+            UpdateResponse response = client.update(request, RequestOptions.DEFAULT);
+            logger.info("status code: {}", response.status().getStatus());
+        }catch (Exception e){
+            logger.warn("dict_apply fail : {}", e.getMessage());
+        }
+    }
+
+    private void updateDocumentDictApplyIndex(String index, UUID clusterId, String id) {
+        // 사전 데이터가 변경되거나 추가/삭제 될 때 apply 인덱스의 doc을 업데이트
+
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
+            String _id = id.toLowerCase();
+            XContentBuilder builder = jsonBuilder()
+                    .startObject()
+                    .field("id", _id)
+                    .field("updatedTime", sdf.format(new Date()))
+                    .endObject();
+            logger.info("{}", id.toLowerCase());
+            UpdateRequest updateRequest = new UpdateRequest(index, _id).docAsUpsert(true).upsert(builder).doc(builder);
+            UpdateResponse response = client.update(updateRequest, RequestOptions.DEFAULT);
+            logger.info("status code: {}", response.status().getStatus());
+        }catch (Exception e){
+            logger.warn("dict_apply updated fail : {}", e.getMessage());
         }
     }
 }

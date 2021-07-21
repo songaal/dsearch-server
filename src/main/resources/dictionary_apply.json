@@ -15,6 +15,11 @@
         "type": "date",
         "ignore_malformed": true,
         "format": "yyyy-MM-dd HH:mm:ss"
+      },
+      "updatedTime": {
+        "type": "date",
+        "ignore_malformed": true,
+        "format": "yyyy-MM-dd HH:mm:ss"
       }
     }
   }
