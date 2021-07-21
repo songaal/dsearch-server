@@ -29,21 +29,22 @@ public class DictionaryController {
 
     @GetMapping("/settings")
     public ResponseEntity<?> settings(@RequestHeader(value = "cluster-id") UUID clusterId) throws IOException {
-        return new ResponseEntity<>(dictionaryService.getSettings(clusterId), HttpStatus.OK);
+        return new ResponseEntity<>(dictionaryService.getAnalysisPluginSettings(clusterId), HttpStatus.OK);
     }
 
-    @PostMapping("/settings")
-    public ResponseEntity<?> addSetting(@RequestHeader(value = "cluster-id") UUID clusterId,
-                                        @RequestBody DictionarySetting setting) throws IOException {
-        dictionaryService.addSetting(clusterId, setting);
-        return new ResponseEntity<>(HttpStatus.OK);
-    }
-    @DeleteMapping("/settings/{id}")
-    public ResponseEntity<?> removeSetting(@RequestHeader(value = "cluster-id") UUID clusterId,
-                                        @PathVariable String id) throws IOException {
-        dictionaryService.removeSetting(clusterId, id);
-        return new ResponseEntity<>(HttpStatus.OK);
-    }
+//    @PostMapping("/settings")
+//    public ResponseEntity<?> addSetting(@RequestHeader(value = "cluster-id") UUID clusterId,
+//                                        @RequestBody DictionarySetting setting) throws IOException {
+//        dictionaryService.addSetting(clusterId, setting);
+//        return new ResponseEntity<>(HttpStatus.OK);
+//    }
+
+//    @DeleteMapping("/settings/{id}")
+//    public ResponseEntity<?> removeSetting(@RequestHeader(value = "cluster-id") UUID clusterId,
+//                                        @PathVariable String id) throws IOException {
+//        dictionaryService.removeSetting(clusterId, id);
+//        return new ResponseEntity<>(HttpStatus.OK);
+//    }
 
     @GetMapping("/{dictionary}/download")
     public ResponseEntity<?> download(@RequestHeader(value = "cluster-id") UUID clusterId,
@@ -101,15 +102,13 @@ public class DictionaryController {
     public ResponseEntity<?> getSummary(@RequestHeader(value = "cluster-id") UUID clusterId) throws IOException {
         Map<String, Object> entity = new HashMap<String, Object>();
         // 1. setting 필요
-        List<DictionarySetting> dictionarySettings = dictionaryService.getSettings(clusterId);
+        List<DictionarySetting> dictionarySettings = dictionaryService.getAnalysisPluginSettings(clusterId);
 
         // 2. Dictionary 정보 필요 (_analysis-product-name/info-dict)
-        String dictionaryInfo  = dictionaryService.getDictionaryInfo(clusterId);
+//        String dictionaryInfo  = dictionaryService.getDictionaryInfo(clusterId);
 
         entity.put("dictionarySettings", dictionarySettings);
-        entity.put("dictionaryInfo", dictionaryInfo);
-
-//        entity.put("dictionaryTimes", dictionaryTimes);
+        entity.put("dictionaryTimes", dictionarySettings);
 
         // 전송
         return new ResponseEntity<>(entity, HttpStatus.OK);

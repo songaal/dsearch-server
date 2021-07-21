@@ -3,6 +3,8 @@ package com.danawa.dsearch.server.services;
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
 import com.danawa.dsearch.server.entity.*;
 import com.danawa.dsearch.server.excpetions.ServiceException;
+import com.google.common.reflect.TypeToken;
+import com.google.gson.Gson;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BulkRequest;
@@ -33,6 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
@@ -53,7 +56,7 @@ public class DictionaryService {
     private String dictionaryIndex;
     private String dictionaryApplyIndex;
 
-    private final String SETTING_JSON = "dictionary_setting.json";
+//    private final String SETTING_JSON = "dictionary_setting.json";
     private final String INDEX_JSON = "dictionary.json";
     private final String DICT_APPLY_JSON = "dictionary_apply.json";
     private final ElasticsearchFactory elasticsearchFactory;
@@ -73,7 +76,7 @@ public class DictionaryService {
     }
 
     public void fetchSystemIndex(UUID clusterId) throws IOException {
-        indicesService.createSystemIndex(clusterId, settingIndex, SETTING_JSON);
+//        indicesService.createSystemIndex(clusterId, settingIndex, SETTING_JSON);
         indicesService.createSystemIndex(clusterId, dictionaryIndex, INDEX_JSON);
         indicesService.createSystemIndex(clusterId, dictionaryApplyIndex, DICT_APPLY_JSON);
     }
@@ -91,6 +94,10 @@ public class DictionaryService {
         }
     }
 
+    /**
+     * getAnalysisPluginSettings 사용
+      */
+    @Deprecated
     public List<DictionarySetting> getSettings(UUID clusterId) throws IOException {
         try(RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
             logger.debug("dictionary setting index: {}", settingIndex);
@@ -106,6 +113,70 @@ public class DictionaryService {
             return settings;
         }
     }
+
+    public List<DictionarySetting> getAnalysisPluginSettings(UUID clusterId) throws IOException {
+        try(RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
+            List<DictionarySetting> settings = new ArrayList<>();
+            Request request = new Request("GET", "/_analysis-product-name/info-dict");
+            Response response = client.getLowLevelClient().performRequest(request);
+            if (response.getEntity() != null) {
+                String body = EntityUtils.toString(response.getEntity());
+                Map<String, Object> bodyMap = new Gson().fromJson(body, new TypeToken<Map<String, Object>>(){}.getType());
+                if(bodyMap.get("dictionary") != null) {
+                    for (Map<String, Object> dictSetting : (List<Map<String, Object>>) bodyMap.get("dictionary")) {
+                        DictionarySetting tmp = new DictionarySetting();
+                        tmp.setId(dictSetting.get("type") == null ? "" : dictSetting.get("type").toString());
+                        if ("SYSTEM".equalsIgnoreCase(tmp.getId())) {
+                            tmp.setType("SYSTEM");
+                        } else {
+                            tmp.setType(dictSetting.get("dictType") == null ? null : dictSetting.get("dictType").toString());
+                        }
+                        tmp.setName(dictSetting.get("label") == null ? null : dictSetting.get("label").toString());
+                        tmp.setIgnoreCase(dictSetting.get("ignoreCase") == null ? null : dictSetting.get("ignoreCase").toString());
+                        tmp.setTokenType(dictSetting.get("tokenType") == null ? null : dictSetting.get("tokenType").toString());
+                        tmp.setIndex(dictSetting.get("seq") == null ? null : (int) Double.parseDouble(dictSetting.get("seq").toString()));
+//                        TODO 적용시간, 수정시간 추가 필요.
+//                        tmp.setAppliedTime();
+//                        tmp.setUpdatedTime();
+
+                        tmp.setColumns(new ArrayList<>());
+                        if (dictSetting.get("dictType") != null) {
+                            String dictType = dictSetting.get("dictType").toString();
+                            if ("SET".equalsIgnoreCase(dictType)) {
+                                tmp.getColumns().add(new DictionarySetting.Column("keyword", "단어"));
+                            } else if ("SYNONYM".equalsIgnoreCase(dictType)) {
+                                tmp.getColumns().add(new DictionarySetting.Column("keyword", "단어"));
+                                if ("SYNONYM".equalsIgnoreCase(tmp.getId())) {
+                                    tmp.getColumns().add(new DictionarySetting.Column("value", "유사어"));
+                                } else {
+                                    tmp.getColumns().add(new DictionarySetting.Column("value", "값"));
+                                }
+                            } else if ("SPACE".equalsIgnoreCase(dictType)) {
+                                tmp.getColumns().add(new DictionarySetting.Column("keyword", "단어"));
+                            } else if ("COMPOUND".equalsIgnoreCase(dictType)) {
+                                tmp.getColumns().add(new DictionarySetting.Column("keyword", "단어"));
+                                tmp.getColumns().add(new DictionarySetting.Column("value", "값"));
+                            } else if ("SYNONYM_2WAY".equalsIgnoreCase(dictType)) {
+                                if ("UNIT_SYNONYM".equalsIgnoreCase(tmp.getId())) {
+                                    tmp.getColumns().add(new DictionarySetting.Column("value", "유사어"));
+                                } else {
+                                    tmp.getColumns().add(new DictionarySetting.Column("value", "값"));
+                                }
+                            } else if ("CUSTOM".equalsIgnoreCase(dictType)) {
+                                tmp.getColumns().add(new DictionarySetting.Column("id", "아이디"));
+                                tmp.getColumns().add(new DictionarySetting.Column("keyword", "단어"));
+                                tmp.getColumns().add(new DictionarySetting.Column("value", "값"));
+                            }
+                        }
+                        settings.add(tmp);
+                    }
+                }
+            }
+            return settings;
+        }
+    }
+
+
 
     private DictionarySetting fillSettingValue(SearchHit searchHit, String documentId) {
         Map<String, Object> source = searchHit.getSourceAsMap();
