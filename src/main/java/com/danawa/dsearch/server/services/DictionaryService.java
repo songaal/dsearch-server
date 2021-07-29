@@ -94,8 +94,10 @@ public class DictionaryService {
                         } else {
                             String dictType = dictSetting.get("dictType") == null ? null : dictSetting.get("dictType").toString();
                             if ("SYNONYM".equalsIgnoreCase(dictType) && "UNIT_SYNONYM".equalsIgnoreCase(String.valueOf(dictSetting.get("type")))) {
-                                //TODO 2021.07.29 김준우 : 임시 단위명 동의어 사전 버그 수정
+                                //TODO 2021.07.29 김준우 : 임시 단위명 동의어 사전 버그 수정 
                                 tmp.setType("SYNONYM_2WAY");
+                            } else {
+                                tmp.setType(dictType);
                             }
                         }
                         tmp.setName(dictSetting.get("label") == null ? null : dictSetting.get("label").toString());
