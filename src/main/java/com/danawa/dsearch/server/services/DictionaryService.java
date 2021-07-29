@@ -111,11 +111,15 @@ public class DictionaryService {
                             if ("SET".equalsIgnoreCase(dictType)) {
                                 tmp.getColumns().add(new DictionarySetting.Column("keyword", "단어"));
                             } else if ("SYNONYM".equalsIgnoreCase(dictType)) {
-                                tmp.getColumns().add(new DictionarySetting.Column("keyword", "단어"));
-                                if ("SYNONYM".equalsIgnoreCase(tmp.getId())) {
+                                if ("UNIT_SYNONYM".equalsIgnoreCase(tmp.getId())) {
                                     tmp.getColumns().add(new DictionarySetting.Column("value", "유사어"));
                                 } else {
-                                    tmp.getColumns().add(new DictionarySetting.Column("value", "값"));
+                                    tmp.getColumns().add(new DictionarySetting.Column("keyword", "단어"));
+                                    if ("SYNONYM".equalsIgnoreCase(tmp.getId())) {
+                                        tmp.getColumns().add(new DictionarySetting.Column("value", "유사어"));
+                                    } else {
+                                        tmp.getColumns().add(new DictionarySetting.Column("value", "값"));
+                                    }
                                 }
                             } else if ("SPACE".equalsIgnoreCase(dictType)) {
                                 tmp.getColumns().add(new DictionarySetting.Column("keyword", "단어"));
