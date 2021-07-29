@@ -92,13 +92,7 @@ public class DictionaryService {
                         if ("SYSTEM".equalsIgnoreCase(tmp.getId())) {
                             tmp.setType("PRODUCT");
                         } else {
-                            String dictType = dictSetting.get("dictType") == null ? null : dictSetting.get("dictType").toString();
-                            if ("SYNONYM".equalsIgnoreCase(dictType) && "UNIT_SYNONYM".equalsIgnoreCase(String.valueOf(dictSetting.get("type")))) {
-                                //TODO 2021.07.29 김준우 : 임시 단위명 동의어 사전 버그 수정 
-                                tmp.setType("SYNONYM_2WAY");
-                            } else {
-                                tmp.setType(dictType);
-                            }
+                            tmp.setType(dictSetting.get("dictType") == null ? null : dictSetting.get("dictType").toString());
                         }
                         tmp.setName(dictSetting.get("label") == null ? null : dictSetting.get("label").toString());
                         tmp.setIgnoreCase(dictSetting.get("ignoreCase") == null ? null : dictSetting.get("ignoreCase").toString());
@@ -117,15 +111,11 @@ public class DictionaryService {
                             if ("SET".equalsIgnoreCase(dictType)) {
                                 tmp.getColumns().add(new DictionarySetting.Column("keyword", "단어"));
                             } else if ("SYNONYM".equalsIgnoreCase(dictType)) {
-                                if ("UNIT_SYNONYM".equalsIgnoreCase(tmp.getId())) {
+                                tmp.getColumns().add(new DictionarySetting.Column("keyword", "단어"));
+                                if ("SYNONYM".equalsIgnoreCase(tmp.getId())) {
                                     tmp.getColumns().add(new DictionarySetting.Column("value", "유사어"));
                                 } else {
-                                    tmp.getColumns().add(new DictionarySetting.Column("keyword", "단어"));
-                                    if ("SYNONYM".equalsIgnoreCase(tmp.getId())) {
-                                        tmp.getColumns().add(new DictionarySetting.Column("value", "유사어"));
-                                    } else {
-                                        tmp.getColumns().add(new DictionarySetting.Column("value", "값"));
-                                    }
+                                    tmp.getColumns().add(new DictionarySetting.Column("value", "값"));
                                 }
                             } else if ("SPACE".equalsIgnoreCase(dictType)) {
                                 tmp.getColumns().add(new DictionarySetting.Column("keyword", "단어"));
@@ -365,9 +355,9 @@ public class DictionaryService {
             String method = "POST";
             String endPoint = "/_analysis-product-name/find-dict";
             String setJson = "{ \n" +
-                                "\"index\": \"" + dictionaryIndex + "\", \n" +
-                                "\"word\": \"" + word + "\"" +
-                              "}";
+                    "\"index\": \"" + dictionaryIndex + "\", \n" +
+                    "\"word\": \"" + word + "\"" +
+                    "}";
             Request findDictRequest = new Request(method, endPoint);
             findDictRequest.setJsonEntity(setJson);
             return restClient.performRequest(findDictRequest);
