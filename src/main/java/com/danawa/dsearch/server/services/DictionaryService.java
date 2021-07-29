@@ -92,7 +92,11 @@ public class DictionaryService {
                         if ("SYSTEM".equalsIgnoreCase(tmp.getId())) {
                             tmp.setType("PRODUCT");
                         } else {
-                            tmp.setType(dictSetting.get("dictType") == null ? null : dictSetting.get("dictType").toString());
+                            String dictType = dictSetting.get("dictType") == null ? null : dictSetting.get("dictType").toString();
+                            if ("SYNONYM".equalsIgnoreCase(dictType) && "UNIT_SYNONYM".equalsIgnoreCase(String.valueOf(dictSetting.get("type")))) {
+                                //TODO 2021.07.29 김준우 : 임시 단위명 동의어 사전 버그 수정
+                                tmp.setType("SYNONYM_2WAY");
+                            }
                         }
                         tmp.setName(dictSetting.get("label") == null ? null : dictSetting.get("label").toString());
                         tmp.setIgnoreCase(dictSetting.get("ignoreCase") == null ? null : dictSetting.get("ignoreCase").toString());
