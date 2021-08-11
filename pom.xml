@@ -10,7 +10,7 @@
     </parent>
     <groupId>com.danawa</groupId>
     <artifactId>dsearch-server</artifactId>
-    <version>1.2.0</version>
+    <version>1.2.1</version>
     <name>dsearch</name>
     <description>Elasticsearch</description>
 
