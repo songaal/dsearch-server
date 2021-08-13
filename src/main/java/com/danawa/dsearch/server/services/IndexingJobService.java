@@ -382,6 +382,24 @@ public class IndexingJobService {
         }
     }
 
+    public IndexingStatus reindex(UUID clusterId, boolean autoRun, Collection collection) throws IndexingJobFailureException, IOException {
+        return reindex(clusterId, autoRun, collection, new ArrayDeque<>());
+    }
+    public IndexingStatus reindex(UUID clusterId, boolean autoRun, Collection collection, Queue<IndexStep> nextStep) throws IndexingJobFailureException, IOException {
+        IndexingStatus indexingStatus = new IndexingStatus();
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            Collection.Index indexA = collection.getIndexA();
+            Collection.Index indexB = collection.getIndexB();
+
+            // 1. 대상 인덱스 찾기. dest
+            logger.info("clusterId: {}, baseId: {}, 대상 인덱스 찾기", clusterId, collection.getBaseId());
+            Collection.Index index = getTargetIndex(client, collection.getBaseId(), indexA, indexB);
+            logger.info("source : {}",index);
+            logger.info("dest : {}",index);
+            //client.reindexAsync();
+            return indexingStatus;
+        }
+    }
 
     /**
      * 전파 중지

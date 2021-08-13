@@ -188,6 +188,18 @@ public class CollectionController {
                     response.put("result", "fail");
                 }
             }
+        } else if ("reindex".equalsIgnoreCase(action)) {
+            synchronized (obj) {
+                IndexingStatus registerStatus = indexingJobManager.findById(id);
+                if (registerStatus == null) {
+                    Collection collection = collectionService.findById(clusterId, id);
+                    IndexingStatus indexingStatus = indexingJobService.reindex(clusterId, false, collection, null);
+                    indexingJobManager.add(collection.getId(), indexingStatus);
+                    response.put("result", "success");
+                } else {
+                    response.put("result", "fail");
+                }
+            }
         }
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
