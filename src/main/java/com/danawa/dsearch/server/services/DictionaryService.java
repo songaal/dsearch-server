@@ -355,9 +355,9 @@ public class DictionaryService {
             String method = "POST";
             String endPoint = "/_analysis-product-name/find-dict";
             String setJson = "{ \n" +
-                                "\"index\": \"" + dictionaryIndex + "\", \n" +
-                                "\"word\": \"" + word + "\"" +
-                              "}";
+                    "\"index\": \"" + dictionaryIndex + "\", \n" +
+                    "\"word\": \"" + word + "\"" +
+                    "}";
             Request findDictRequest = new Request(method, endPoint);
             findDictRequest.setJsonEntity(setJson);
             return restClient.performRequest(findDictRequest);
@@ -380,7 +380,9 @@ public class DictionaryService {
                         "\"distribute\": true, \n" +
                         "\"type\": \"" + type+ "\", \n" +
                         "\"host\": \"" + remoteCluster.getHost() + "\", \n" +
-                        "\"port\": \"" + remoteCluster.getPort() + "\" \n" +
+                        "\"port\": \"" + remoteCluster.getPort() + "\", \n" +
+                        "\"username\": \"" + remoteCluster.getUsername() + "\", \n" +
+                        "\"password\": \"" + remoteCluster.getPassword() + "\" \n" +
                         "}";
             } else {
                 setJson = "{ \n" +
@@ -405,6 +407,8 @@ public class DictionaryService {
         response.put("remote", !remoteClusterId.equals(clusterId));
         response.put("host", cluster.getHost());
         response.put("port", cluster.getPort());
+        response.put("username", cluster.getUsername());
+        response.put("password", cluster.getPassword());
         response.put("remoteClusterId", remoteClusterId);
         return response;
     }
