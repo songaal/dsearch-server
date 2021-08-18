@@ -10,6 +10,7 @@ import com.danawa.fastcatx.indexer.IndexJobManager;
 import com.danawa.fastcatx.indexer.entity.Job;
 import com.google.gson.Gson;
 import org.apache.http.util.EntityUtils;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.get.GetRequest;
@@ -18,9 +19,15 @@ import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.*;
 import org.elasticsearch.client.indices.CreateIndexRequest;
+import org.elasticsearch.client.tasks.CancelTasksRequest;
+import org.elasticsearch.client.tasks.CancelTasksResponse;
+import org.elasticsearch.client.tasks.TaskId;
+import org.elasticsearch.client.tasks.TaskSubmissionResponse;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.MatchQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.reindex.BulkByScrollResponse;
+import org.elasticsearch.index.reindex.ReindexRequest;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
@@ -386,17 +393,69 @@ public class IndexingJobService {
         return reindex(clusterId, autoRun, collection, new ArrayDeque<>());
     }
     public IndexingStatus reindex(UUID clusterId, boolean autoRun, Collection collection, Queue<IndexStep> nextStep) throws IndexingJobFailureException, IOException {
-        IndexingStatus indexingStatus = new IndexingStatus();
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Collection.Index indexA = collection.getIndexA();
             Collection.Index indexB = collection.getIndexB();
 
-            // 1. 대상 인덱스 찾기. dest
+            // 1. 대상 인덱스 찾기. source, dest
             logger.info("clusterId: {}, baseId: {}, 대상 인덱스 찾기", clusterId, collection.getBaseId());
-            Collection.Index index = getTargetIndex(client, collection.getBaseId(), indexA, indexB);
-            logger.info("source : {}",index);
-            logger.info("dest : {}",index);
-            //client.reindexAsync();
+            Collection.Index destIndex = getTargetIndex(client, collection.getBaseId(), indexA, indexB);
+            Collection.Index sourceIndex = null;
+            if (indexA.getIndex().equals(destIndex.getIndex())) {
+                sourceIndex = indexB;
+            } else {
+                sourceIndex = indexA;
+            }
+
+            logger.info("source : {}",sourceIndex.getIndex());
+            logger.info("dest : {}",destIndex.getIndex());
+
+            ReindexRequest reindexRequest = new ReindexRequest();
+            reindexRequest.setSourceIndices(sourceIndex.getIndex());
+            reindexRequest.setDestIndex(destIndex.getIndex());
+            reindexRequest.setRefresh(true);
+
+            TaskSubmissionResponse reindexSubmission = client.submitReindexTask(reindexRequest, RequestOptions.DEFAULT);
+            String taskId = reindexSubmission.getTask();
+            logger.info("taskId : {}", taskId);
+
+            /*ActionListener<BulkByScrollResponse> listener = new ActionListener<BulkByScrollResponse>() {
+                @Override
+                public void onResponse(BulkByScrollResponse bulkResponse) {
+                    // 성공
+                    logger.info("success : {}", bulkResponse);
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    // 실패
+                    logger.info("fail : {}", e);
+                }
+            };*/
+
+            //Cancellable cancellable = client.reindexAsync(reindexRequest, RequestOptions.DEFAULT, listener);
+            //BulkByScrollResponse bulkResponse = client.reindex(reindexRequest, RequestOptions.DEFAULT);
+            //cancellable.cancel();
+
+            //logger.info("{}",bulkResponse.getTook());
+            //logger.info("{}",bulkResponse.getTotal());
+            //logger.info("{}",bulkResponse.getStatus());
+
+
+            IndexingStatus indexingStatus = new IndexingStatus();
+            indexingStatus.setClusterId(clusterId);
+            indexingStatus.setTaskId(taskId);
+            indexingStatus.setIndex(destIndex.getIndex());
+            indexingStatus.setStartTime(System.currentTimeMillis());
+            indexingStatus.setAutoRun(autoRun);
+            indexingStatus.setCurrentStep(IndexStep.REINDEX);
+            if (nextStep == null) {
+                indexingStatus.setNextStep(new ArrayDeque<>());
+            } else {
+                indexingStatus.setNextStep(nextStep);
+            }
+            indexingStatus.setRetry(50);
+            indexingStatus.setCollection(collection);
             return indexingStatus;
         }
     }
@@ -418,6 +477,41 @@ public class IndexingJobService {
             editPreparations(client, collection, index);
             logger.info("stop propagation : {}", index.getIndex());
         }
+    }
+
+    public void stopReindexing(UUID clusterId, Collection collection) throws IOException {
+        /*try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            Collection.Index indexA = collection.getIndexA();
+            Collection.Index indexB = collection.getIndexB();
+            Collection.Index index = getTargetIndex(collection.getBaseId(), indexA, indexB);
+            TasksClient tasksClient;
+
+            TaskId taskId = new TaskId();
+
+            CancelTasksRequest byTaskIdRequest = new org.elasticsearch.client.tasks.CancelTasksRequest.Builder()
+                    .withTaskId()
+                    .withTaskId(new org.elasticsearch.client.tasks.TaskId("myNode",44L))
+                    .withWaitForCompletion(true)
+                    .build();
+
+            CancelTasksResponse response = client.tasks().cancel(byTaskIdRequest, RequestOptions.DEFAULT);
+
+            tasksClient.
+            POST _tasks/_76in8wxTJakUwRrjOfKOg:13191558/_cancel
+
+            client.
+
+            try {
+                restTemplate.exchange(new URI(String.format("_tasks/%s/_cancel", taskid)),
+                        HttpMethod.POST,
+                        new HttpEntity(new HashMap<>()),
+                        String.class
+                );
+            } catch (Exception ignore) { }
+            index.setStatus("STOP");
+            editPreparations(client, collection, index);
+            logger.info("stop propagation : {}", index.getIndex());
+        }*/
     }
 
     private Collection.Index getTargetIndex(String baseId, Collection.Index indexA, Collection.Index indexB) {

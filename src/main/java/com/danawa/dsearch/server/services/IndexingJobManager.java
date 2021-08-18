@@ -92,6 +92,8 @@ public class IndexingJobManager {
                 } else if (step == IndexStep.PROPAGATE) {
                     // elsticsearch한테 상태를 조회한다.
                     updateElasticsearchStatus(id, indexingStatus);
+                } else if (step == IndexStep.REINDEX) {
+                    updateReindexStatus(id, indexingStatus);
                 } else if (step == IndexStep.EXPOSE) {
 //                    EXPOSE
                     UUID clusterId = indexingStatus.getClusterId();
@@ -363,6 +365,79 @@ public class IndexingJobManager {
                 }
             }
         }
+    }
+
+    /**
+     * reindex 조회 후 상태 업데이트.
+     * */
+    private void updateReindexStatus(String id, IndexingStatus indexingStatus) throws IOException, IndexingJobFailureException {
+        UUID clusterId = indexingStatus.getClusterId();
+        String index = indexingStatus.getIndex();
+        IndexStep step = indexingStatus.getCurrentStep();
+        String taskId = indexingStatus.getTaskId();
+        boolean done = true;
+        String taskStatus = null;
+
+        try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            Request request = new Request("GET", String.format("/_tasks/%s", taskId));
+            request.addParameter("format", "json");
+            Response response = client.getLowLevelClient().performRequest(request);
+            String responseBodyString = EntityUtils.toString(response.getEntity());
+            Map<String ,Object> entityMap = new Gson().fromJson(responseBodyString, Map.class);
+            logger.info("entityMap : {}", entityMap);
+            String completed = entityMap.get("completed").toString();
+            Map<String, Object> taskMap = (Map<String, Object>) entityMap.get("task");
+            Map<String, Object> statusMap = (Map<String, Object>) taskMap.get("status");
+            logger.info("reindexing... total:{}, updated:{}, created:{}, deleted:{}", statusMap.get("total"), statusMap.get("updated"), statusMap.get("created"), statusMap.get("deleted"));
+
+            if("false".equals(completed)) {
+                done = false;
+            } else if ("true".equals(completed)){
+                //done = true;
+                Map<String, Object> responseMap = (Map<String, Object>) entityMap.get("response");
+                if(responseMap.get("canceled") != null) {
+                    logger.info("reindex canceled:{}", responseMap.get("canceled"));
+                    taskStatus = "STOP";
+                } else {
+                    taskStatus = "SUCCESS";
+                }
+            } else {
+                logger.info("reindex completed check!!! completed : {}", completed);
+            }
+        }
+
+        logger.debug("reindex Check.. index: {}, is {}: {}", index, taskStatus, done);
+        if (done) {
+            try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+                Map<String, Object> catIndex = catIndex(client, index);
+                String docSize = (String) catIndex.get("docs.count");
+                String store = (String) catIndex.get("store.size");
+                long startTime = indexingStatus.getStartTime();
+                deleteLastIndexStatus(client, index, startTime);
+                addIndexHistory(client, index, step.name(), startTime, System.currentTimeMillis(), indexingStatus.isAutoRun(), docSize, taskStatus, store);
+
+                logger.info("REINDEX {}, id: {}, indexingStatus: {}", taskStatus, id, indexingStatus.toString());
+
+                IndexStep nextStep = indexingStatus.getNextStep().poll();
+                if (nextStep != null) {
+                    indexingStatus.setCurrentStep(nextStep);
+                    indexingStatus.setStartTime(System.currentTimeMillis());
+                    indexingStatus.setEndTime(0);
+                    indexingStatus.setRetry(50);
+                    indexingStatus.setAutoRun(true);
+                    jobs.put(id, indexingStatus);
+                    logger.debug("add next job : {} ", nextStep.name());
+                } else {
+                    IndexingStatus idxStat = jobs.get(id);
+                    idxStat.setStatus(taskStatus);
+                    idxStat.setEndTime(System.currentTimeMillis());
+                    indexingProcessQueue.put(id, idxStat);
+                    jobs.remove(id);
+                    logger.debug("empty next status : {} ", id);
+                }
+            }
+        }
+
     }
 
     private Map<String ,Object> catIndex(RestHighLevelClient client, String index) throws IOException {

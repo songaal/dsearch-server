@@ -16,6 +16,8 @@ public class IndexingStatus implements Serializable {
     private boolean isAutoRun;
     private UUID clusterId;
 
+    private String taskId;
+
     private String status;
     private String error;
     private long startTime;
@@ -154,6 +156,14 @@ public class IndexingStatus implements Serializable {
         this.scheme = scheme;
     }
 
+    public String getTaskId() {
+        return taskId;
+    }
+
+    public void setTaskId(String taskId) {
+        this.taskId = taskId;
+    }
+
     @Override
     public String toString() {
         return "IndexingStatus{" +
@@ -164,6 +174,7 @@ public class IndexingStatus implements Serializable {
                 ", indexingJobId='" + indexingJobId + '\'' +
                 ", isAutoRun=" + isAutoRun +
                 ", clusterId=" + clusterId +
+                ", taskId=" + taskId +
                 ", status='" + status + '\'' +
                 ", error='" + error + '\'' +
                 ", startTime=" + startTime +

@@ -194,7 +194,21 @@ public class CollectionController {
                 if (registerStatus == null) {
                     Collection collection = collectionService.findById(clusterId, id);
                     IndexingStatus indexingStatus = indexingJobService.reindex(clusterId, false, collection, null);
+                    logger.info("indexingStatus : {}", indexingStatus);
                     indexingJobManager.add(collection.getId(), indexingStatus);
+                    response.put("result", "success");
+                } else {
+                    response.put("result", "fail");
+                }
+            }
+        } else if ("stop_reindexing".equalsIgnoreCase(action)) {
+            synchronized (obj) {
+                IndexingStatus indexingStatus = indexingJobManager.findById(id);
+                if (indexingStatus != null && (indexingStatus.getCurrentStep() == IndexStep.REINDEX)) {
+                    indexingStatus.setStatus("STOP");
+                    Collection collection = collectionService.findById(clusterId, id);
+                    indexingJobService.stopReindexing(clusterId, collection);
+                    indexingJobManager.setStopStatus(id, "STOP"); // 추가
                     response.put("result", "success");
                 } else {
                     response.put("result", "fail");
