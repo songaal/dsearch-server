@@ -207,7 +207,7 @@ public class CollectionController {
                 if (indexingStatus != null && (indexingStatus.getCurrentStep() == IndexStep.REINDEX)) {
                     indexingStatus.setStatus("STOP");
                     Collection collection = collectionService.findById(clusterId, id);
-                    indexingJobService.stopReindexing(clusterId, collection);
+                    indexingJobService.stopReindexing(clusterId, collection,indexingStatus);
                     indexingJobManager.setStopStatus(id, "STOP"); // 추가
                     response.put("result", "success");
                 } else {
@@ -340,7 +340,8 @@ public class CollectionController {
                 IndexingStatus registerStatus = indexingJobManager.findById(id);
                 if (registerStatus == null) {
                     IndexingStatus indexingStatus = indexingJobService.propagate(clusterId, false, collection, null);
-                    indexingStatus.setStatus("RUNNING");
+
+
                     indexingStatus.setAction(action);
                     indexingJobManager.add(collection.getId(), indexingStatus);
 

@@ -378,20 +378,25 @@ public class IndexingJobManager {
         boolean done = true;
         String taskStatus = null;
 
+        indexingStatus.setStatus(taskStatus);
+        jobs.put(id, indexingStatus);
+
         try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Request request = new Request("GET", String.format("/_tasks/%s", taskId));
             request.addParameter("format", "json");
             Response response = client.getLowLevelClient().performRequest(request);
             String responseBodyString = EntityUtils.toString(response.getEntity());
             Map<String ,Object> entityMap = new Gson().fromJson(responseBodyString, Map.class);
-            logger.info("entityMap : {}", entityMap);
+            //logger.info("entityMap : {}", entityMap);
             String completed = entityMap.get("completed").toString();
             Map<String, Object> taskMap = (Map<String, Object>) entityMap.get("task");
             Map<String, Object> statusMap = (Map<String, Object>) taskMap.get("status");
-            logger.info("reindexing... total:{}, updated:{}, created:{}, deleted:{}", statusMap.get("total"), statusMap.get("updated"), statusMap.get("created"), statusMap.get("deleted"));
+            //logger.info("reindexing... total:{}, updated:{}, created:{}, deleted:{}", statusMap.get("total"), statusMap.get("updated"), statusMap.get("created"), statusMap.get("deleted"));
+
 
             if("false".equals(completed)) {
                 done = false;
+                taskStatus = "RUNNING";
             } else if ("true".equals(completed)){
                 //done = true;
                 Map<String, Object> responseMap = (Map<String, Object>) entityMap.get("response");
@@ -436,6 +441,9 @@ public class IndexingJobManager {
                     logger.debug("empty next status : {} ", id);
                 }
             }
+        } else {
+            indexingStatus.setStatus(taskStatus);
+            jobs.put(id, indexingStatus);
         }
 
     }

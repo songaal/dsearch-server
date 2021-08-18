@@ -479,39 +479,23 @@ public class IndexingJobService {
         }
     }
 
-    public void stopReindexing(UUID clusterId, Collection collection) throws IOException {
-        /*try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            Collection.Index indexA = collection.getIndexA();
-            Collection.Index indexB = collection.getIndexB();
-            Collection.Index index = getTargetIndex(collection.getBaseId(), indexA, indexB);
-            TasksClient tasksClient;
+    public void stopReindexing(UUID clusterId, Collection collection, IndexingStatus indexingStatus) throws IOException {
+        Collection.Index indexA = collection.getIndexA();
+        Collection.Index indexB = collection.getIndexB();
 
-            TaskId taskId = new TaskId();
+        Collection.Index index = getTargetIndex(collection.getBaseId(), indexA, indexB);
 
-            CancelTasksRequest byTaskIdRequest = new org.elasticsearch.client.tasks.CancelTasksRequest.Builder()
-                    .withTaskId()
-                    .withTaskId(new org.elasticsearch.client.tasks.TaskId("myNode",44L))
-                    .withWaitForCompletion(true)
-                    .build();
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            Request request = new Request("POST", String.format("/_tasks/%s/_cancel", indexingStatus.getTaskId()));
+            request.addParameter("format", "json");
+            Response response = client.getLowLevelClient().performRequest(request);
+            String responseBodyString = EntityUtils.toString(response.getEntity());
+            Map<String, Object> entityMap = new Gson().fromJson(responseBodyString, Map.class);
+            //logger.info("entityMap : {}", entityMap);
 
-            CancelTasksResponse response = client.tasks().cancel(byTaskIdRequest, RequestOptions.DEFAULT);
-
-            tasksClient.
-            POST _tasks/_76in8wxTJakUwRrjOfKOg:13191558/_cancel
-
-            client.
-
-            try {
-                restTemplate.exchange(new URI(String.format("_tasks/%s/_cancel", taskid)),
-                        HttpMethod.POST,
-                        new HttpEntity(new HashMap<>()),
-                        String.class
-                );
-            } catch (Exception ignore) { }
             index.setStatus("STOP");
-            editPreparations(client, collection, index);
             logger.info("stop propagation : {}", index.getIndex());
-        }*/
+        }
     }
 
     private Collection.Index getTargetIndex(String baseId, Collection.Index indexA, Collection.Index indexB) {
