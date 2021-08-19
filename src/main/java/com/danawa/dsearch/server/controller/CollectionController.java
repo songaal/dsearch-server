@@ -194,7 +194,6 @@ public class CollectionController {
                 if (registerStatus == null) {
                     Collection collection = collectionService.findById(clusterId, id);
                     IndexingStatus indexingStatus = indexingJobService.reindex(clusterId, false, collection, null);
-                    logger.info("indexingStatus : {}", indexingStatus);
                     indexingJobManager.add(collection.getId(), indexingStatus);
                     response.put("result", "success");
                 } else {
@@ -207,7 +206,7 @@ public class CollectionController {
                 if (indexingStatus != null && (indexingStatus.getCurrentStep() == IndexStep.REINDEX)) {
                     indexingStatus.setStatus("STOP");
                     Collection collection = collectionService.findById(clusterId, id);
-                    indexingJobService.stopReindexing(clusterId, collection,indexingStatus);
+                    indexingJobService.stopReindexing(clusterId, collection, indexingStatus);
                     indexingJobManager.setStopStatus(id, "STOP"); // 추가
                     response.put("result", "success");
                 } else {

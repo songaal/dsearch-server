@@ -407,40 +407,20 @@ public class IndexingJobService {
                 sourceIndex = indexA;
             }
 
-            logger.info("source : {}",sourceIndex.getIndex());
-            logger.info("dest : {}",destIndex.getIndex());
-
+            // reindex 요청 설정
             ReindexRequest reindexRequest = new ReindexRequest();
             reindexRequest.setSourceIndices(sourceIndex.getIndex());
             reindexRequest.setDestIndex(destIndex.getIndex());
             reindexRequest.setRefresh(true);
+            // 배치 사이즈 default : 1000
+            //reindexRequest.setSourceBatchSize(10000);
+            // sliced-scroll 슬라이스를 사용 (병렬)
+            //reindexRequest.setSlices(2);
 
             TaskSubmissionResponse reindexSubmission = client.submitReindexTask(reindexRequest, RequestOptions.DEFAULT);
+            // 작업 번호
             String taskId = reindexSubmission.getTask();
-            logger.info("taskId : {}", taskId);
-
-            /*ActionListener<BulkByScrollResponse> listener = new ActionListener<BulkByScrollResponse>() {
-                @Override
-                public void onResponse(BulkByScrollResponse bulkResponse) {
-                    // 성공
-                    logger.info("success : {}", bulkResponse);
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    // 실패
-                    logger.info("fail : {}", e);
-                }
-            };*/
-
-            //Cancellable cancellable = client.reindexAsync(reindexRequest, RequestOptions.DEFAULT, listener);
-            //BulkByScrollResponse bulkResponse = client.reindex(reindexRequest, RequestOptions.DEFAULT);
-            //cancellable.cancel();
-
-            //logger.info("{}",bulkResponse.getTook());
-            //logger.info("{}",bulkResponse.getTotal());
-            //logger.info("{}",bulkResponse.getStatus());
-
+            logger.info("taskId : {} - source : {} -> dest : {}", taskId, sourceIndex.getIndex(), destIndex.getIndex());
 
             IndexingStatus indexingStatus = new IndexingStatus();
             indexingStatus.setClusterId(clusterId);
@@ -480,12 +460,12 @@ public class IndexingJobService {
     }
 
     public void stopReindexing(UUID clusterId, Collection collection, IndexingStatus indexingStatus) throws IOException {
-        Collection.Index indexA = collection.getIndexA();
-        Collection.Index indexB = collection.getIndexB();
-
-        Collection.Index index = getTargetIndex(collection.getBaseId(), indexA, indexB);
-
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            Collection.Index indexA = collection.getIndexA();
+            Collection.Index indexB = collection.getIndexB();
+
+            Collection.Index index = getTargetIndex(collection.getBaseId(), indexA, indexB);
+            // 취소 요청
             Request request = new Request("POST", String.format("/_tasks/%s/_cancel", indexingStatus.getTaskId()));
             request.addParameter("format", "json");
             Response response = client.getLowLevelClient().performRequest(request);
@@ -494,7 +474,7 @@ public class IndexingJobService {
             //logger.info("entityMap : {}", entityMap);
 
             index.setStatus("STOP");
-            logger.info("stop propagation : {}", index.getIndex());
+            logger.info("stop reindexing : {}", index.getIndex());
         }
     }
 
