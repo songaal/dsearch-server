@@ -375,12 +375,10 @@ public class IndexingJobManager {
         String index = indexingStatus.getIndex();
         IndexStep step = indexingStatus.getCurrentStep();
         String taskId = indexingStatus.getTaskId();
+        String taskStatus = indexingStatus.getStatus();
         boolean done = true;
-        String taskStatus = null;
 
-        indexingStatus.setStatus(taskStatus);
-        jobs.put(id, indexingStatus);
-
+        // task 조회
         try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Request request = new Request("GET", String.format("/_tasks/%s", taskId));
             request.addParameter("format", "json");
@@ -391,15 +389,16 @@ public class IndexingJobManager {
             String completed = entityMap.get("completed").toString();
             Map<String, Object> taskMap = (Map<String, Object>) entityMap.get("task");
             Map<String, Object> statusMap = (Map<String, Object>) taskMap.get("status");
-            //logger.info("reindexing... total:{}, updated:{}, created:{}, deleted:{}", statusMap.get("total"), statusMap.get("updated"), statusMap.get("created"), statusMap.get("deleted"));
+            logger.debug("reindexing... total:{}, updated:{}, created:{}, deleted:{}", statusMap.get("total"), statusMap.get("updated"), statusMap.get("created"), statusMap.get("deleted"));
 
-
+            // completed false 이면 실행중, true 이면 종료(완료)
             if("false".equals(completed)) {
                 done = false;
                 taskStatus = "RUNNING";
             } else if ("true".equals(completed)){
-                //done = true;
                 Map<String, Object> responseMap = (Map<String, Object>) entityMap.get("response");
+                // 종료일 경우, canceled 값이 있으면 취소로 인한 종료, 없으면 정상 종료
+                logger.debug("responseMap:{}",responseMap);
                 if(responseMap.get("canceled") != null) {
                     logger.info("reindex canceled:{}", responseMap.get("canceled"));
                     taskStatus = "STOP";
@@ -408,6 +407,7 @@ public class IndexingJobManager {
                 }
             } else {
                 logger.info("reindex completed check!!! completed : {}", completed);
+                logger.debug("entityMap:{}", entityMap);
             }
         }
 
