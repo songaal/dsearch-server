@@ -380,7 +380,7 @@ public class DictionaryService {
                         "\"distribute\": true, \n" +
                         "\"type\": \"" + type+ "\", \n" +
                         "\"host\": \"" + remoteCluster.getHost() + "\", \n" +
-                        "\"port\": \"" + remoteCluster.getPort() + "\" \n" +
+                        "\"port\": \"" + remoteCluster.getPort() + "\", \n" +
                         "\"username\": \"" + remoteCluster.getUsername() + "\", \n" +
                         "\"password\": \"" + remoteCluster.getPassword() + "\" \n" +
                         "}";

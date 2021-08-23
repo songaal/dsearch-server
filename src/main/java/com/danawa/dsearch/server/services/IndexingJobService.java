@@ -202,13 +202,15 @@ public class IndexingJobService {
     public IndexingStatus propagate(UUID clusterId, boolean autoRun, Collection collection, String target) throws IndexingJobFailureException, IOException {
         return propagate(clusterId, autoRun, collection, new ArrayDeque<>(), target);
     }
+
     public IndexingStatus propagate(UUID clusterId, boolean autoRun, Collection collection, Queue<IndexStep> nextStep, String target) throws IndexingJobFailureException, IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Collection.Index indexA = collection.getIndexA();
             Collection.Index indexB = collection.getIndexB();
-            Map<String, Object> tmp = new HashMap<>() ;
+
+            Map<String, Object> newPropagateOptions = new HashMap<>() ;
             for(String key : propagate.keySet()){
-                tmp.put(key, propagate.get(key));
+                newPropagateOptions.put(key, propagate.get(key));
             }
 
             if (target == null) {
@@ -235,29 +237,39 @@ public class IndexingJobService {
                 target = (String) source.get("index");
             }
             
-            //설정 무시 옵션 있을시 전파시 role 설정 제거
+            // 설정 무시 옵션 있을시 전파시 role 설정 제거
             if(collection.getIgnoreRoleYn() != null && collection.getIgnoreRoleYn().equals("Y")) {
-                tmp.remove("index.routing.allocation.include.role");
-                tmp.remove("index.routing.allocation.exclude.role");
+                newPropagateOptions.remove("index.routing.allocation.include.role");
+                newPropagateOptions.remove("index.routing.allocation.exclude.role");
             } else {
-                tmp.replace("index.routing.allocation.include.role", "");
-                tmp.replace("index.routing.allocation.exclude.role", "index");
+                newPropagateOptions.replace("index.routing.allocation.include.role", "");
+                newPropagateOptions.replace("index.routing.allocation.exclude.role", "index");
             }
 
-            if(collection.getRefresh_interval() != null && collection.getRefresh_interval() != 0){
-                tmp.replace("refresh_interval", collection.getRefresh_interval() + "s");
+            // refresh_interval : -1, 1s, 2s, ...
+            if(collection.getRefresh_interval() != null){
+                // 0일때는 1로 셋팅.
+                int refresh_interval = collection.getRefresh_interval() == 0 ? 1 : collection.getRefresh_interval();
+
+                if(refresh_interval >= 0){
+                    newPropagateOptions.replace("refresh_interval", collection.getRefresh_interval() + "s");
+                } else {
+                    // -2 이하로 내려갈 때, -1로 고정.
+                    refresh_interval = -1;
+                    newPropagateOptions.replace("refresh_interval", refresh_interval + "");
+                }
             }
 
             if(collection.getReplicas() == null){
-                tmp.replace("index.number_of_replicas", 1);
+                newPropagateOptions.replace("index.number_of_replicas", 1);
             } else if(collection.getReplicas() == 0){
-                tmp.replace("index.number_of_replicas", 0);
+                newPropagateOptions.replace("index.number_of_replicas", 0);
             } else {
-                tmp.replace("index.number_of_replicas", collection.getReplicas());
+                newPropagateOptions.replace("index.number_of_replicas", collection.getReplicas());
             }
             
-            logger.info("propagate 셋팅 : {}", tmp);
-            client.indices().putSettings(new UpdateSettingsRequest().indices(target).settings(tmp), RequestOptions.DEFAULT);
+            logger.info("propagate 셋팅 : {}", newPropagateOptions);
+            client.indices().putSettings(new UpdateSettingsRequest().indices(target).settings(newPropagateOptions), RequestOptions.DEFAULT);
             IndexingStatus indexingStatus = new IndexingStatus();
             indexingStatus.setClusterId(clusterId);
             indexingStatus.setIndex(target);
