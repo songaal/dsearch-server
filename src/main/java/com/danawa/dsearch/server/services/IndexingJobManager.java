@@ -348,10 +348,6 @@ public class IndexingJobManager {
                     indexingStatus.setRetry(50);
                     indexingStatus.setAutoRun(true);
                     jobs.put(id, indexingStatus);
-//                    IndexingStatus idxStat = jobs.get(id);
-//                    idxStat.setStatus("SUCCESS");
-//                    idxStat.setEndTime(System.currentTimeMillis());
-//                    indexingProcessQueue.put(id, idxStat);
                     logger.debug("add next job : {} ", nextStep.name());
                 } else {
                     IndexingStatus idxStat = jobs.get(id);
@@ -533,23 +529,4 @@ public class IndexingJobManager {
     public void setTimeout(long timeout) {
         this.timeout = timeout;
     }
-
-//    private void clean(UUID clusterId) {
-//        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-//            // 1일 지나면 삭제.
-//            long time = System.currentTimeMillis() - (60 * 60 * 24 * 1000);
-//            client.deleteByQueryAsync(new DeleteByQueryRequest(lastIndexStatusIndex).
-//                            setQuery(QueryBuilders.
-//                                    rangeQuery("startTime").
-//                                    gte(time)),
-//                    RequestOptions.DEFAULT, new ActionListener<BulkByScrollResponse>() {
-//                        @Override
-//                        public void onResponse(BulkByScrollResponse bulkByScrollResponse) { }
-//                        @Override
-//                        public void onFailure(Exception e) { }
-//                    });
-//        } catch (IOException e) {
-//            // ignore
-//        }
-//    }
 }
