@@ -82,24 +82,24 @@ public class MigrationController {
 
         boolean firstFlag = false;
         if(pipeline){
-            sb.append("\"pipeline\": " + pipelineService.download(clusterId, message));
+            sb.append("\"pipeline\": " + pipelineService.download(clusterId, message) + "\n");
             firstFlag = true;
         }
 
         if(collection){
             if(firstFlag) { sb.append(",\n"); }
-            sb.append("\"collection\": [" + collectionService.download(clusterId, message) + "]");
+            sb.append("\"collection\": [" + collectionService.download(clusterId, message) + "]\n");
             firstFlag = true;
         }
 
         if(jdbc){
             if(firstFlag) {sb.append(",\n"); }
-            sb.append("\"jdbc\": [" + jdbcService.download(clusterId, message) + "]");
+            sb.append("\"jdbc\": [" + jdbcService.download(clusterId, message) + "]\n");
             firstFlag = true;
         }
 
         if(templates){
-            if(firstFlag) {sb.append(",\n"); }
+            if(firstFlag) sb.append(",\n");
             sb.append("\"templates\": " + indexTemplateService.download(clusterId, message));
             sb.append(",\n");
             sb.append("\"comments\": [" + indexTemplateService.commentDownload(clusterId, message) + "]");

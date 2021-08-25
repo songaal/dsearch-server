@@ -121,9 +121,6 @@ public class CollectionService {
         }
     }
 
-    private void registerCollection(){
-
-    }
     @PostConstruct
     public void init() {
 //        1. 등록된 모든 클러스터 조회
@@ -155,6 +152,7 @@ public class CollectionService {
                             String index = (String) source.get("index");
                             long startTime = (long) source.get("startTime");
                             IndexStep step = IndexStep.valueOf(String.valueOf(source.get("step")));
+
                             if (expireStartTime <= startTime) {
                                 Collection collection = findById(cluster.getId(), collectionId);
                                 Collection.Launcher launcher = collection.getLauncher();
@@ -248,9 +246,6 @@ public class CollectionService {
 
             client.indices()
                     .putTemplate(new PutIndexTemplateRequest(collection.getBaseId()).patterns(Arrays.asList(indexNameA, indexNameB)), RequestOptions.DEFAULT);
-
-//            client.indices().putTemplate(new PutIndexTemplateRequest(indexNameA).patterns(Arrays.asList(indexNameA)), RequestOptions.DEFAULT);
-//            client.indices().putTemplate(new PutIndexTemplateRequest(indexNameB).patterns(Arrays.asList(indexNameB)), RequestOptions.DEFAULT);
         }
     }
 

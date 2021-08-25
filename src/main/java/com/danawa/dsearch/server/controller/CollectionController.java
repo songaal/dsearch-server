@@ -102,41 +102,6 @@ public class CollectionController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    enum IndexingActionType{
-        ALL("all"), INDEXING("indexing"), PROPAGATE("propagate"), EXPOSE("expose"),
-        STOP_PROPAGATION("stop_propagation"), STOP_INDEXING("stop_indexing"), SUB_START("sub_start"),
-        UNKNOWN("");
-
-        private String action;
-
-        IndexingActionType(String action){
-            this.action = action;
-        }
-
-        public String getAction() {
-            return action;
-        }
-    }
-
-    private IndexingActionType getActionType(String action){
-        switch (action) {
-            case "all":
-                return IndexingActionType.ALL;
-            case "indexing":
-                return IndexingActionType.INDEXING;
-            case "propagate":
-                return IndexingActionType.PROPAGATE;
-            case "expose":
-                return IndexingActionType.EXPOSE;
-            case "stop_propagation":
-                return IndexingActionType.STOP_PROPAGATION;
-            case "stop_indexing":
-                return IndexingActionType.STOP_INDEXING;
-            default:
-                return IndexingActionType.UNKNOWN;
-        }
-    }
-
     @PutMapping("/{id}/action")
     public ResponseEntity<?> indexing(@RequestHeader(value = "cluster-id") UUID clusterId,
                                       @PathVariable String id,
@@ -147,240 +112,7 @@ public class CollectionController {
 
         registerIndexingJob(clusterId, id, collection, actionType, "", response);
 
-//        switch (actionType){
-//            case ALL:
-//                synchronized (obj) {
-//                    IndexingStatus registerStatus = indexingJobManager.findById(id);
-//                    if (registerStatus == null) {
-//                        Collection collection = collectionService.findById(clusterId, id);
-//                        Queue<IndexStep> nextStep = new ArrayDeque<>();
-//                        nextStep.add(IndexStep.PROPAGATE);
-//                        nextStep.add(IndexStep.EXPOSE);
-//                        IndexingStatus indexingStatus = indexingJobService.indexing(clusterId, collection, true, IndexStep.FULL_INDEX, nextStep);
-//                        indexingJobManager.add(collection.getId(), indexingStatus);
-//                        response.put("indexingStatus", indexingStatus);
-//                        response.put("result", "success");
-//                    } else {
-//                        response.put("result", "fail");
-//                    }
-//                }
-//                break;
-//            case INDEXING:
-//                synchronized (obj) {
-//                    IndexingStatus registerStatus = indexingJobManager.findById(id);
-//                    if (registerStatus == null) {
-//                        Collection collection = collectionService.findById(clusterId, id);
-//                        IndexingStatus indexingStatus = indexingJobService.indexing(clusterId, collection, false, IndexStep.FULL_INDEX);
-//                        indexingJobManager.add(collection.getId(), indexingStatus);
-//                        response.put("indexingStatus", indexingStatus);
-//                        response.put("result", "success");
-//                    } else {
-//                        response.put("result", "fail");
-//                    }
-//                }
-//                break;
-//            case PROPAGATE:
-//                synchronized (obj) {
-//                    IndexingStatus registerStatus = indexingJobManager.findById(id);
-//                    if (registerStatus == null) {
-//                        Collection collection = collectionService.findById(clusterId, id);
-//                        IndexingStatus indexingStatus = indexingJobService.propagate(clusterId, false, collection, null);
-//                        indexingJobManager.add(collection.getId(), indexingStatus);
-//                        response.put("result", "success");
-//                    } else {
-//                        response.put("result", "fail");
-//                    }
-//                }
-//                break;
-//            case EXPOSE:
-//                synchronized (obj) {
-//                    IndexingStatus registerStatus = indexingJobManager.findById(id);
-//                    if (registerStatus == null) {
-//                        Collection collection = collectionService.findById(clusterId, id);
-//                        indexingJobService.expose(clusterId, collection);
-//                        response.put("result", "success");
-//                    } else {
-//                        response.put("result", "fail");
-//                    }
-//                }
-//                break;
-//            case STOP_INDEXING:
-//                synchronized (obj) {
-//                    IndexingStatus indexingStatus = indexingJobManager.findById(id);
-//                    if (indexingStatus != null && (indexingStatus.getCurrentStep() == IndexStep.FULL_INDEX || indexingStatus.getCurrentStep() == IndexStep.DYNAMIC_INDEX)) {
-//                        indexingStatus.setStatus("STOP");
-//                        Collection collection = collectionService.findById(clusterId, id);
-//                        Collection.Launcher launcher = collection.getLauncher();
-//                        indexingJobService.stopIndexing(indexingStatus.getScheme(), launcher.getHost(), launcher.getPort(), indexingStatus.getIndexingJobId());
-//                        indexingJobManager.setStopStatus(id, "STOP"); // 추가
-//                        response.put("indexingStatus", indexingStatus);
-//                        response.put("result", "success");
-//                    } else {
-//                        response.put("result", "fail");
-//                    }
-//                }
-//                break;
-//            case STOP_PROPAGATION:
-//                synchronized (obj) {
-//                    IndexingStatus registerStatus = indexingJobManager.findById(id);
-//                    if (registerStatus != null && registerStatus.getCurrentStep() == IndexStep.PROPAGATE) {
-//                        registerStatus.setStatus("STOP");
-//                        Collection collection = collectionService.findById(clusterId, id);
-//                        indexingJobService.stopPropagation(clusterId, collection);
-//                        indexingJobManager.setStopStatus(id, "STOP"); // 추가
-//                        indexingJobManager.remove(id);
-//                        response.put("result", "success");
-//                    } else {
-//                        response.put("result", "fail");
-//                    }
-//                }
-//                break;
-//            default:
-//                throw new IndexingJobFailureException("Action is not suitable exception");
-//        }
-
         return new ResponseEntity<>(response, HttpStatus.OK);
-    }
-
-    private void handleError(String host, String port, String collectionName, String action, Map<String, Object> response){
-        // Host 에러 처리
-        if(host == null || host.equals("")){
-            response.put("message", "host is not correct");
-            response.put("result", "fail");
-        }
-
-        // Port 에러 처리
-        if (port == null || port.equals("")) {
-            response.put("message", "port is not correct");
-            response.put("result", "fail");
-        }
-
-        // CollectionName 에러 처리
-        if(collectionName == null || collectionName.equals("")){
-            response.put("message", "collectionName is not correct");
-            response.put("result", "fail");
-        }
-
-        // action 에러 처리
-        if (action == null || action.equals("")) {
-            response.put("message", "action is not correct");
-            response.put("result", "fail");
-        }
-
-        // port가 Integer 범위를 넘어가면 에러
-        try {
-            Integer.parseInt(port);
-        } catch (NumberFormatException e) {
-            response.put("message", e.getMessage());
-            response.put("result", "fail");
-        }
-    }
-
-    private void registerIndexingJob(
-            UUID clusterId,
-            String id,
-            Collection collection,
-            IndexingActionType actionType,
-            String groupSeq,
-            Map<String, Object> response) throws IndexingJobFailureException, IOException {
-        switch (actionType){
-            case ALL:
-                synchronized (obj) {
-                    IndexingStatus registerStatus = indexingJobManager.findById(id);
-                    if (registerStatus == null) {
-                        Queue<IndexStep> nextStep = new ArrayDeque<>();
-                        nextStep.add(IndexStep.PROPAGATE);
-                        nextStep.add(IndexStep.EXPOSE);
-                        IndexingStatus indexingStatus = indexingJobService.indexing(clusterId, collection, true, IndexStep.FULL_INDEX, nextStep);
-                        indexingJobManager.add(collection.getId(), indexingStatus);
-                        response.put("indexingStatus", indexingStatus);
-                        indexingStatus.setStatus("RUNNING");
-                        response.put("result", "success");
-                    } else {
-                        response.put("result", "fail");
-                    }
-                }
-            case INDEXING:
-                synchronized (obj) {
-                    IndexingStatus registerStatus = indexingJobManager.findById(id);
-                    if (registerStatus == null) {
-                        IndexingStatus indexingStatus = indexingJobService.indexing(clusterId, collection, false, IndexStep.FULL_INDEX);
-                        indexingJobManager.add(collection.getId(), indexingStatus);
-                        indexingStatus.setAction(actionType.getAction());
-                        indexingStatus.setStatus("RUNNING");
-                        response.put("indexingStatus", indexingStatus);
-                        response.put("result", "success");
-                    } else {
-                        response.put("result", "fail");
-                    }
-                }
-            case PROPAGATE:
-                synchronized (obj) {
-                    IndexingStatus registerStatus = indexingJobManager.findById(id);
-                    if (registerStatus == null) {
-                        IndexingStatus indexingStatus = indexingJobService.propagate(clusterId, false, collection, null);
-                        indexingStatus.setStatus("RUNNING");
-                        indexingStatus.setAction(actionType.getAction());
-                        indexingJobManager.add(collection.getId(), indexingStatus);
-
-                        response.put("indexingStatus", indexingStatus);
-                        response.put("result", "success");
-                    } else {
-                        response.put("result", "fail");
-                    }
-                }
-            case EXPOSE:
-                synchronized (obj) {
-                    IndexingStatus registerStatus = indexingJobManager.findById(id);
-                    if (registerStatus == null) {
-                        indexingJobService.expose(clusterId, collection);
-                        response.put("result", "success");
-                    } else {
-                        response.put("result", "fail");
-                    }
-                }
-            case STOP_INDEXING:
-                synchronized (obj) {
-                    IndexingStatus indexingStatus = indexingJobManager.findById(id);
-                    if (indexingStatus != null && (indexingStatus.getCurrentStep() == IndexStep.FULL_INDEX || indexingStatus.getCurrentStep() == IndexStep.DYNAMIC_INDEX)) {
-                        Collection.Launcher launcher = collection.getLauncher();
-                        indexingJobService.stopIndexing(indexingStatus.getScheme(), launcher.getHost(), launcher.getPort(), indexingStatus.getIndexingJobId());
-                        response.put("indexingStatus", indexingStatus);
-                        response.put("result", "success");
-                        indexingJobManager.setStopStatus(id, "STOP"); // 추가
-                    } else {
-                        response.put("result", "fail");
-                    }
-                }
-            case STOP_PROPAGATION:
-                synchronized (obj) {
-                    IndexingStatus registerStatus = indexingJobManager.findById(id);
-                    if (registerStatus != null && registerStatus.getCurrentStep() == IndexStep.PROPAGATE) {
-                        indexingJobService.stopPropagation(clusterId, collection);
-                        indexingJobManager.setStopStatus(id, "STOP"); // 추가
-                        indexingJobManager.remove(id);
-                        response.put("result", "success");
-                    } else {
-                        response.put("result", "fail");
-                    }
-                }
-            case SUB_START:
-                synchronized (obj) {
-                    IndexingStatus indexingStatus = indexingJobManager.findById(id);
-                    if (indexingStatus != null && (indexingStatus.getCurrentStep() == IndexStep.FULL_INDEX || indexingStatus.getCurrentStep() == IndexStep.DYNAMIC_INDEX) && groupSeq != null && !"".equalsIgnoreCase(groupSeq) ) {
-                        logger.info("sub_start >>>> {}, groupSeq: {}", collection.getName(), groupSeq);
-                        Collection.Launcher launcher = collection.getLauncher();
-                        indexingJobService.subStart(indexingStatus.getScheme(), launcher.getHost(), launcher.getPort(), indexingStatus.getIndexingJobId(), groupSeq, collection.isExtIndexer());
-                        response.put("indexingStatus", indexingStatus);
-                        response.put("result", "success");
-                    } else {
-                        response.put("result", "fail");
-                    }
-                }
-            default:
-                response.put("message", "Not Found Action. Please Select Action in this list (all / indexing / propagate / expose / stop_indexing / stop_propagation)");
-                response.put("result", "success");
-        }
     }
 
     @GetMapping("/idxp")
@@ -392,6 +124,7 @@ public class CollectionController {
         Map<String, Object> response = new HashMap<>();
 
         handleError(host, port, collectionName, action, response);
+
         int parsePort = Integer.parseInt(port);
 
         List<Cluster> clusterList = clusterService.findByHostAndPort(host, parsePort);
@@ -439,7 +172,7 @@ public class CollectionController {
             }
         }
 
-        // 인덱싱 잡 별로 따로 구성
+        // 인덱싱 도우미 메서드
         registerIndexingJob(clusterId, id, collection, actionType, groupSeq, response);
 
         return new ResponseEntity<>(response, HttpStatus.OK);
@@ -452,33 +185,8 @@ public class CollectionController {
                                   @RequestParam String collectionName) throws IOException {
         Map<String, Object> response = new HashMap<>();
 
-        // 에러 처리
-        if(host == null || host.equals("")){
-            response.put("message", "host is not correct");
-            response.put("result", "fail");
-            return new ResponseEntity<>(response, HttpStatus.OK);
-        }
-
-        if (port == null || port.equals("")) {
-            response.put("message", "port is not correct");
-            response.put("result", "fail");
-            return new ResponseEntity<>(response, HttpStatus.OK);
-        }
-
-        if(collectionName == null || collectionName.equals("")){
-            response.put("message", "collectionName is not correct");
-            response.put("result", "fail");
-            return new ResponseEntity<>(response, HttpStatus.OK);
-        }
-
-        int parsePort = 0;
-        try {
-            parsePort = Integer.parseInt(port);
-        } catch (NumberFormatException e) {
-            response.put("message", e.getMessage());
-            response.put("result", "fail");
-            return new ResponseEntity<>(response, HttpStatus.OK);
-        }
+        handleError(host, port, collectionName, "empty", response);
+        int parsePort = Integer.parseInt(port);
 
         List<Cluster> clusterList = clusterService.findByHostAndPort(host, parsePort);
         if(clusterList == null || clusterList.size() == 0){
@@ -542,6 +250,192 @@ public class CollectionController {
         }else{
             return new ResponseEntity<>(HttpStatus.NOT_ACCEPTABLE);
         }
+    }
 
+    /**
+     * 도우미 메서드 영역
+     * */
+
+    enum IndexingActionType{
+        ALL("all"), INDEXING("indexing"), PROPAGATE("propagate"), EXPOSE("expose"),
+        STOP_PROPAGATION("stop_propagation"), STOP_INDEXING("stop_indexing"), SUB_START("sub_start"),
+        UNKNOWN("");
+
+        private String action;
+
+        IndexingActionType(String action){
+            this.action = action;
+        }
+
+        public String getAction() {
+            return action;
+        }
+    }
+
+    private IndexingActionType getActionType(String action){
+        switch (action) {
+            case "all":
+                return IndexingActionType.ALL;
+            case "indexing":
+                return IndexingActionType.INDEXING;
+            case "propagate":
+                return IndexingActionType.PROPAGATE;
+            case "expose":
+                return IndexingActionType.EXPOSE;
+            case "stop_propagation":
+                return IndexingActionType.STOP_PROPAGATION;
+            case "stop_indexing":
+                return IndexingActionType.STOP_INDEXING;
+            default:
+                return IndexingActionType.UNKNOWN;
+        }
+    }
+
+    private void handleError(String host, String port, String collectionName, String action, Map<String, Object> response){
+        // Host 에러 처리
+        if(host == null || host.equals("")){
+            response.put("message", "host is not correct");
+            response.put("result", "fail");
+        }
+
+        // Port 에러 처리
+        if (port == null || port.equals("")) {
+            response.put("message", "port is not correct");
+            response.put("result", "fail");
+        }
+
+        // CollectionName 에러 처리
+        if(collectionName == null || collectionName.equals("")){
+            response.put("message", "collectionName is not correct");
+            response.put("result", "fail");
+        }
+
+        // action 에러 처리
+        if (action == null || action.equals("")) {
+            response.put("message", "action is not correct");
+            response.put("result", "fail");
+        }
+
+        // port가 Integer 범위를 넘어가면 에러
+        try {
+            Integer.parseInt(port);
+        } catch (NumberFormatException e) {
+            response.put("message", e.getMessage());
+            response.put("result", "fail");
+        }
+    }
+
+    private void registerIndexingJob(
+            UUID clusterId,
+            String id,
+            Collection collection,
+            IndexingActionType actionType,
+            String groupSeq,
+            Map<String, Object> response) throws IndexingJobFailureException, IOException {
+        switch (actionType){
+            case ALL:
+                synchronized (obj) {
+                    IndexingStatus registerStatus = indexingJobManager.findById(id);
+                    if (registerStatus == null) {
+                        Queue<IndexStep> nextStep = new ArrayDeque<>();
+                        nextStep.add(IndexStep.PROPAGATE);
+                        nextStep.add(IndexStep.EXPOSE);
+                        IndexingStatus indexingStatus = indexingJobService.indexing(clusterId, collection, true, IndexStep.FULL_INDEX, nextStep);
+                        indexingJobManager.add(collection.getId(), indexingStatus);
+                        response.put("indexingStatus", indexingStatus);
+                        indexingStatus.setStatus("RUNNING");
+                        response.put("result", "success");
+                    } else {
+                        response.put("result", "fail");
+                    }
+                }
+                break;
+            case INDEXING:
+                synchronized (obj) {
+                    IndexingStatus registerStatus = indexingJobManager.findById(id);
+                    if (registerStatus == null) {
+                        IndexingStatus indexingStatus = indexingJobService.indexing(clusterId, collection, false, IndexStep.FULL_INDEX);
+                        indexingJobManager.add(collection.getId(), indexingStatus);
+                        indexingStatus.setAction(actionType.getAction());
+                        indexingStatus.setStatus("RUNNING");
+                        response.put("indexingStatus", indexingStatus);
+                        response.put("result", "success");
+                    } else {
+                        response.put("result", "fail");
+                    }
+                }
+                break;
+            case PROPAGATE:
+                synchronized (obj) {
+                    IndexingStatus registerStatus = indexingJobManager.findById(id);
+                    if (registerStatus == null) {
+                        IndexingStatus indexingStatus = indexingJobService.propagate(clusterId, false, collection, null);
+                        indexingStatus.setStatus("RUNNING");
+                        indexingStatus.setAction(actionType.getAction());
+                        indexingJobManager.add(collection.getId(), indexingStatus);
+
+                        response.put("indexingStatus", indexingStatus);
+                        response.put("result", "success");
+                    } else {
+                        response.put("result", "fail");
+                    }
+                }
+                break;
+            case EXPOSE:
+                synchronized (obj) {
+                    IndexingStatus registerStatus = indexingJobManager.findById(id);
+                    if (registerStatus == null) {
+                        indexingJobService.expose(clusterId, collection);
+                        response.put("result", "success");
+                    } else {
+                        response.put("result", "fail");
+                    }
+                }
+                break;
+            case STOP_INDEXING:
+                synchronized (obj) {
+                    IndexingStatus indexingStatus = indexingJobManager.findById(id);
+                    if (indexingStatus != null && (indexingStatus.getCurrentStep() == IndexStep.FULL_INDEX || indexingStatus.getCurrentStep() == IndexStep.DYNAMIC_INDEX)) {
+                        Collection.Launcher launcher = collection.getLauncher();
+                        indexingJobService.stopIndexing(indexingStatus.getScheme(), launcher.getHost(), launcher.getPort(), indexingStatus.getIndexingJobId());
+                        response.put("indexingStatus", indexingStatus);
+                        response.put("result", "success");
+                        indexingJobManager.setStopStatus(id, "STOP"); // 추가
+                    } else {
+                        response.put("result", "fail");
+                    }
+                }
+                break;
+            case STOP_PROPAGATION:
+                synchronized (obj) {
+                    IndexingStatus registerStatus = indexingJobManager.findById(id);
+                    if (registerStatus != null && registerStatus.getCurrentStep() == IndexStep.PROPAGATE) {
+                        indexingJobService.stopPropagation(clusterId, collection);
+                        indexingJobManager.setStopStatus(id, "STOP"); // 추가
+                        indexingJobManager.remove(id);
+                        response.put("result", "success");
+                    } else {
+                        response.put("result", "fail");
+                    }
+                }
+                break;
+            case SUB_START:
+                synchronized (obj) {
+                    IndexingStatus indexingStatus = indexingJobManager.findById(id);
+                    if (indexingStatus != null && (indexingStatus.getCurrentStep() == IndexStep.FULL_INDEX || indexingStatus.getCurrentStep() == IndexStep.DYNAMIC_INDEX) && groupSeq != null && !"".equalsIgnoreCase(groupSeq) ) {
+                        logger.info("sub_start >>>> {}, groupSeq: {}", collection.getName(), groupSeq);
+                        Collection.Launcher launcher = collection.getLauncher();
+                        indexingJobService.subStart(indexingStatus.getScheme(), launcher.getHost(), launcher.getPort(), indexingStatus.getIndexingJobId(), groupSeq, collection.isExtIndexer());
+                        response.put("indexingStatus", indexingStatus);
+                        response.put("result", "success");
+                    } else {
+                        response.put("result", "fail");
+                    }
+                }
+                break;
+            default:
+                response.put("message", "Not Found Action. Please Select Action in this list (all / indexing / propagate / expose / stop_indexing / stop_propagation)");
+                response.put("result", "success");
+        }
     }
 }

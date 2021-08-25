@@ -31,6 +31,7 @@ import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.FieldSortBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
+import org.h2.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -195,20 +196,25 @@ public class DictionaryService {
         return indicesService.findAllDocumentPagination(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId), dictionaryIndex, pageNum, rowSize, builder);
     }
 
-    public IndexResponse createDocument(UUID clusterId, DictionaryDocumentRequest document) throws IOException, ServiceException {
+    public IndexResponse createDocument(UUID clusterId, Map<String,Object> document) throws IOException, ServiceException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
+            String type = (String) Objects.requireNonNull(document.get("type")) ;
+            String id = (String) Objects.requireNonNull(document.get("id"));
+            String keyword = (String) Objects.requireNonNull(document.get("keyword")) ;
+            String value = (String) Objects.requireNonNull(document.get("value")) ;
+
             BoolQueryBuilder queryBuilder = new BoolQueryBuilder()
-                    .filter(new MatchQueryBuilder("type", document.getType()));
+                    .filter(new MatchQueryBuilder("type", type));
 
-            if (document.getId() != null && !"".equals(document.getId())) {
-                queryBuilder.must(new MatchQueryBuilder("id", document.getId()));
+            if (id.length() > 0) {
+                queryBuilder.must(new MatchQueryBuilder("id", id));
             }
-            if (document.getKeyword() != null && !"".equals(document.getKeyword())) {
-                queryBuilder.must(new MatchQueryBuilder("keyword", document.getKeyword()));
+            if (keyword.length() > 0) {
+                queryBuilder.must(new MatchQueryBuilder("keyword", keyword));
             }
 
-            if (document.getValue() != null && !"".equals(document.getValue())) {
-                queryBuilder.must(new TermQueryBuilder("value", document.getValue()));
+            if (value.length() > 0) {
+                queryBuilder.must(new TermQueryBuilder("value", value));
             }
 
             SearchResponse response = client.search(new SearchRequest()
@@ -223,10 +229,10 @@ public class DictionaryService {
 
             XContentBuilder builder = jsonBuilder()
                     .startObject()
-                    .field("type", document.getType())
-                    .field("id", document.getId())
-                    .field("keyword", document.getKeyword())
-                    .field("value", document.getValue())
+                    .field("type", type)
+                    .field("id", id)
+                    .field("keyword", keyword)
+                    .field("value", value)
                     // 아래 두개 필드 추가
                     .field("createdTime", new Date())
                     .field("updatedTime", new Date())
@@ -237,9 +243,9 @@ public class DictionaryService {
                             .source(builder)
                     , RequestOptions.DEFAULT);
 
-            refreshUpdateTime(clusterId, document.getType());
+            refreshUpdateTime(clusterId, type);
 
-            updateDocumentDictApplyIndex(dictionaryApplyIndex, clusterId, document.getType());
+            updateDocumentDictApplyIndex(dictionaryApplyIndex, clusterId, type);
             return indexResponse;
         }
     }
@@ -263,13 +269,13 @@ public class DictionaryService {
         }
     }
 
-    public UpdateResponse updateDocument(UUID clusterId, String id, DictionaryDocumentRequest document) throws IOException {
+    public UpdateResponse updateDocument(UUID clusterId, String id, Map<String, Object> request) throws IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
             XContentBuilder builder = jsonBuilder()
                     .startObject()
-                    .field("keyword", document.getKeyword())
-                    .field("value", document.getValue())
-                    .field("id", document.getId())
+                    .field("keyword", (String) request.get("keyword"))
+                    .field("value", (String) request.get("value"))
+                    .field("id", (String) request.get("id"))
                     // 아래 한줄 추가
                     .field("updatedTime", new Date())
                     .endObject();
@@ -286,7 +292,7 @@ public class DictionaryService {
                 String type = String.valueOf(getResponse.getSourceAsMap().get("type"));
                 refreshUpdateTime(clusterId, type);
             }
-            updateDocumentDictApplyIndex(dictionaryApplyIndex, clusterId, document.getType());
+            updateDocumentDictApplyIndex(dictionaryApplyIndex, clusterId, (String) request.get("type"));
             return updateResponse;
         }
     }
@@ -348,10 +354,10 @@ public class DictionaryService {
         }
     }
 
-    public Response findDict(UUID clusterId, DictionarySearchRequest dictionarySearchRequest) throws IOException{
+    public Response findDict(UUID clusterId, Map<String,Object> request) throws IOException{
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             RestClient restClient = client.getLowLevelClient();
-            String word = dictionarySearchRequest.getWord();
+            String word = (String) request.get("word");
             String method = "POST";
             String endPoint = "/_analysis-product-name/find-dict";
             String setJson = "{ \n" +
@@ -364,12 +370,12 @@ public class DictionaryService {
         }
     }
 
-    public Response compileDict(UUID clusterId, DictionaryCompileRequest dictionaryCompileRequest) throws IOException{
+    public Response compileDict(UUID clusterId, Map<String,Object> request) throws IOException{
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             RestClient restClient = client.getLowLevelClient();
             Cluster remoteCluster = clusterService.find(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId));
 
-            String type = dictionaryCompileRequest.getType();
+            String type = (String) request.get("type");
             String method = "POST";
             String endPoint = "/_analysis-product-name/compile-dict";
             String setJson;
