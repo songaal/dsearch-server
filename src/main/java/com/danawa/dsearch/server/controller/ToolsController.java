@@ -47,12 +47,14 @@ public class ToolsController {
 
     @PostMapping("/detail/analysis")
     public ResponseEntity<?> getDetailAnalysis(@RequestHeader(value = "cluster-id") UUID clusterId,
-                                               @RequestBody DetailAnalysisRequest detailAnalysisRequest) throws Exception {
+                                               @RequestBody Map<String, Object> request) throws Exception {
 
         // text필드에 있는 특수문자 처리 :  ex.) 15"
-        detailAnalysisRequest.setText(detailAnalysisRequest.getText().replace("\"", "\\\""));
-        logger.info("{}", detailAnalysisRequest);
-        Response response = toolsService.getDetailAnalysis(clusterId, detailAnalysisRequest);
+        String text = (String) request.get("text");
+        request.replace("text", text.replace("\"", "\\\""));
+//        detailAnalysisRequest.setText(detailAnalysisRequest.getText().replace("\"", "\\\""));
+        logger.info("{}", request);
+        Response response = toolsService.getDetailAnalysis(clusterId, request);
         String responseBody = EntityUtils.toString(response.getEntity());
 
         // 관리도구 수정사항 - 2021-03-30
