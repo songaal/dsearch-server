@@ -384,7 +384,7 @@ public class DictionaryService {
                         "\"index\": \"" + dictionaryIndex + "\", \n" +
                         "\"exportFile\": true, \n" +
                         "\"distribute\": true, \n" +
-                        "\"type\": \"" + type+ "\", \n" +
+                        "\"type\": \"" + type + "\", \n" +
                         "\"host\": \"" + remoteCluster.getHost() + "\", \n" +
                         "\"port\": \"" + remoteCluster.getPort() + "\", \n" +
                         "\"username\": \"" + remoteCluster.getUsername() + "\", \n" +

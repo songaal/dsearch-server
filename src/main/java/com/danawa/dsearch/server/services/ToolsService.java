@@ -1,7 +1,6 @@
 package com.danawa.dsearch.server.services;
 
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
-import com.danawa.dsearch.server.entity.DetailAnalysisRequest;
 import org.elasticsearch.client.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

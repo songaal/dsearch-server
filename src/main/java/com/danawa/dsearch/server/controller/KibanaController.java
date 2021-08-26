@@ -1,21 +1,18 @@
 package com.danawa.dsearch.server.controller;
 
-import com.danawa.dsearch.server.entity.Cluster;
-import com.danawa.dsearch.server.excpetions.NotFoundException;
 import org.springframework.http.*;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Map;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/kibana")
 public class KibanaController {
 
     @PostMapping("/status")
-    public ResponseEntity<?> getKibanaStatus(@RequestBody Map<String, Object> url) throws NotFoundException {
+    public ResponseEntity<?> getKibanaStatus(@RequestBody Map<String, Object> url) {
 
         HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory();
         factory.setConnectTimeout(5000);

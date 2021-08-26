@@ -1,6 +1,5 @@
 package com.danawa.dsearch.server.controller;
 
-import com.danawa.dsearch.server.entity.DetailAnalysisRequest;
 import com.danawa.dsearch.server.services.ToolsService;
 import com.google.gson.Gson;
 import org.apache.http.util.EntityUtils;
@@ -12,7 +11,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.URLDecoder;
 import java.util.*;
 
 @RestController
@@ -52,7 +50,6 @@ public class ToolsController {
         // text필드에 있는 특수문자 처리 :  ex.) 15"
         String text = (String) request.get("text");
         request.replace("text", text.replace("\"", "\\\""));
-//        detailAnalysisRequest.setText(detailAnalysisRequest.getText().replace("\"", "\\\""));
         logger.info("{}", request);
         Response response = toolsService.getDetailAnalysis(clusterId, request);
         String responseBody = EntityUtils.toString(response.getEntity());

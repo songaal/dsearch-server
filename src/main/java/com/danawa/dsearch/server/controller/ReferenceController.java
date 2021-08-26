@@ -14,10 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @RestController
 @RequestMapping("/reference")
@@ -99,16 +96,19 @@ public class ReferenceController {
 
     @PostMapping("/save/autocomplete")
     public ResponseEntity<?> saveAutoCompleteURL(@RequestHeader(value = "cluster-id") UUID clusterId,
-                                                 @RequestBody AutoCompleteUrlRequest request) throws IOException, NotFoundException {
+                                                 @RequestBody Map<String, Object> request) throws NotFoundException {
+
+        String url = (String) Objects.requireNonNull(request.get("url"));
         Cluster cluster = clusterService.find(clusterId);
-        Cluster saveCluster = clusterService.saveUrl(clusterId, cluster, request.getUrl());
+        Cluster saveCluster = clusterService.saveUrl(clusterId, cluster, url);
         Map<String, Object> result = new HashMap<>();
+
         if(saveCluster != null){
             result.put("isSuccess", true);
-            result.put("url", request.getUrl());
+            result.put("url", url);
         }else{
             result.put("isSuccess", false);
-            result.put("url", request.getUrl());
+            result.put("url", url);
         }
         return new ResponseEntity<>(result, HttpStatus.OK);
     }

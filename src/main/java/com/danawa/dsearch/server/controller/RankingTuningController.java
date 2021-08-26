@@ -136,10 +136,10 @@ public class RankingTuningController {
                 List<Map<String, Object>> searchHitsResponse = new ArrayList<>();
 
                 for(int i = 0 ;i < searchHits.length; i++){
-
                     Map<String, Object> source = searchHits[i].getSourceAsMap();
                     List<AnalyzerTokens> analyzerTokensList = new ArrayList<>();
                     searchHitsResponse.add(source);
+
                     for(String field: source.keySet()){
                         if(analyzers.get(field) != null){
                             AnalyzeResponse analyzeResponse = rankingTuningService.getAnalyze(clusterId, rankingTuningRequest, (String) analyzers.get(field), (String) source.get(field));

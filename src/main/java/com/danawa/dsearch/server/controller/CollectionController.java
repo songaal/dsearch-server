@@ -342,8 +342,8 @@ public class CollectionController {
                         nextStep.add(IndexStep.EXPOSE);
                         IndexingStatus indexingStatus = indexingJobService.indexing(clusterId, collection, true, IndexStep.FULL_INDEX, nextStep);
                         indexingJobManager.add(collection.getId(), indexingStatus);
-                        response.put("indexingStatus", indexingStatus);
                         indexingStatus.setStatus("RUNNING");
+                        response.put("indexingStatus", indexingStatus);
                         response.put("result", "success");
                     } else {
                         response.put("result", "fail");

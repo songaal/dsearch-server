@@ -91,8 +91,6 @@ public class DictionaryController {
         Map<String, Object> entity = new HashMap<String, Object>();
         List<DictionarySetting> dictionarySettings = dictionaryService.getAnalysisPluginSettings(clusterId);
         entity.put("dictionarySettings", dictionarySettings);
-
-        // 전송
         return new ResponseEntity<>(entity, HttpStatus.OK);
     }
 
@@ -123,10 +121,6 @@ public class DictionaryController {
                                                 @RequestBody Map<String, Object> request) throws IOException{
         logger.info("clusterId: {}, compile-dict params: {}", clusterId, request.toString());
         Response compileDictResponse = dictionaryService.compileDict(clusterId, request);
-        String[] ids = ((String) request.get("ids")).trim().split(",");
-        for(String id : ids){
-            dictionaryService.updateTime(clusterId, id);
-        }
         String response = EntityUtils.toString(compileDictResponse.getEntity());
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
@@ -142,8 +136,7 @@ public class DictionaryController {
         Map<String, Object> result = null;
 
         logger.info("overwrite: {}, dictionaryName: {}, dictionaryType: {}, dictionaryFields: {}", overwrite, dictionaryName, dictionaryType, dictionaryList.toString());
-        // 덮어쓰기
-        if(overwrite){
+        if(overwrite){ // 덮어쓰기
             dictionaryService.resetDict(clusterId, dictionaryName);
         }
 
