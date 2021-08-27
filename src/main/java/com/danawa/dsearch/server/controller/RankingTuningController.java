@@ -86,7 +86,7 @@ public class RankingTuningController {
 
                         for(String field: source.keySet()){
                             if(indexAnalyzer.get(field) != null){
-                                AnalyzeResponse analyzeResponse = rankingTuningService.getMultipleAnalyze(clusterId, hitsIndex, (String) indexAnalyzer.get(field), (String) source.get(field));
+                                AnalyzeResponse analyzeResponse = rankingTuningService.getMultipleAnalyze(clusterId, hitsIndex, indexAnalyzer.get(field).toString(), source.get(field).toString());
                                 AnalyzerTokens analyzerTokens = new AnalyzerTokens();
                                 analyzerTokens.setField(field);
                                 List<String> tokens = new ArrayList<>();
@@ -142,6 +142,7 @@ public class RankingTuningController {
 
                     for(String field: source.keySet()){
                         if(analyzers.get(field) != null){
+                            logger.info("{}, {}", analyzers.get(field), source.get(field));
                             AnalyzeResponse analyzeResponse = rankingTuningService.getAnalyze(clusterId, rankingTuningRequest, (String) analyzers.get(field), (String) source.get(field));
                             AnalyzerTokens analyzerTokens = new AnalyzerTokens();
                             analyzerTokens.setField(field);
