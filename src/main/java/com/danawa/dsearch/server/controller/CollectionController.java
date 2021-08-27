@@ -6,10 +6,7 @@ import com.danawa.dsearch.server.entity.IndexStep;
 import com.danawa.dsearch.server.entity.IndexingStatus;
 import com.danawa.dsearch.server.excpetions.DuplicateException;
 import com.danawa.dsearch.server.excpetions.IndexingJobFailureException;
-import com.danawa.dsearch.server.services.ClusterService;
-import com.danawa.dsearch.server.services.CollectionService;
-import com.danawa.dsearch.server.services.IndexingJobManager;
-import com.danawa.dsearch.server.services.IndexingJobService;
+import com.danawa.dsearch.server.services.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,17 +31,20 @@ public class CollectionController {
     private final CollectionService collectionService;
     private final IndexingJobService indexingJobService;
     private final IndexingJobManager indexingJobManager;
+    private final ProcessService processService;
 
     public CollectionController(@Value("${dsearch.collection.index-suffix-a}") String indexSuffixA,
                                 @Value("${dsearch.collection.index-suffix-b}") String indexSuffixB,
                                 CollectionService collectionService, ClusterService clusterService,
-                                IndexingJobService indexingJobService, IndexingJobManager indexingJobManager) {
+                                IndexingJobService indexingJobService, IndexingJobManager indexingJobManager,
+                                ProcessService processService) {
         this.indexSuffixA = indexSuffixA;
         this.indexSuffixB = indexSuffixB;
         this.collectionService = collectionService;
         this.indexingJobService = indexingJobService;
         this.indexingJobManager = indexingJobManager;
         this.clusterService = clusterService;
+        this.processService = processService;
     }
 
     @PostMapping
@@ -193,6 +193,10 @@ public class CollectionController {
                 IndexingStatus registerStatus = indexingJobManager.findById(id);
                 if (registerStatus == null) {
                     Collection collection = collectionService.findById(clusterId, id);
+                    //Queue<IndexStep> nextStep = new ArrayDeque<>();
+                    //nextStep.add(IndexStep.PROPAGATE);
+                    //nextStep.add(IndexStep.EXPOSE);
+                    processService.preProcess(collection);
                     IndexingStatus indexingStatus = indexingJobService.reindex(clusterId, false, collection, null);
                     indexingJobManager.add(collection.getId(), indexingStatus);
                     response.put("result", "success");
@@ -208,6 +212,7 @@ public class CollectionController {
                     Collection collection = collectionService.findById(clusterId, id);
                     indexingJobService.stopReindexing(clusterId, collection, indexingStatus);
                     indexingJobManager.setStopStatus(id, "STOP"); // 추가
+                    processService.postProcess(collection);
                     response.put("result", "success");
                 } else {
                     response.put("result", "fail");
