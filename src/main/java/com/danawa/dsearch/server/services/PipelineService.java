@@ -38,27 +38,21 @@ public class PipelineService {
         }
     }
 
-    public Response postPipeLine(UUID clusterId, String name, String body) throws IOException {
+    public Response testPipeline(UUID clusterId, String name, String body, boolean isDetail) throws IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            String detail = "";
             RestClient restClient = client.getLowLevelClient();
-            Request request = new Request("POST", "_ingest/pipeline/" + name +"/_simulate");
+            if(isDetail){
+                detail = "?verbose";
+            }
+            Request request = new Request("POST", "_ingest/pipeline/" + name +"/_simulate" + detail);
             request.setJsonEntity(body);
             Response response = restClient.performRequest(request);
             return response;
         }
     }
 
-    public Response postPipeLineDetail(UUID clusterId, String name, String body) throws IOException {
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            RestClient restClient = client.getLowLevelClient();
-            Request request = new Request("POST", "_ingest/pipeline/" + name +"/_simulate?verbose");
-            request.setJsonEntity(body);
-            Response response = restClient.performRequest(request);
-            return response;
-        }
-    }
-
-    public Response setPipeLine(UUID clusterId, String name, String body) throws IOException {
+    public Response addPipeLine(UUID clusterId, String name, String body) throws IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             RestClient restClient = client.getLowLevelClient();
             Request request = new Request("PUT", "_ingest/pipeline/" + name);

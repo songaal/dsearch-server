@@ -72,7 +72,7 @@ public class MigrationService {
                     pipeline.remove("version");
                     String convertBody = gson.toJson(pipeline);
                     logger.info("pipeline: {}, body: {}", key, convertBody);
-                    pipelineService.setPipeLine(clusterId, key, convertBody);
+                    pipelineService.addPipeLine(clusterId, key, convertBody);
                     list.add(key);
                 }
                 result.put("pipeline", list);
