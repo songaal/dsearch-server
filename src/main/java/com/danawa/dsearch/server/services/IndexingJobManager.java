@@ -114,8 +114,10 @@ public class IndexingJobManager {
                     }catch (Exception e1){
                         logger.error("", e1);
                     }
-                    // 후처리 프로세스 (동적색인 on)
-                    processService.postProcess(indexingStatus.getCollection());
+                    if ("all".equalsIgnoreCase(indexingStatus.getAction())) {
+                        // 후처리 프로세스 (동적색인 on)
+                        processService.postProcess(indexingStatus.getCollection());
+                    }
                 }
 
                 if (System.currentTimeMillis() - indexingStatus.getStartTime() >= timeout){
@@ -132,8 +134,10 @@ public class IndexingJobManager {
                     }catch (Exception e1){
                         logger.error("", e1);
                     }
-                    // 후처리 프로세스 (동적색인 on)
-                    processService.postProcess(indexingStatus.getCollection());
+                    if ("all".equalsIgnoreCase(indexingStatus.getAction())) {
+                        // 후처리 프로세스 (동적색인 on)
+                        processService.postProcess(indexingStatus.getCollection());
+                    }
                 }
             } catch (Exception e) {
                 logger.error("", e);
@@ -186,8 +190,10 @@ public class IndexingJobManager {
                         logger.error("[remove job] retry.. {}", indexingStatus.getRetry());
                     }
                 }
-                // 후처리 프로세스 (동적색인 on)
-                processService.postProcess(indexingStatus.getCollection());
+                if ("all".equalsIgnoreCase(indexingStatus.getAction())) {
+                    // 후처리 프로세스 (동적색인 on)
+                    processService.postProcess(indexingStatus.getCollection());
+                }
             }
         });
     }
@@ -385,7 +391,7 @@ public class IndexingJobManager {
         IndexStep step = indexingStatus.getCurrentStep();
         String taskId = indexingStatus.getTaskId();
         String taskStatus = indexingStatus.getStatus();
-
+        logger.info("action :{}",indexingStatus.getAction());
         // task 조회
         try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Request request = new Request("GET", String.format("/_tasks/%s", taskId));
@@ -448,7 +454,8 @@ public class IndexingJobManager {
                     jobs.remove(id);
                     logger.debug("empty next status : {} Step >> {}", taskStatus, id);
                 }
-                if ("ERROR".equalsIgnoreCase(taskStatus) || "STOP".equalsIgnoreCase(taskStatus)) {
+                // action 이 all (연속실행) 이면서 상태가 error 또는 stop 일 경우
+                if ("all".equalsIgnoreCase(indexingStatus.getAction()) && ("ERROR".equalsIgnoreCase(taskStatus) || "STOP".equalsIgnoreCase(taskStatus))) {
                     // 후처리 프로세스 (동적색인 on)
                     processService.postProcess(indexingStatus.getCollection());
                 }

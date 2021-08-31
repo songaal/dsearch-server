@@ -124,6 +124,7 @@ public class CollectionController {
                     } else if ("내부색인".equalsIgnoreCase(type)) {
                         indexingStatus = indexingJobService.reindex(clusterId, collection, true, IndexStep.REINDEX, nextStep);
                     }
+                    indexingStatus.setAction(action);
                     indexingJobManager.add(collection.getId(), indexingStatus);
                     response.put("indexingStatus", indexingStatus);
                     response.put("result", "success");
