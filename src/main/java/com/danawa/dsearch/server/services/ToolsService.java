@@ -1,7 +1,6 @@
 package com.danawa.dsearch.server.services;
 
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
-import com.danawa.dsearch.server.entity.DetailAnalysisRequest;
 import org.elasticsearch.client.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,15 +57,13 @@ public class ToolsService {
         }
     }
 
-    public Response getDetailAnalysis(UUID clusterId, DetailAnalysisRequest detailAnalysisRequest) throws IOException {
+    public Response getDetailAnalysis(UUID clusterId, Map<String, Object> request) throws IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             RestClient restClient = client.getLowLevelClient();
-            String plugin = detailAnalysisRequest.getPlugin();
-            String text = detailAnalysisRequest.getText();
-            String useForQuery = detailAnalysisRequest.getUseForQuery();
-            if(useForQuery == null){
-                useForQuery = "false";
-            }
+
+            String plugin = (String) request.get("plugin");
+            String text = (String) request.get("text");
+            String useForQuery = Objects.isNull(request.get("useForQuery")) ? "false" : (String) request.get("useForQuery");
 
             String method = "POST";
             String endPoint = "/_" + plugin + "/analyze";
