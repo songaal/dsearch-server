@@ -46,6 +46,7 @@ public class IndexingJobManager {
     private final IndexingJobService indexingJobService;
     private final ElasticsearchFactory elasticsearchFactory;
     private final IndexJobManager indexerJobManager;
+    private final ProcessService processService;
 
     private final String lastIndexStatusIndex = ".dsearch_last_index_status";
     private final String indexHistory = ".dsearch_index_history";
@@ -59,7 +60,8 @@ public class IndexingJobManager {
     public IndexingJobManager(IndexingJobService indexingJobService,
                               ElasticsearchFactory elasticsearchFactory,
                               IndexJobManager indexerJobManager,
-                              @Value("${dsearch.timeout}") long timeout) {
+                              @Value("${dsearch.timeout}") long timeout,
+                              ProcessService processService) {
         this.indexerJobManager = indexerJobManager;
         this.timeout = timeout;
         this.indexingJobService = indexingJobService;
@@ -68,6 +70,7 @@ public class IndexingJobManager {
         factory.setConnectTimeout(10 * 1000);
         factory.setReadTimeout(10 * 1000);
         restTemplate = new RestTemplate(factory);
+        this.processService = processService;
     }
 
     @Scheduled(fixedDelay = 500)
@@ -111,6 +114,8 @@ public class IndexingJobManager {
                     }catch (Exception e1){
                         logger.error("", e1);
                     }
+                    // 후처리 프로세스 (동적색인 on)
+                    processService.postProcess(indexingStatus.getCollection());
                 }
 
                 if (System.currentTimeMillis() - indexingStatus.getStartTime() >= timeout){
@@ -127,6 +132,8 @@ public class IndexingJobManager {
                     }catch (Exception e1){
                         logger.error("", e1);
                     }
+                    // 후처리 프로세스 (동적색인 on)
+                    processService.postProcess(indexingStatus.getCollection());
                 }
             } catch (Exception e) {
                 logger.error("", e);
@@ -179,6 +186,8 @@ public class IndexingJobManager {
                         logger.error("[remove job] retry.. {}", indexingStatus.getRetry());
                     }
                 }
+                // 후처리 프로세스 (동적색인 on)
+                processService.postProcess(indexingStatus.getCollection());
             }
         });
     }
@@ -376,7 +385,6 @@ public class IndexingJobManager {
         IndexStep step = indexingStatus.getCurrentStep();
         String taskId = indexingStatus.getTaskId();
         String taskStatus = indexingStatus.getStatus();
-        boolean done = true;
 
         // task 조회
         try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
@@ -393,7 +401,6 @@ public class IndexingJobManager {
 
             // completed false 이면 실행중, true 이면 종료(완료)
             if("false".equals(completed)) {
-                done = false;
                 taskStatus = "RUNNING";
             } else if ("true".equals(completed)){
                 Map<String, Object> responseMap = (Map<String, Object>) entityMap.get("response");
@@ -408,11 +415,12 @@ public class IndexingJobManager {
             } else {
                 logger.info("reindex completed check!!! completed : {}", completed);
                 logger.debug("entityMap:{}", entityMap);
+                taskStatus = "ERROR";
             }
         }
 
-        logger.debug("reindex Check.. index: {}, is {}: {}", index, taskStatus, done);
-        if (done) {
+        logger.debug("reindex Check.. index: {}, is {}", index, taskStatus);
+        if ("SUCCESS".equalsIgnoreCase(taskStatus) || "ERROR".equalsIgnoreCase(taskStatus) || "STOP".equalsIgnoreCase(taskStatus)) {
             try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
                 Map<String, Object> catIndex = catIndex(client, index);
                 String docSize = (String) catIndex.get("docs.count");
@@ -424,21 +432,25 @@ public class IndexingJobManager {
                 logger.info("REINDEX {}, id: {}, indexingStatus: {}", taskStatus, id, indexingStatus.toString());
 
                 IndexStep nextStep = indexingStatus.getNextStep().poll();
-                if (nextStep != null) {
+                if ("SUCCESS".equalsIgnoreCase(taskStatus) && nextStep != null) {
                     indexingStatus.setCurrentStep(nextStep);
                     indexingStatus.setStartTime(System.currentTimeMillis());
                     indexingStatus.setEndTime(0);
                     indexingStatus.setRetry(50);
                     indexingStatus.setAutoRun(true);
                     jobs.put(id, indexingStatus);
-                    logger.debug("add next job : {} ", nextStep.name());
+                    logger.debug("next Step >> {}", nextStep);
                 } else {
                     IndexingStatus idxStat = jobs.get(id);
                     idxStat.setStatus(taskStatus);
                     idxStat.setEndTime(System.currentTimeMillis());
                     indexingProcessQueue.put(id, idxStat);
                     jobs.remove(id);
-                    logger.debug("empty next status : {} ", id);
+                    logger.debug("empty next status : {} Step >> {}", taskStatus, id);
+                }
+                if ("ERROR".equalsIgnoreCase(taskStatus) || "STOP".equalsIgnoreCase(taskStatus)) {
+                    // 후처리 프로세스 (동적색인 on)
+                    processService.postProcess(indexingStatus.getCollection());
                 }
             }
         } else {

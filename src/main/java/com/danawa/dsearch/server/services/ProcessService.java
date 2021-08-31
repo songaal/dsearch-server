@@ -81,7 +81,7 @@ public class ProcessService {
                             Thread.sleep(1000);
                         }
                     }
-                    logger.info("[{}] autoDynamic >>> {} <<<", autoDynamicIndex, switchSignal);
+                    logger.info("[{}] autoDynamic >>> {} <<<", collection.getName(), switchSignal);
                     break;
                 } catch (Exception e) {
                     logger.error("", e);

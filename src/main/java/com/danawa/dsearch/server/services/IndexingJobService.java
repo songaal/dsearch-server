@@ -403,10 +403,10 @@ public class IndexingJobService {
         }
     }
 
-    public IndexingStatus reindex(UUID clusterId, boolean autoRun, Collection collection) throws IndexingJobFailureException, IOException {
-        return reindex(clusterId, autoRun, collection, new ArrayDeque<>());
+    public IndexingStatus reindex(UUID clusterId, Collection collection, boolean autoRun, IndexStep step) throws IndexingJobFailureException, IOException {
+        return reindex(clusterId, collection, autoRun, step, new ArrayDeque<>());
     }
-    public IndexingStatus reindex(UUID clusterId, boolean autoRun, Collection collection, Queue<IndexStep> nextStep) throws IndexingJobFailureException, IOException {
+    public IndexingStatus reindex(UUID clusterId, Collection collection, boolean autoRun, IndexStep step, Queue<IndexStep> nextStep) throws IndexingJobFailureException, IOException {
         IndexingStatus indexingStatus = new IndexingStatus();
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Collection.Index indexA = collection.getIndexA();
@@ -490,16 +490,16 @@ public class IndexingJobService {
                     logger.info("taskId : {} - source : {} -> dest : {}", taskId, sourceIndex.getIndex(), destIndex.getIndex());
 
                     indexingStatus.setClusterId(clusterId);
-                    indexingStatus.setTaskId(taskId);
                     indexingStatus.setIndex(destIndex.getIndex());
                     indexingStatus.setStartTime(System.currentTimeMillis());
+                    indexingStatus.setTaskId(taskId);
                     indexingStatus.setAutoRun(autoRun);
-                    indexingStatus.setCurrentStep(IndexStep.REINDEX);
-                    if (nextStep == null) {
-                        indexingStatus.setNextStep(new ArrayDeque<>());
-                    } else {
+                    indexingStatus.setCurrentStep(step);
+                    //if (nextStep == null) {
+                    //    indexingStatus.setNextStep(new ArrayDeque<>());
+                    //} else {
                         indexingStatus.setNextStep(nextStep);
-                    }
+                    //}
                     indexingStatus.setRetry(50);
                     indexingStatus.setCollection(collection);
                 }
