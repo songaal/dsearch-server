@@ -387,7 +387,6 @@ public class IndexingJobManager {
         IndexStep step = indexingStatus.getCurrentStep();
         String taskId = indexingStatus.getTaskId();
         String taskStatus = indexingStatus.getStatus();
-        logger.info("action :{}",indexingStatus.getAction());
         // task 조회
         try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Request request = new Request("GET", String.format("/_tasks/%s", taskId));
