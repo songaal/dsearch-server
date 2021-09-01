@@ -7,11 +7,9 @@ import org.elasticsearch.client.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -45,25 +43,17 @@ public class PipelineController {
                                          @PathVariable String name,
                                          @RequestBody HashMap<String, Object> body) throws Exception {
         ObjectMapper mapper = new ObjectMapper();
-        Response response = pipelineService.setPipeLine(clusterId, name, mapper.writeValueAsString(body));
+        Response response = pipelineService.addPipeLine(clusterId, name, mapper.writeValueAsString(body));
         return new ResponseEntity<>(EntityUtils.toString(response.getEntity()), HttpStatus.OK);
     }
 
     @PostMapping(value = "/{name}")
-    public ResponseEntity<?> getPipeLine(@RequestHeader(value = "cluster-id") UUID clusterId,
+    public ResponseEntity<?> testPipeLine(@RequestHeader(value = "cluster-id") UUID clusterId,
                                          @PathVariable String name,
+                                         @RequestParam boolean isDetail,
                                          @RequestBody HashMap<String, Object> body) throws Exception {
         ObjectMapper mapper = new ObjectMapper();
-        Response response = pipelineService.postPipeLine(clusterId, name, mapper.writeValueAsString(body));
-        return new ResponseEntity<>(EntityUtils.toString(response.getEntity()), HttpStatus.OK);
-    }
-
-    @PostMapping(value = "/{name}/detail")
-    public ResponseEntity<?> getPipeLineDetail(@RequestHeader(value = "cluster-id") UUID clusterId,
-                                         @PathVariable String name,
-                                         @RequestBody HashMap<String, Object> body) throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        Response response = pipelineService.postPipeLineDetail(clusterId, name, mapper.writeValueAsString(body));
+        Response response = pipelineService.testPipeline(clusterId, name, mapper.writeValueAsString(body), isDetail);
         return new ResponseEntity<>(EntityUtils.toString(response.getEntity()), HttpStatus.OK);
     }
 

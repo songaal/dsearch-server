@@ -22,7 +22,6 @@ import org.elasticsearch.client.*;
 import org.elasticsearch.client.indices.PutIndexTemplateRequest;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.query.*;
-import org.elasticsearch.index.reindex.DeleteByQueryRequest;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
@@ -81,7 +80,7 @@ public class CollectionService {
         }
     }
 
-    private void removeCron(UUID clusterId, String collectionId){
+    private void removeSchedule(UUID clusterId, String collectionId){
         String prefix = String.format("%s-%s", clusterId, collectionId);
         Iterator<String> keys = scheduled.keySet().iterator();
         while (keys.hasNext()){
@@ -95,7 +94,7 @@ public class CollectionService {
         }
     }
 
-    private void registerCron(UUID clusterId, String collectionId, String crons){
+    private void registerSchedule(UUID clusterId, String collectionId, String crons){
         String[] cronList = crons.split("\\|\\|");
         for(String cron : cronList){
             String scheduledKey = String.format("%s-%s-%s", clusterId, collectionId, cron);
@@ -130,6 +129,7 @@ public class CollectionService {
         int clusterSize = clusterList.size();
         for (int i = 0; i < clusterSize; i++) {
             Cluster cluster = clusterList.get(i);
+
             try (RestHighLevelClient client = elasticsearchFactory.getClient(cluster.getId())) {
 //                1. 클러스터별로 기존 작업 중인 잡을 다시 등록한다.
                 SearchResponse lastIndexResponse = client.search(new SearchRequest(lastIndexStatusIndex)
@@ -152,6 +152,7 @@ public class CollectionService {
                             String index = (String) source.get("index");
                             long startTime = (long) source.get("startTime");
                             IndexStep step = IndexStep.valueOf(String.valueOf(source.get("step")));
+
                             if (expireStartTime <= startTime) {
                                 Collection collection = findById(cluster.getId(), collectionId);
                                 Collection.Launcher launcher = collection.getLauncher();
@@ -185,38 +186,13 @@ public class CollectionService {
             }
 
             try {
-//                2. 컬렉션의 스케쥴이 enabled 이면 다시 스케쥴을 등록한다.
+//              컬렉션의 스케쥴이 enabled 이면 다시 스케쥴을 등록한다.
                 List<Collection> collectionList = findAll(cluster.getId());
                 if (collectionList != null) {
                     collectionList.forEach(collection -> {
                         try {
                             if(collection.isScheduled()) {
-//                                String cron = collection.getCron();
-                                registerCron(cluster.getId(), collection.getId(), collection.getCron());
-
-//                                String crons = collection.getCron();
-//                                String[] cronList = crons.split("||");
-//                                for(String cron : cronList){
-//                                    String scheduledKey = String.format("%s-%s-%s", cluster.getId(), collection.getId(), cron);
-//                                    scheduled.put(scheduledKey, Objects.requireNonNull(scheduler.schedule(() -> {
-//                                        try {
-//                                            // 변경사항이 있을수 있으므로, 컬렉션 정보를 새로 가져온다.
-//                                            Collection registerCollection2 = findById(cluster.getId(), collection.getId());
-//                                            IndexingStatus indexingStatus = indexingJobManager.findById(registerCollection2.getId());
-//                                            if (indexingStatus != null) {
-//                                                return;
-//                                            }
-//                                            Deque<IndexStep> nextStep = new ArrayDeque<>();
-//                                            nextStep.add(IndexStep.PROPAGATE);
-//                                            nextStep.add(IndexStep.EXPOSE);
-//                                            IndexingStatus status = indexingJobService.indexing(cluster.getId(), registerCollection2, true, IndexStep.FULL_INDEX, nextStep);
-//                                            indexingJobManager.add(registerCollection2.getId(), status);
-//                                            logger.debug("enabled scheduled collection: {}", registerCollection2.getId());
-//                                        } catch (IndexingJobFailureException | IOException e) {
-//                                            logger.error("[INIT ERROR] ", e);
-//                                        }
-//                                    }, new CronTrigger("0 " + cron))));
-//                                }
+                                registerSchedule(cluster.getId(), collection.getId(), collection.getCron());
                             }
                         } catch (Exception e) {
                             logger.error("[INIT ERROR] ", e);
@@ -270,9 +246,6 @@ public class CollectionService {
 
             client.indices()
                     .putTemplate(new PutIndexTemplateRequest(collection.getBaseId()).patterns(Arrays.asList(indexNameA, indexNameB)), RequestOptions.DEFAULT);
-
-//            client.indices().putTemplate(new PutIndexTemplateRequest(indexNameA).patterns(Arrays.asList(indexNameA)), RequestOptions.DEFAULT);
-//            client.indices().putTemplate(new PutIndexTemplateRequest(indexNameB).patterns(Arrays.asList(indexNameB)), RequestOptions.DEFAULT);
         }
     }
 
@@ -426,9 +399,7 @@ public class CollectionService {
 
     public Collection findById(UUID clusterId, String id) throws IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-//            logger.info("collectionId: {}, id: {}",collectionIndex, id);
             GetResponse getResponse = client.get(new GetRequest().index(collectionIndex).id(id), RequestOptions.DEFAULT);
-//            logger.info("Response: {} ", getResponse.getSourceAsMap());
             Collection collection = convertMapToObject(getResponse.getId(), getResponse.getSourceAsMap());
             collection.setIndexA(getIndex(clusterId, collection.getIndexA().getIndex()));
             collection.setIndexB(getIndex(clusterId, collection.getIndexB().getIndex()));
@@ -564,7 +535,6 @@ public class CollectionService {
         }
     }
 
-
     public void editSource(UUID clusterId, String id, Collection collection) throws IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             GetResponse getResponse = client.get(new GetRequest().index(collectionIndex).id(id), RequestOptions.DEFAULT);
@@ -618,7 +588,7 @@ public class CollectionService {
             // 스케줄이 있다면
             if(isScheduled){
                 collection.setScheduled(true); // collection에는 따로 셋팅해서 넘겨준다. -> sourceAsMap에는 있지만 Collection에는 false로 등록되어 있을 수 있기 때문에.
-                removeCron(clusterId, id); // 기존 스케줄을 전부 지우고
+                removeSchedule(clusterId, id); // 기존 스케줄을 전부 지우고
                 editSchedule(clusterId, id, collection); //새로 스케줄을 등록한다
             }
         }
@@ -635,27 +605,12 @@ public class CollectionService {
                     .doc(sourceAsMap), RequestOptions.DEFAULT);
             Collection registerCollection = findById(clusterId, id);
 
-            if (registerCollection.isScheduled()) {
-                String crons = registerCollection.getCron();
-                registerCron(clusterId, registerCollection.getId(), crons);
-            }else{
-                String crons = registerCollection.getCron();
-                String[] cronList = crons.split("\\|\\|");
+            String crons = registerCollection.getCron();
 
-                for(String cron : cronList){
-                    String scheduledKey = String.format("%s-%s-%s", clusterId.toString(), registerCollection.getId(), cron);
-                    ScheduledFuture<?> future = scheduled.get(scheduledKey);
-                    if (future != null) {
-                        logger.info("Remove Scheduling.. scheduledKey: {}, future: {}", scheduledKey, future);
-                        try {
-                            future.cancel(true);
-                            scheduled.remove(collection.getId());
-                            logger.debug("collection {} >> cancel {}", collection.getId(), future.isCancelled());
-                        } catch (NullPointerException e) {
-                            logger.warn("ignore exception {}", e.getMessage());
-                        }
-                    }
-                }
+            if (registerCollection.isScheduled()) {
+                registerSchedule(clusterId, registerCollection.getId(), crons);
+            }else{
+                removeSchedule(clusterId, registerCollection.getId(), crons);
             }
         }
     }
@@ -672,8 +627,7 @@ public class CollectionService {
         return result;
     }
 
-
-    public void flushSchedule(UUID clusterId){
+    public void removeAllSchedule(UUID clusterId){
         for( String key : scheduled.keySet()){
             if(key.contains(clusterId.toString())){
                 logger.info("스케줄 제거, clusterId: {}, scheduled key: {}", clusterId, key);
@@ -683,35 +637,16 @@ public class CollectionService {
         }
     }
 
-    public void registerSchedule(UUID clusterId){
+    public void registerAllSchedule(UUID clusterId){
         try {
-//                2. 컬렉션의 스케쥴이 enabled 이면 다시 스케쥴을 등록한다.
+           /** 컬렉션의 스케쥴이 enabled 이면 다시 스케쥴을 등록한다. */
             List<Collection> collectionList = findAll(clusterId);
             if (collectionList != null) {
                 collectionList.forEach(collection -> {
                     try {
                         if(collection.isScheduled()) {
                             String crons = collection.getCron();
-                            registerCron(clusterId, collection.getId(), crons);
-
-//                            String scheduledKey = String.format("%s-%s", clusterId, collection.getId());
-//                            logger.info("스케줄 재등록, cron: 0 {}, clusterId: {}, collectionId: {}, schedule key: {}", cron, clusterId, collection.getId(), scheduledKey);
-//                            scheduled.put(scheduledKey, Objects.requireNonNull(scheduler.schedule(() -> {
-//                                try {
-//                                    IndexingStatus indexingStatus = indexingJobManager.findById(collection.getId());
-//                                    if (indexingStatus != null) {
-//                                        return;
-//                                    }
-//                                    Deque<IndexStep> nextStep = new ArrayDeque<>();
-//                                    nextStep.add(IndexStep.PROPAGATE);
-//                                    nextStep.add(IndexStep.EXPOSE);
-//                                    IndexingStatus status = indexingJobService.indexing(clusterId, collection, true, IndexStep.FULL_INDEX, nextStep);
-//                                    indexingJobManager.add(collection.getId(), status);
-//                                    logger.debug("enabled scheduled collection: {}", collection.getId());
-//                                } catch (IndexingJobFailureException e) {
-//                                    logger.error("[Register schedule ERROR] ", e);
-//                                }
-//                            }, new CronTrigger("0 " + cron))));
+                            registerSchedule(clusterId, collection.getId(), crons);
                         }
                     } catch (Exception e) {
                         logger.error("[Register schedule ERROR] ", e);
@@ -720,6 +655,25 @@ public class CollectionService {
             }
         } catch (Exception e) {
             logger.error("[Register schedule ERROR]", e);
+        }
+    }
+
+    public void removeSchedule(UUID clusterId, String collectionId, String crons ){
+        String[] cronList = crons.split("\\|\\|");
+
+        for(String cron : cronList){
+            String scheduledKey = String.format("%s-%s-%s", clusterId.toString(), collectionId, cron);
+            ScheduledFuture<?> future = scheduled.get(scheduledKey);
+            if (future != null) {
+                logger.info("Remove Scheduling.. scheduledKey: {}, future: {}", scheduledKey, future);
+                try {
+                    future.cancel(true);
+                    scheduled.remove(collectionId);
+                    logger.debug("collection {} >> cancel {}", collectionId, future.isCancelled());
+                } catch (NullPointerException e) {
+                    logger.warn("ignore exception {}", e.getMessage());
+                }
+            }
         }
     }
 

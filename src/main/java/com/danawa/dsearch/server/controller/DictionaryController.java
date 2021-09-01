@@ -59,11 +59,10 @@ public class DictionaryController {
     @PostMapping("/{dictionary}")
     public ResponseEntity<?> createDocument(@PathVariable String dictionary,
                                             @RequestHeader(value = "cluster-id") UUID clusterId,
-                                            @RequestBody DictionaryDocumentRequest request) throws IOException, ServiceException {
-        request.setType(dictionary);
+                                            @RequestBody Map<String, Object> request) throws IOException, ServiceException {
+        request.put("type", dictionary);
         return new ResponseEntity<>(dictionaryService.createDocument(clusterId, request), HttpStatus.OK);
     }
-
 
     @DeleteMapping("/{dictionary}/{id}")
     public ResponseEntity<?> deleteDocument(@PathVariable String dictionary,
@@ -76,8 +75,9 @@ public class DictionaryController {
     public ResponseEntity<?> updateDocument(@PathVariable String dictionary,
                                             @PathVariable String id,
                                             @RequestHeader(value = "cluster-id") UUID clusterId,
-                                            @RequestBody DictionaryDocumentRequest request) throws IOException {
-        request.setType(dictionary);
+                                            @RequestBody Map<String, Object> request) throws IOException {
+        logger.info("{}", request);
+        request.put("type", dictionary);
         return new ResponseEntity<>(dictionaryService.updateDocument(clusterId, id, request), HttpStatus.OK);
     }
 
@@ -89,32 +89,16 @@ public class DictionaryController {
     @GetMapping("/summary")
     public ResponseEntity<?> getSummary(@RequestHeader(value = "cluster-id") UUID clusterId) throws IOException {
         Map<String, Object> entity = new HashMap<String, Object>();
-        // 1. setting 필요
         List<DictionarySetting> dictionarySettings = dictionaryService.getAnalysisPluginSettings(clusterId);
-        // 자신의 클러스터에서 적용/수정 시간을 조회한다.
-//        List<Map<String, Object>> timeList = dictionaryService.selectApplyList(clusterId);
-//
-//        for (DictionarySetting setting : dictionarySettings) {
-//            for (Map<String, Object> t : timeList) {
-//                if (t.get("id") != null && setting.getId().equalsIgnoreCase(t.get("id").toString())) {
-//                    setting.setUpdatedTime(t.get("updatedTime") == null ? null : t.get("updatedTime").toString());
-//                    setting.setAppliedTime(t.get("appliedTime") == null ? null : t.get("appliedTime").toString());
-//                    break;
-//                }
-//            }
-//        }
-
         entity.put("dictionarySettings", dictionarySettings);
-
-        // 전송
         return new ResponseEntity<>(entity, HttpStatus.OK);
     }
 
     @PostMapping("/find-dict")
     public ResponseEntity<?> searchDictionaries(@RequestHeader(value = "cluster-id") UUID clusterId,
-                                                @RequestBody DictionarySearchRequest dictionarySearchRequest) throws IOException{
+                                                @RequestBody Map<String, Object> request) throws IOException{
 
-        logger.info("clusterId: {} DictionarySearchRequest: {}", clusterId, dictionarySearchRequest);
+        logger.info("clusterId: {} request: {}", clusterId, request.toString());
         Map<String, Object> map = dictionaryService.getRemoteInfo(clusterId);
 
         boolean isRemote = (Boolean) map.get("remote");
@@ -123,9 +107,9 @@ public class DictionaryController {
         Response findDictResponse = null;
         if(isRemote){
             UUID remoteClusterId = (UUID) map.get("remoteClusterId");
-            findDictResponse = dictionaryService.findDict(remoteClusterId, dictionarySearchRequest);
+            findDictResponse = dictionaryService.findDict(remoteClusterId, request);
         }else{
-            findDictResponse = dictionaryService.findDict(clusterId, dictionarySearchRequest);
+            findDictResponse = dictionaryService.findDict(clusterId, request);
         }
 
         String response = EntityUtils.toString(findDictResponse.getEntity());
@@ -134,13 +118,9 @@ public class DictionaryController {
 
     @PostMapping("/compile-dict")
     public ResponseEntity<?> compileDictionaries(@RequestHeader(value = "cluster-id") UUID clusterId,
-                                                @RequestBody DictionaryCompileRequest dictionaryCompileRequest) throws IOException{
-        logger.info("clusterId: {}, compile-dict params: {}", clusterId, dictionaryCompileRequest.toString());
-        Response compileDictResponse = dictionaryService.compileDict(clusterId, dictionaryCompileRequest);
-        String[] ids = dictionaryCompileRequest.getIds().trim().split(",");
-        for(String id : ids){
-            dictionaryService.updateTime(clusterId, id);
-        }
+                                                @RequestBody Map<String, Object> request) throws IOException{
+        logger.info("clusterId: {}, compile-dict params: {}", clusterId, request.toString());
+        Response compileDictResponse = dictionaryService.compileDict(clusterId, request);
         String response = EntityUtils.toString(compileDictResponse.getEntity());
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
@@ -156,8 +136,7 @@ public class DictionaryController {
         Map<String, Object> result = null;
 
         logger.info("overwrite: {}, dictionaryName: {}, dictionaryType: {}, dictionaryFields: {}", overwrite, dictionaryName, dictionaryType, dictionaryList.toString());
-        // 덮어쓰기
-        if(overwrite){
+        if(overwrite){ // 덮어쓰기
             dictionaryService.resetDict(clusterId, dictionaryName);
         }
 

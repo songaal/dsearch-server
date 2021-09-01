@@ -22,6 +22,7 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.h2.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -74,21 +75,24 @@ public class JdbcService {
         return flag;
     }
 
-
     public SearchResponse getJdbcList(UUID clusterId) throws IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             SearchRequest searchRequest = new SearchRequest();
             searchRequest.indices(jdbcIndex);
 
-            String query = "{\n" +
-                    "        \"size\": 10000\n" +
-                    "      }";
             SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-            SearchModule searchModule = new SearchModule(Settings.EMPTY, false, Collections.emptyList());
-            try (XContentParser parser = XContentFactory.xContent(XContentType.JSON).createParser(new NamedXContentRegistry(searchModule.getNamedXContents()), null, query)) {
-                searchSourceBuilder.parseXContent(parser);
-                searchRequest.source(searchSourceBuilder);
-            }
+            searchSourceBuilder.query(QueryBuilders.matchAllQuery()).size(1000);
+            searchRequest.source(searchSourceBuilder);
+
+//            String query = "{\n" +
+//                    "        \"size\": 10000\n" +
+//                    "      }";
+//            SearchModule searchModule = new SearchModule(Settings.EMPTY, false, Collections.emptyList());
+//            try (XContentParser parser = XContentFactory.xContent(XContentType.JSON)
+//                    .createParser(new NamedXContentRegistry(searchModule.getNamedXContents()), null, query)) {
+//                searchSourceBuilder.parseXContent(parser);
+//                searchRequest.source(searchSourceBuilder);
+//            }
             SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
             return searchResponse;
         }
@@ -98,18 +102,7 @@ public class JdbcService {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Map<String, Object> jsonMap = new HashMap<>();
 
-            jsonMap.put("id", jdbcRequest.getId());
-            jsonMap.put("name", jdbcRequest.getName());
-            jsonMap.put("provider", jdbcRequest.getProvider());
-            jsonMap.put("driver", jdbcRequest.getDriver());
-            jsonMap.put("address", jdbcRequest.getAddress());
-            jsonMap.put("port", jdbcRequest.getPort());
-            jsonMap.put("db_name", jdbcRequest.getDB_name());
-            jsonMap.put("user", jdbcRequest.getUser());
-            jsonMap.put("password", jdbcRequest.getPassword());
-            jsonMap.put("params", jdbcRequest.getParams());
-            jsonMap.put("url", jdbcRequest.getUrl());
-
+            handleErrorJdbcSource(jdbcRequest, jsonMap, JdbcRequestType.ADD);
             IndexRequest indexRequest = new IndexRequest(jdbcIndex).source(jsonMap);
             IndexResponse indexResponse = client.index(indexRequest, RequestOptions.DEFAULT);
             return indexResponse;
@@ -128,13 +121,7 @@ public class JdbcService {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Map<String, Object> jsonMap = new HashMap<>();
 
-            if(jdbcRequest.getId() != null && !jdbcRequest.getId().equals("")) jsonMap.put("id", jdbcRequest.getId());
-            if(jdbcRequest.getName() != null && !jdbcRequest.getName().equals("")) jsonMap.put("name", jdbcRequest.getName());
-            if(jdbcRequest.getDriver() != null && !jdbcRequest.getDriver().equals("")) jsonMap.put("driver", jdbcRequest.getDriver());
-            if(jdbcRequest.getUser() != null && !jdbcRequest.getUser().equals("")) jsonMap.put("user", jdbcRequest.getUser());
-            if(jdbcRequest.getPassword() != null && !jdbcRequest.getPassword().equals("")) jsonMap.put("password", jdbcRequest.getPassword());
-            if(jdbcRequest.getUrl() != null && !jdbcRequest.getUrl().equals("")) jsonMap.put("url", jdbcRequest.getUrl());
-
+            handleErrorJdbcSource(jdbcRequest, jsonMap, JdbcRequestType.UPDATE);
             UpdateRequest updateRequest = new UpdateRequest(jdbcIndex, id).doc(jsonMap);
             UpdateResponse updateResponse = client.update(updateRequest, RequestOptions.DEFAULT);
             return updateResponse;
@@ -181,5 +168,49 @@ public class JdbcService {
         }
         message.put("jdbc", jdbc);
         return sb.toString();
+    }
+
+    enum JdbcRequestType{
+        ADD, UPDATE
+    }
+
+    private void handleErrorJdbcSource(JdbcRequest jdbcRequest, Map<String, Object> jsonMap, JdbcRequestType type){
+
+        String id = jdbcRequest.getId();
+        String name = jdbcRequest.getName();
+        String driver = jdbcRequest.getDriver();
+        String user = jdbcRequest.getUser();
+        String password = jdbcRequest.getPassword();
+        String url = jdbcRequest.getUrl();
+        String provider = jdbcRequest.getProvider();
+        String address = jdbcRequest.getAddress();
+        String port = jdbcRequest.getPort();
+        String db_name = jdbcRequest.getDB_name();
+        String params = jdbcRequest.getParams();
+
+        switch (type){
+            case ADD:
+                if(!StringUtils.isNullOrEmpty(id)) jsonMap.put("id", id);
+                if(!StringUtils.isNullOrEmpty(name)) jsonMap.put("name", name);
+                if(!StringUtils.isNullOrEmpty(driver)) jsonMap.put("driver", driver);
+                if(!StringUtils.isNullOrEmpty(user)) jsonMap.put("user", user);
+                if(!StringUtils.isNullOrEmpty(password)) jsonMap.put("password", password);
+                if(!StringUtils.isNullOrEmpty(url)) jsonMap.put("url", url);
+                if(!StringUtils.isNullOrEmpty(provider)) jsonMap.put("provider", provider);
+                if(!StringUtils.isNullOrEmpty(address)) jsonMap.put("address", address);
+                if(!StringUtils.isNullOrEmpty(port)) jsonMap.put("port", port);
+                if(!StringUtils.isNullOrEmpty(db_name)) jsonMap.put("db_name", db_name);
+                if(!StringUtils.isNullOrEmpty(params)) jsonMap.put("params", params);
+                break;
+            case UPDATE:
+                if(!StringUtils.isNullOrEmpty(id)) jsonMap.put("id", id);
+                if(!StringUtils.isNullOrEmpty(name)) jsonMap.put("name", name);
+                if(!StringUtils.isNullOrEmpty(driver)) jsonMap.put("driver", driver);
+                if(!StringUtils.isNullOrEmpty(user)) jsonMap.put("user", user);
+                if(!StringUtils.isNullOrEmpty(password)) jsonMap.put("password", password);
+                if(!StringUtils.isNullOrEmpty(url)) jsonMap.put("url", url);
+                break;
+            default:
+        }
     }
 }

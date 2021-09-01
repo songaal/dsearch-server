@@ -8,11 +8,9 @@ import com.danawa.dsearch.server.services.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.*;
@@ -50,14 +48,16 @@ public class ClusterController {
     }
 
     @GetMapping
-    public ResponseEntity<?> findAll(@RequestParam(required = false) String isStatus) {
+    public ResponseEntity<?> findAll(@RequestParam(required = false) boolean isStatus) {
         List<Map<String, Object>> response = new ArrayList<>();
         List<Cluster> clusterList = clusterService.findAll();
         int size = clusterList.size();
-        for (int i=0; i < size; i++) {
+
+        for (int i = 0; i < size; i++) {
             Cluster cluster = clusterList.get(i);
             Map<String, Object> clusterMap = new HashMap<>();
-            if ("true".equalsIgnoreCase(isStatus)) {
+
+            if (isStatus) {
                 ClusterStatusResponse status = clusterService.scanClusterStatus(cluster.getScheme(),
                         cluster.getHost(),
                         cluster.getPort(),
@@ -69,9 +69,11 @@ public class ClusterController {
                 statusMap.put("connection", false);
                 clusterMap.put("status", statusMap);
             }
+
             clusterMap.put("cluster", cluster);
             response.add(clusterMap);
         }
+
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
@@ -83,6 +85,7 @@ public class ClusterController {
                 cluster.getPort(),
                 cluster.getUsername(),
                 cluster.getPassword());
+
         Map<String, Object> response = new HashMap<>();
         response.put("cluster", cluster);
         response.put("status", status);
@@ -97,12 +100,13 @@ public class ClusterController {
         collectionService.fetchSystemIndex(registerCluster.getId());
         indicesService.fetchSystemIndex(registerCluster.getId());
         jdbcService.fetchSystemIndex(registerCluster.getId()); /* JDBC 인덱스 추가 */
-        indexTemplateService.fetchSystemIndex(registerCluster.getId()); /* JDBC 인덱스 추가 */
+        indexTemplateService.fetchSystemIndex(registerCluster.getId()); /* 인덱스 템플릿 추가 */
         return new ResponseEntity<>(registerCluster, HttpStatus.OK);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> remove(@PathVariable String id, @RequestParam(required = false, defaultValue = "false") String isRemoveData) throws IOException {
+    public ResponseEntity<?> remove(@PathVariable String id,
+                                    @RequestParam(required = false, defaultValue = "false") String isRemoveData) {
         if ("true".equalsIgnoreCase(isRemoveData)) {
             logger.info("클러스터의 시스템인덱스를 삭제합니다., {}", id);
             try {
@@ -138,16 +142,16 @@ public class ClusterController {
 
     @GetMapping("/check")
     public ResponseEntity<?> check(@RequestHeader(value = "cluster-id") UUID clusterId,
-                                   @RequestParam Boolean flag)  {
+                                   @RequestParam boolean flag)  {
 
         if(flag){
             // 해당 클러스터의 스케줄 제거
             logger.info("클러스터 점검 시작, clusterId: {}", clusterId);
-            collectionService.flushSchedule(clusterId);
+            collectionService.removeAllSchedule(clusterId);
         }else{
             // 해당 클러스터의 스케줄 재 등록
             logger.info("클러스터 점검 완료, clusterId: {}", clusterId);
-            collectionService.registerSchedule(clusterId);
+            collectionService.registerAllSchedule(clusterId);
         }
         return new ResponseEntity<>(HttpStatus.OK);
     }
