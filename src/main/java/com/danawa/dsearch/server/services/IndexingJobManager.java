@@ -303,6 +303,11 @@ public class IndexingJobManager {
             } else if ("ERROR".equalsIgnoreCase(status) || "STOP".equalsIgnoreCase(status)) {
                 logger.info("Indexing {}, id: {}, indexingStatus: {}", status, id, indexingStatus.toString());
                 indexingJobService.expose(clusterId, indexingStatus.getCollection());
+                // action 이 all (연속실행)일 경우
+                if ("all".equalsIgnoreCase(indexingStatus.getAction())) {
+                    // 후처리 프로세스 (동적색인 on)
+                    processService.postProcess(indexingStatus.getCollection());
+                }
             } else {
                 // 다음 작업이 없으면 제거.
                 IndexingStatus idxStat = jobs.get(id);
