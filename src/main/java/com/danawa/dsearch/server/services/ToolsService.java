@@ -63,7 +63,7 @@ public class ToolsService {
 
             String plugin = (String) request.get("plugin");
             String text = (String) request.get("text");
-            String useForQuery = Objects.isNull(request.get("useForQuery")) ? "false" : (String) request.get("useForQuery");
+            String useForQuery = Objects.isNull(request.get("useForQuery")) ? "false" : String.valueOf(request.get("useForQuery"));
 
             String method = "POST";
             String endPoint = "/_" + plugin + "/analyze";
