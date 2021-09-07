@@ -109,6 +109,7 @@ public class CollectionController {
         Map<String, Object> response = new HashMap<>();
         IndexingActionType actionType = getActionType(action);
         Collection collection = collectionService.findById(clusterId, id);
+        logger.info("{}, {}, {}, {}", clusterId, id, action, type);
 
         registerIndexingJob(clusterId, id, collection, actionType, "", response, type);
 
