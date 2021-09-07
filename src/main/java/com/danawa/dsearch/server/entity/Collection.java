@@ -18,6 +18,7 @@ public class Collection implements Serializable {
     private Integer replicas;
     private Integer refresh_interval;
     private String ignoreRoleYn;
+    private String indexingType;
     private boolean extIndexer;
 
     private String esScheme;
@@ -381,5 +382,13 @@ public class Collection implements Serializable {
 
     public void setEsPassword(String esPassword) {
         this.esPassword = esPassword;
+    }
+
+    public String getIndexingType() {
+        return indexingType;
+    }
+
+    public void setIndexingType(String indexingType) {
+        this.indexingType = indexingType;
     }
 }

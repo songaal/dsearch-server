@@ -91,8 +91,7 @@ public class CollectionController {
                                             @RequestParam String action,
                                             @PathVariable String id,
                                             @RequestBody Collection collection) throws IOException {
-
-        logger.info("action: {}, id: {}, collection: {}", action, id, collection.getBaseId());
+        logger.info("action: {}, id: {}, collection: {}, type: {}", action, id, collection.getBaseId());
         if ("source".equalsIgnoreCase(action)) {
             collectionService.editSource(clusterId, id, collection);
         } else if ("schedule".equalsIgnoreCase(action)) {
@@ -240,8 +239,6 @@ public class CollectionController {
 
     @PostMapping(value = "/setSettings")
     public ResponseEntity<?> setSettings(@RequestParam String type, @RequestBody Map<String, Object> settings) {
-        System.out.println(type);
-        System.out.println(settings);
         if(type.equals("indexing")){
             indexingJobManager.setSettings("indexing", settings);
             return new ResponseEntity<>(HttpStatus.OK);
@@ -251,6 +248,16 @@ public class CollectionController {
         }else{
             return new ResponseEntity<>(HttpStatus.NOT_ACCEPTABLE);
         }
+    }
+
+    @PutMapping("/{id}/indexingType")
+    public ResponseEntity<?> indexing(@RequestHeader(value = "cluster-id") UUID clusterId,
+                                      @PathVariable String id,
+                                      @RequestParam String type) throws IOException {
+        Map<String, Object> response = new HashMap<>();
+        logger.info("{}, {}", id, type);
+        collectionService.editIndexingType(clusterId, id, type);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     /**
@@ -347,9 +354,11 @@ public class CollectionController {
                         // 전처리 프로세스 (동적색인 off)
                         processService.preProcess(collection);
                         IndexingStatus indexingStatus = new IndexingStatus();
-                        if ("외부색인".equalsIgnoreCase(type)) {
+//                        if ("외부색인".equalsIgnoreCase(type)) {
+                        if ("outer".equalsIgnoreCase(type)) {
                             indexingStatus = indexingJobService.indexing(clusterId, collection, true, IndexStep.FULL_INDEX, nextStep);
-                        } else if ("내부색인".equalsIgnoreCase(type)) {
+//                        } else if ("내부색인".equalsIgnoreCase(type)) {
+                        } else if ("inner".equalsIgnoreCase(type)) {
                             indexingStatus = indexingJobService.reindex(clusterId, collection, true, IndexStep.REINDEX, nextStep);
                         }
                         indexingStatus.setAction(actionType.getAction());
