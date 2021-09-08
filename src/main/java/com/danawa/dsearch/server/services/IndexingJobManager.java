@@ -190,10 +190,6 @@ public class IndexingJobManager {
                         logger.error("[remove job] retry.. {}", indexingStatus.getRetry());
                     }
                 }
-                if ("all".equalsIgnoreCase(indexingStatus.getAction())) {
-                    // 후처리 프로세스 (동적색인 on)
-                    processService.postProcess(indexingStatus.getCollection());
-                }
             }
         });
     }
