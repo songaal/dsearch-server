@@ -377,9 +377,11 @@ public class CollectionController {
                     IndexingStatus registerStatus = indexingJobManager.findById(id);
                     if (registerStatus == null) {
                         IndexingStatus indexingStatus = new IndexingStatus();
-                        if ("외부색인".equalsIgnoreCase(type)) {
+//                        if ("외부색인".equalsIgnoreCase(type)) {
+                        if ("outer".equalsIgnoreCase(type)) {
                             indexingStatus = indexingJobService.indexing(clusterId, collection, false, IndexStep.FULL_INDEX);
-                        } else if ("내부색인".equalsIgnoreCase(type)) {
+//                        } else if ("내부색인".equalsIgnoreCase(type)) {
+                        } else if ("inner".equalsIgnoreCase(type)) {
                             indexingStatus = indexingJobService.reindex(clusterId, collection, false, IndexStep.REINDEX);
                         }
                         indexingJobManager.add(collection.getId(), indexingStatus);
