@@ -293,6 +293,7 @@ public class IndexingJobManager {
                 // 다음 작업이 있을 경우.
                 indexingStatus = indexingJobService.propagate(clusterId, true, indexingStatus.getCollection(), indexingStatus.getNextStep(), index);
                 addLastIndexStatus(clusterId, indexingStatus.getCollection().getId(), index, indexingStatus.getStartTime(), "RUNNING", indexingStatus.getCurrentStep().name(), id);
+                indexingStatus.setAction("all");
                 jobs.put(id, indexingStatus);
 
 //                IndexingStatus idxStat = jobs.get(id);
