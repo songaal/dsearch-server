@@ -190,10 +190,6 @@ public class IndexingJobManager {
                         logger.error("[remove job] retry.. {}", indexingStatus.getRetry());
                     }
                 }
-                if ("all".equalsIgnoreCase(indexingStatus.getAction())) {
-                    // 후처리 프로세스 (동적색인 on)
-                    processService.postProcess(indexingStatus.getCollection());
-                }
             }
         });
     }
@@ -293,6 +289,7 @@ public class IndexingJobManager {
                 // 다음 작업이 있을 경우.
                 indexingStatus = indexingJobService.propagate(clusterId, true, indexingStatus.getCollection(), indexingStatus.getNextStep(), index);
                 addLastIndexStatus(clusterId, indexingStatus.getCollection().getId(), index, indexingStatus.getStartTime(), "RUNNING", indexingStatus.getCurrentStep().name(), id);
+                indexingStatus.setAction("all");
                 jobs.put(id, indexingStatus);
 
 //                IndexingStatus idxStat = jobs.get(id);
