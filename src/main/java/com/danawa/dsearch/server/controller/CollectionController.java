@@ -111,7 +111,6 @@ public class CollectionController {
         Collection collection = collectionService.findById(clusterId, id);
 
         registerIndexingJob(clusterId, id, collection, actionType, "", response);
-
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
@@ -272,7 +271,7 @@ public class CollectionController {
         }
     }
 
-    private IndexingActionType getActionType(String action){
+    private IndexingActionType getActionType(String action) throws IndexingJobFailureException{
         switch (action) {
             case "all":
                 return IndexingActionType.ALL;
@@ -286,8 +285,10 @@ public class CollectionController {
                 return IndexingActionType.STOP_PROPAGATION;
             case "stop_indexing":
                 return IndexingActionType.STOP_INDEXING;
+            case "sub_start":
+                return IndexingActionType.SUB_START;
             default:
-                return IndexingActionType.UNKNOWN;
+                throw new IndexingJobFailureException("Not Found action Type : " + action);
         }
     }
 
