@@ -281,7 +281,7 @@ public class CollectionController {
         }
     }
 
-    private IndexingActionType getActionType(String action){
+    private IndexingActionType getActionType(String action) throws IndexingJobFailureException{
         switch (action) {
             case "all":
                 return IndexingActionType.ALL;
@@ -295,12 +295,13 @@ public class CollectionController {
                 return IndexingActionType.STOP_PROPAGATION;
             case "stop_indexing":
                 return IndexingActionType.STOP_INDEXING;
-            case "stop_reindexing":
-                return IndexingActionType.STOP_REINDEXING;
+            case "sub_start":
+                return IndexingActionType.SUB_START;
             default:
-                return IndexingActionType.UNKNOWN;
+                throw new IndexingJobFailureException("Not Found action Type : " + action);
         }
     }
+
 
     private void handleError(String host, String port, String collectionName, String action, Map<String, Object> response){
         // Host 에러 처리
