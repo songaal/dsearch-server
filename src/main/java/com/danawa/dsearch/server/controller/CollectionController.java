@@ -297,6 +297,8 @@ public class CollectionController {
                 return IndexingActionType.STOP_INDEXING;
             case "sub_start":
                 return IndexingActionType.SUB_START;
+            case "stop_reindexing":
+                return IndexingActionType.STOP_REINDEXING;
             default:
                 throw new IndexingJobFailureException("Not Found action Type : " + action);
         }
