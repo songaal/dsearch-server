@@ -199,93 +199,93 @@ public class IndexingJobService {
     /**
      * 색인 샤드의 TAG 제약을 풀고 전체 클러스터로 확장시킨다.
      * */
-    public IndexingStatus propagate(UUID clusterId, boolean autoRun, Collection collection, String target) throws IndexingJobFailureException, IOException {
-        return propagate(clusterId, autoRun, collection, new ArrayDeque<>(), target);
-    }
-
-    public IndexingStatus propagate(UUID clusterId, boolean autoRun, Collection collection, Queue<IndexStep> nextStep, String target) throws IndexingJobFailureException, IOException {
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            Collection.Index indexA = collection.getIndexA();
-            Collection.Index indexB = collection.getIndexB();
-
-            Map<String, Object> newPropagateOptions = new HashMap<>() ;
-            for(String key : propagate.keySet()){
-                newPropagateOptions.put(key, propagate.get(key));
-            }
-
-            if (target == null) {
-                BoolQueryBuilder boolQuery = new BoolQueryBuilder();
-                boolQuery.must(new MatchQueryBuilder("jobType", IndexStep.FULL_INDEX.name()));
-                boolQuery.must(new MatchQueryBuilder("status", "SUCCESS"));
-
-                // 마지막 성공했던 인덱스를 적용 되어 있으면 바꾸기
-                QueryBuilder queryBuilder = boolQuery.should(new MatchQueryBuilder("index", indexA.getIndex()))
-                        .should(new MatchQueryBuilder("index", indexB.getIndex()))
-                        .minimumShouldMatch(1);
-
-                SearchRequest searchRequest = new SearchRequest()
-                        .indices(indexHistory)
-                        .source(new SearchSourceBuilder().query(queryBuilder).size(1).from(0).sort("endTime", SortOrder.DESC));
-                SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
-
-                SearchHit[] searchHits = searchResponse.getHits().getHits();
-                if (searchHits.length != 1) {
-                    throw new IndexingJobFailureException("propagate >> Not Matched");
-                }
-                Map<String, Object> source = searchHits[0].getSourceAsMap();
-//                String index = (String) source.get("index");
-                target = (String) source.get("index");
-            }
-            
-            // 설정 무시 옵션 있을시 전파시 role 설정 제거
-            if(collection.getIgnoreRoleYn() != null && collection.getIgnoreRoleYn().equals("Y")) {
-                newPropagateOptions.remove("index.routing.allocation.include.role");
-                newPropagateOptions.remove("index.routing.allocation.exclude.role");
-            } else {
-                newPropagateOptions.replace("index.routing.allocation.include.role", "");
-                newPropagateOptions.replace("index.routing.allocation.exclude.role", "index");
-            }
-
-            // refresh_interval : -1, 1s, 2s, ...
-            if(collection.getRefresh_interval() != null){
-                // 0일때는 1로 셋팅.
-                int refresh_interval = collection.getRefresh_interval() == 0 ? 1 : collection.getRefresh_interval();
-
-                if(refresh_interval >= 0){
-                    newPropagateOptions.replace("refresh_interval", collection.getRefresh_interval() + "s");
-                } else {
-                    // -2 이하로 내려갈 때, -1로 고정.
-                    refresh_interval = -1;
-                    newPropagateOptions.replace("refresh_interval", refresh_interval + "");
-                }
-            }
-
-            if(collection.getReplicas() == null){
-                newPropagateOptions.replace("index.number_of_replicas", 1);
-            } else if(collection.getReplicas() == 0){
-                newPropagateOptions.replace("index.number_of_replicas", 0);
-            } else {
-                newPropagateOptions.replace("index.number_of_replicas", collection.getReplicas());
-            }
-            
-            logger.info("propagate 셋팅 : {}", newPropagateOptions);
-            client.indices().putSettings(new UpdateSettingsRequest().indices(target).settings(newPropagateOptions), RequestOptions.DEFAULT);
-            IndexingStatus indexingStatus = new IndexingStatus();
-            indexingStatus.setClusterId(clusterId);
-            indexingStatus.setIndex(target);
-            indexingStatus.setStartTime(System.currentTimeMillis());
-            indexingStatus.setAutoRun(autoRun);
-            indexingStatus.setCurrentStep(IndexStep.PROPAGATE);
-            if (nextStep == null) {
-                indexingStatus.setNextStep(new ArrayDeque<>());
-            } else {
-                indexingStatus.setNextStep(nextStep);
-            }
-            indexingStatus.setRetry(50);
-            indexingStatus.setCollection(collection);
-            return indexingStatus;
-        }
-    }
+//    public IndexingStatus propagate(UUID clusterId, boolean autoRun, Collection collection, String target) throws IndexingJobFailureException, IOException {
+//        return propagate(clusterId, autoRun, collection, new ArrayDeque<>(), target);
+//    }
+//
+//    public IndexingStatus propagate(UUID clusterId, boolean autoRun, Collection collection, Queue<IndexStep> nextStep, String target) throws IndexingJobFailureException, IOException {
+//        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+//            Collection.Index indexA = collection.getIndexA();
+//            Collection.Index indexB = collection.getIndexB();
+//
+//            Map<String, Object> newPropagateOptions = new HashMap<>() ;
+//            for(String key : propagate.keySet()){
+//                newPropagateOptions.put(key, propagate.get(key));
+//            }
+//
+//            if (target == null) {
+//                BoolQueryBuilder boolQuery = new BoolQueryBuilder();
+//                boolQuery.must(new MatchQueryBuilder("jobType", IndexStep.FULL_INDEX.name()));
+//                boolQuery.must(new MatchQueryBuilder("status", "SUCCESS"));
+//
+//                // 마지막 성공했던 인덱스를 적용 되어 있으면 바꾸기
+//                QueryBuilder queryBuilder = boolQuery.should(new MatchQueryBuilder("index", indexA.getIndex()))
+//                        .should(new MatchQueryBuilder("index", indexB.getIndex()))
+//                        .minimumShouldMatch(1);
+//
+//                SearchRequest searchRequest = new SearchRequest()
+//                        .indices(indexHistory)
+//                        .source(new SearchSourceBuilder().query(queryBuilder).size(1).from(0).sort("endTime", SortOrder.DESC));
+//                SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
+//
+//                SearchHit[] searchHits = searchResponse.getHits().getHits();
+//                if (searchHits.length != 1) {
+//                    throw new IndexingJobFailureException("propagate >> Not Matched");
+//                }
+//                Map<String, Object> source = searchHits[0].getSourceAsMap();
+////                String index = (String) source.get("index");
+//                target = (String) source.get("index");
+//            }
+//
+//            // 설정 무시 옵션 있을시 전파시 role 설정 제거
+//            if(collection.getIgnoreRoleYn() != null && collection.getIgnoreRoleYn().equals("Y")) {
+//                newPropagateOptions.remove("index.routing.allocation.include.role");
+//                newPropagateOptions.remove("index.routing.allocation.exclude.role");
+//            } else {
+//                newPropagateOptions.replace("index.routing.allocation.include.role", "");
+//                newPropagateOptions.replace("index.routing.allocation.exclude.role", "index");
+//            }
+//
+//            // refresh_interval : -1, 1s, 2s, ...
+//            if(collection.getRefresh_interval() != null){
+//                // 0일때는 1로 셋팅.
+//                int refresh_interval = collection.getRefresh_interval() == 0 ? 1 : collection.getRefresh_interval();
+//
+//                if(refresh_interval >= 0){
+//                    newPropagateOptions.replace("refresh_interval", collection.getRefresh_interval() + "s");
+//                } else {
+//                    // -2 이하로 내려갈 때, -1로 고정.
+//                    refresh_interval = -1;
+//                    newPropagateOptions.replace("refresh_interval", refresh_interval + "");
+//                }
+//            }
+//
+//            if(collection.getReplicas() == null){
+//                newPropagateOptions.replace("index.number_of_replicas", 1);
+//            } else if(collection.getReplicas() == 0){
+//                newPropagateOptions.replace("index.number_of_replicas", 0);
+//            } else {
+//                newPropagateOptions.replace("index.number_of_replicas", collection.getReplicas());
+//            }
+//
+//            logger.info("propagate 셋팅 : {}", newPropagateOptions);
+//            client.indices().putSettings(new UpdateSettingsRequest().indices(target).settings(newPropagateOptions), RequestOptions.DEFAULT);
+//            IndexingStatus indexingStatus = new IndexingStatus();
+//            indexingStatus.setClusterId(clusterId);
+//            indexingStatus.setIndex(target);
+//            indexingStatus.setStartTime(System.currentTimeMillis());
+//            indexingStatus.setAutoRun(autoRun);
+//            indexingStatus.setCurrentStep(IndexStep.PROPAGATE);
+//            if (nextStep == null) {
+//                indexingStatus.setNextStep(new ArrayDeque<>());
+//            } else {
+//                indexingStatus.setNextStep(nextStep);
+//            }
+//            indexingStatus.setRetry(50);
+//            indexingStatus.setCollection(collection);
+//            return indexingStatus;
+//        }
+//    }
 
     /**
      * 색인을 대표이름으로 alias 하고 노출한다.
@@ -345,7 +345,8 @@ public class IndexingJobService {
                 } else {
                     // index_history 조회하여 마지막 인덱스, 전파 완료한 인덱스 검색.
                     QueryBuilder queryBuilder = new BoolQueryBuilder()
-                            .must(new MatchQueryBuilder("jobType", "PROPAGATE"))
+//                            .must(new MatchQueryBuilder("jobType", "PROPAGATE"))
+                            .must(new MatchQueryBuilder("jobType", "FULL_INDEX"))
                             .must(new MatchQueryBuilder("status", "SUCCESS"))
                             .should(new MatchQueryBuilder("index", indexA.getIndex()))
                             .should(new MatchQueryBuilder("index", indexB.getIndex()))
