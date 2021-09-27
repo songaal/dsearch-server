@@ -314,6 +314,7 @@ public class IndexingJobManager {
             } else {
                 // 다음 작업이 없으면 제거.
                 IndexingStatus idxStat = jobs.get(id);
+                indexingJobService.changeRefreshInterval(clusterId, indexingStatus.getCollection(), indexingStatus.getIndex());
                 idxStat.setStatus("SUCCESS");
                 idxStat.setEndTime(System.currentTimeMillis());
                 indexingProcessQueue.put(id, idxStat);
