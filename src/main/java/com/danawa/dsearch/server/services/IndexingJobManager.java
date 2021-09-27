@@ -289,6 +289,7 @@ public class IndexingJobManager {
             if ("SUCCESS".equalsIgnoreCase(status) && nextStep != null) {
                 logger.info("Indexing {}, id: {}, indexingStatus: {}", status, id, indexingStatus.toString());
                 // 다음 작업이 있을 경우.
+                indexingJobService.changeRefreshInterval(clusterId, indexingStatus.getCollection(), indexingStatus.getIndex());
                 indexingJobService.expose(clusterId, indexingStatus.getCollection(), indexingStatus.getIndex());
 //                indexingJobService.expose(clusterId, indexingStatus.getCollection());
 
