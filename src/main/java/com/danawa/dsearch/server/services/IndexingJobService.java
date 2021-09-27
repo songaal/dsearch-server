@@ -354,7 +354,8 @@ public class IndexingJobService {
                 } else {
                     // index_history 조회하여 마지막 인덱스, 전파 완료한 인덱스 검색.
                     QueryBuilder queryBuilder = new BoolQueryBuilder()
-                            .must(new MatchQueryBuilder("jobType", "PROPAGATE"))
+//                            .must(new MatchQueryBuilder("jobType", "PROPAGATE"))
+                            .must(new MatchQueryBuilder("jobType", "FULL_INDEX"))
                             .must(new MatchQueryBuilder("status", "SUCCESS"))
                             .should(new MatchQueryBuilder("index", indexA.getIndex()))
                             .should(new MatchQueryBuilder("index", indexB.getIndex()))
