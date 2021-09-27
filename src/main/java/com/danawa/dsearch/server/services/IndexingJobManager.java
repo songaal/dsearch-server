@@ -307,66 +307,6 @@ public class IndexingJobManager {
         }
     }
 
-    /**
-     * elasticsearch 조회 후 상태 업데이트.
-     * */
-    private void updateElasticsearchStatus(String id, IndexingStatus indexingStatus) throws IOException {
-        UUID clusterId = indexingStatus.getClusterId();
-        String index = indexingStatus.getIndex();
-        IndexStep step = indexingStatus.getCurrentStep();
-        boolean done = true;
-
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            Request request = new Request("GET", String.format("/%s/_recovery", index));
-            request.addParameter("format", "json");
-            request.addParameter("filter_path", "**.shards.stage");
-            Response response = client.getLowLevelClient().performRequest(request);
-            String entityString = EntityUtils.toString(response.getEntity());
-            Map<String ,Object> entityMap = new Gson().fromJson(entityString, Map.class);
-            List<Map<String, Object>> shards = (List<Map<String, Object>>) ((Map) entityMap.get(index)).get("shards");
-            for (int i = 0; i < shards.size(); i++) {
-                Map<String, Object> shard = shards.get(i);
-                String stage = String.valueOf(shard.get("stage"));
-                if (!"DONE".equalsIgnoreCase(stage)) {
-                    done = false;
-                    break;
-                }
-            }
-        }
-
-        logger.debug("Propagate Check.. index: {}, is success: {}", index, done);
-        if (done) {
-            try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-                Map<String, Object> catIndex = catIndex(client, index);
-                String docSize = (String) catIndex.get("docs.count");
-                String store = (String) catIndex.get("store.size");
-                long startTime = indexingStatus.getStartTime();
-                deleteLastIndexStatus(client, index, startTime);
-                addIndexHistory(client, index, step.name(), startTime, System.currentTimeMillis(), indexingStatus.isAutoRun(), docSize, "SUCCESS", store);
-
-                logger.info("PROPAGATE Success, id: {}, indexingStatus: {}", id, indexingStatus.toString());
-
-                IndexStep nextStep = indexingStatus.getNextStep().poll();
-                if (nextStep != null) {
-                    indexingStatus.setCurrentStep(nextStep);
-                    indexingStatus.setStartTime(System.currentTimeMillis());
-                    indexingStatus.setEndTime(0);
-                    indexingStatus.setRetry(50);
-                    indexingStatus.setAutoRun(true);
-                    jobs.put(id, indexingStatus);
-                    logger.debug("add next job : {} ", nextStep.name());
-                } else {
-                    IndexingStatus idxStat = jobs.get(id);
-                    idxStat.setStatus("SUCCESS");
-                    idxStat.setEndTime(System.currentTimeMillis());
-                    indexingProcessQueue.put(id, idxStat);
-                    jobs.remove(id);
-                    logger.debug("empty next status : {} ", id);
-                }
-            }
-        }
-    }
-
     private Map<String ,Object> catIndex(RestHighLevelClient client, String index) throws IOException {
         Request request = new Request("GET", String.format("/_cat/indices/%s", index));
         request.addParameter("format", "json");
