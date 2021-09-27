@@ -447,6 +447,8 @@ public class IndexingJobManager {
 
                 IndexStep nextStep = indexingStatus.getNextStep().poll();
                 if ("SUCCESS".equalsIgnoreCase(taskStatus) && nextStep != null) {
+                    indexingJobService.changeRefreshInterval(clusterId, indexingStatus.getCollection(), indexingStatus.getIndex());
+
                     indexingStatus.setCurrentStep(nextStep);
                     indexingStatus.setStartTime(System.currentTimeMillis());
                     indexingStatus.setEndTime(0);
