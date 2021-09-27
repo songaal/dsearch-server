@@ -290,19 +290,19 @@ public class IndexingJobManager {
                 logger.info("Indexing {}, id: {}, indexingStatus: {}", status, id, indexingStatus.toString());
                 // 다음 작업이 있을 경우.
                 indexingJobService.changeRefreshInterval(clusterId, indexingStatus.getCollection(), indexingStatus.getIndex());
-                indexingJobService.expose(clusterId, indexingStatus.getCollection(), indexingStatus.getIndex());
 //                indexingJobService.expose(clusterId, indexingStatus.getCollection());
-
                 // 결과 인덱스에 기록.
                 addLastIndexStatus(clusterId, indexingStatus.getCollection().getId(), index, indexingStatus.getStartTime(), "RUNNING", indexingStatus.getCurrentStep().name(), id);
                 indexingStatus.setAction("all");
-                jobs.put(id, indexingStatus);
+//                jobs.put(id, indexingStatus);
 
 //                IndexingStatus idxStat = jobs.get(id);
 //                idxStat.setStatus(status);
 //                idxStat.setEndTime(System.currentTimeMillis());
 //                indexingProcessQueue.put(id, idxStat);
+
                 logger.debug("next Step >> {}", nextStep);
+                indexingJobService.expose(clusterId, indexingStatus.getCollection(), indexingStatus.getIndex());
             } else if ("ERROR".equalsIgnoreCase(status) || "STOP".equalsIgnoreCase(status)) {
                 logger.info("Indexing {}, id: {}, indexingStatus: {}", status, id, indexingStatus.toString());
                 indexingJobService.expose(clusterId, indexingStatus.getCollection());

@@ -209,6 +209,10 @@ public class IndexingJobService {
         try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)){
 
             Map<String, Object> settings = new HashMap<>() ;
+            for(String key : propagate.keySet()){
+                settings.put(key, propagate.get(key));
+            }
+
             // refresh_interval : -1, 1s, 2s, ...
             if(collection.getRefresh_interval() != null){
                 // 0일때는 1로 셋팅.
