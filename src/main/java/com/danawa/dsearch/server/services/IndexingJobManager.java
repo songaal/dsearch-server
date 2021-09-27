@@ -92,10 +92,12 @@ public class IndexingJobManager {
                 } else if (step == IndexStep.FULL_INDEX || step == IndexStep.DYNAMIC_INDEX) {
                     // indexer한테 상태를 조회한다.
                     updateIndexerStatus(id, indexingStatus);
-                } else if (step == IndexStep.PROPAGATE) {
-                    // elsticsearch한테 상태를 조회한다.
-                    updateElasticsearchStatus(id, indexingStatus);
-                } else if (step == IndexStep.REINDEX) {
+                }
+//                else if (step == IndexStep.PROPAGATE) {
+//                    // elsticsearch한테 상태를 조회한다.
+//                    updateElasticsearchStatus(id, indexingStatus);
+//                }
+                else if (step == IndexStep.REINDEX) {
                     updateReindexStatus(id, indexingStatus);
                 } else if (step == IndexStep.EXPOSE) {
 //                    EXPOSE
@@ -287,7 +289,10 @@ public class IndexingJobManager {
             if ("SUCCESS".equalsIgnoreCase(status) && nextStep != null) {
                 logger.info("Indexing {}, id: {}, indexingStatus: {}", status, id, indexingStatus.toString());
                 // 다음 작업이 있을 경우.
-                indexingStatus = indexingJobService.propagate(clusterId, true, indexingStatus.getCollection(), indexingStatus.getNextStep(), index);
+                indexingJobService.expose(clusterId, indexingStatus.getCollection(), indexingStatus.getIndex());
+//                indexingJobService.expose(clusterId, indexingStatus.getCollection());
+
+                // 결과 인덱스에 기록.
                 addLastIndexStatus(clusterId, indexingStatus.getCollection().getId(), index, indexingStatus.getStartTime(), "RUNNING", indexingStatus.getCurrentStep().name(), id);
                 indexingStatus.setAction("all");
                 jobs.put(id, indexingStatus);
@@ -321,64 +326,65 @@ public class IndexingJobManager {
     }
 
     /**
+     * 전파 단계
      * elasticsearch 조회 후 상태 업데이트.
      * */
-    private void updateElasticsearchStatus(String id, IndexingStatus indexingStatus) throws IOException {
-        UUID clusterId = indexingStatus.getClusterId();
-        String index = indexingStatus.getIndex();
-        IndexStep step = indexingStatus.getCurrentStep();
-        boolean done = true;
-
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            Request request = new Request("GET", String.format("/%s/_recovery", index));
-            request.addParameter("format", "json");
-            request.addParameter("filter_path", "**.shards.stage");
-            Response response = client.getLowLevelClient().performRequest(request);
-            String entityString = EntityUtils.toString(response.getEntity());
-            Map<String ,Object> entityMap = new Gson().fromJson(entityString, Map.class);
-            List<Map<String, Object>> shards = (List<Map<String, Object>>) ((Map) entityMap.get(index)).get("shards");
-            for (int i = 0; i < shards.size(); i++) {
-                Map<String, Object> shard = shards.get(i);
-                String stage = String.valueOf(shard.get("stage"));
-                if (!"DONE".equalsIgnoreCase(stage)) {
-                    done = false;
-                    break;
-                }
-            }
-        }
-
-        logger.debug("Propagate Check.. index: {}, is success: {}", index, done);
-        if (done) {
-            try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-                Map<String, Object> catIndex = catIndex(client, index);
-                String docSize = (String) catIndex.get("docs.count");
-                String store = (String) catIndex.get("store.size");
-                long startTime = indexingStatus.getStartTime();
-                deleteLastIndexStatus(client, index, startTime);
-                addIndexHistory(client, index, step.name(), startTime, System.currentTimeMillis(), indexingStatus.isAutoRun(), docSize, "SUCCESS", store);
-
-                logger.info("PROPAGATE Success, id: {}, indexingStatus: {}", id, indexingStatus.toString());
-
-                IndexStep nextStep = indexingStatus.getNextStep().poll();
-                if (nextStep != null) {
-                    indexingStatus.setCurrentStep(nextStep);
-                    indexingStatus.setStartTime(System.currentTimeMillis());
-                    indexingStatus.setEndTime(0);
-                    indexingStatus.setRetry(50);
-                    indexingStatus.setAutoRun(true);
-                    jobs.put(id, indexingStatus);
-                    logger.debug("add next job : {} ", nextStep.name());
-                } else {
-                    IndexingStatus idxStat = jobs.get(id);
-                    idxStat.setStatus("SUCCESS");
-                    idxStat.setEndTime(System.currentTimeMillis());
-                    indexingProcessQueue.put(id, idxStat);
-                    jobs.remove(id);
-                    logger.debug("empty next status : {} ", id);
-                }
-            }
-        }
-    }
+//    private void updateElasticsearchStatus(String id, IndexingStatus indexingStatus) throws IOException {
+//        UUID clusterId = indexingStatus.getClusterId();
+//        String index = indexingStatus.getIndex();
+//        IndexStep step = indexingStatus.getCurrentStep();
+//        boolean done = true;
+//
+//        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+//            Request request = new Request("GET", String.format("/%s/_recovery", index));
+//            request.addParameter("format", "json");
+//            request.addParameter("filter_path", "**.shards.stage");
+//            Response response = client.getLowLevelClient().performRequest(request);
+//            String entityString = EntityUtils.toString(response.getEntity());
+//            Map<String ,Object> entityMap = new Gson().fromJson(entityString, Map.class);
+//            List<Map<String, Object>> shards = (List<Map<String, Object>>) ((Map) entityMap.get(index)).get("shards");
+//            for (int i = 0; i < shards.size(); i++) {
+//                Map<String, Object> shard = shards.get(i);
+//                String stage = String.valueOf(shard.get("stage"));
+//                if (!"DONE".equalsIgnoreCase(stage)) {
+//                    done = false;
+//                    break;
+//                }
+//            }
+//        }
+//
+//        logger.debug("Propagate Check.. index: {}, is success: {}", index, done);
+//        if (done) {
+//            try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+//                Map<String, Object> catIndex = catIndex(client, index);
+//                String docSize = (String) catIndex.get("docs.count");
+//                String store = (String) catIndex.get("store.size");
+//                long startTime = indexingStatus.getStartTime();
+//                deleteLastIndexStatus(client, index, startTime);
+//                addIndexHistory(client, index, step.name(), startTime, System.currentTimeMillis(), indexingStatus.isAutoRun(), docSize, "SUCCESS", store);
+//
+//                logger.info("PROPAGATE Success, id: {}, indexingStatus: {}", id, indexingStatus.toString());
+//
+//                IndexStep nextStep = indexingStatus.getNextStep().poll();
+//                if (nextStep != null) {
+//                    indexingStatus.setCurrentStep(nextStep);
+//                    indexingStatus.setStartTime(System.currentTimeMillis());
+//                    indexingStatus.setEndTime(0);
+//                    indexingStatus.setRetry(50);
+//                    indexingStatus.setAutoRun(true);
+//                    jobs.put(id, indexingStatus);
+//                    logger.debug("add next job : {} ", nextStep.name());
+//                } else {
+//                    IndexingStatus idxStat = jobs.get(id);
+//                    idxStat.setStatus("SUCCESS");
+//                    idxStat.setEndTime(System.currentTimeMillis());
+//                    indexingProcessQueue.put(id, idxStat);
+//                    jobs.remove(id);
+//                    logger.debug("empty next status : {} ", id);
+//                }
+//            }
+//        }
+//    }
 
     /**
      * reindex 조회 후 상태 업데이트.

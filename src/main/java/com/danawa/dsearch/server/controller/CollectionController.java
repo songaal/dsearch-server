@@ -266,8 +266,13 @@ public class CollectionController {
      * */
 
     enum IndexingActionType{
-        ALL("all"), INDEXING("indexing"), PROPAGATE("propagate"), EXPOSE("expose"),
-        STOP_PROPAGATION("stop_propagation"), STOP_INDEXING("stop_indexing"), SUB_START("sub_start"),
+        ALL("all"),
+        INDEXING("indexing"),
+//        PROPAGATE("propagate"),
+        EXPOSE("expose"),
+        STOP_PROPAGATION("stop_propagation"),
+        STOP_INDEXING("stop_indexing"),
+        SUB_START("sub_start"),
         UNKNOWN(""), STOP_REINDEXING("stop_reindexing");
 
         private String action;
@@ -287,8 +292,8 @@ public class CollectionController {
                 return IndexingActionType.ALL;
             case "indexing":
                 return IndexingActionType.INDEXING;
-            case "propagate":
-                return IndexingActionType.PROPAGATE;
+//            case "propagate":
+//                return IndexingActionType.PROPAGATE;
             case "expose":
                 return IndexingActionType.EXPOSE;
             case "stop_propagation":
@@ -353,7 +358,7 @@ public class CollectionController {
                     IndexingStatus registerStatus = indexingJobManager.findById(id);
                     if (registerStatus == null) {
                         Queue<IndexStep> nextStep = new ArrayDeque<>();
-                        nextStep.add(IndexStep.PROPAGATE);
+//                        nextStep.add(IndexStep.PROPAGATE);
                         nextStep.add(IndexStep.EXPOSE);
                         // 전처리 프로세스 (동적색인 off)
                         processService.preProcess(collection);
@@ -366,8 +371,8 @@ public class CollectionController {
                             indexingStatus = indexingJobService.reindex(clusterId, collection, true, IndexStep.REINDEX, nextStep);
                         }
                         indexingStatus.setAction(actionType.getAction());
-                        indexingJobManager.add(collection.getId(), indexingStatus);
                         indexingStatus.setStatus("RUNNING");
+                        indexingJobManager.add(collection.getId(), indexingStatus);
                         response.put("indexingStatus", indexingStatus);
                         response.put("result", "success");
                     } else {
@@ -397,22 +402,22 @@ public class CollectionController {
                     }
                 }
                 break;
-            case PROPAGATE:
-                synchronized (obj) {
-                    IndexingStatus registerStatus = indexingJobManager.findById(id);
-                    if (registerStatus == null) {
-                        IndexingStatus indexingStatus = indexingJobService.propagate(clusterId, false, collection, null);
-                        indexingStatus.setStatus("RUNNING");
-                        indexingStatus.setAction(actionType.getAction());
-                        indexingJobManager.add(collection.getId(), indexingStatus);
-
-                        response.put("indexingStatus", indexingStatus);
-                        response.put("result", "success");
-                    } else {
-                        response.put("result", "fail");
-                    }
-                }
-                break;
+//            case PROPAGATE:
+//                synchronized (obj) {
+//                    IndexingStatus registerStatus = indexingJobManager.findById(id);
+//                    if (registerStatus == null) {
+//                        IndexingStatus indexingStatus = indexingJobService.propagate(clusterId, false, collection, null);
+//                        indexingStatus.setStatus("RUNNING");
+//                        indexingStatus.setAction(actionType.getAction());
+//                        indexingJobManager.add(collection.getId(), indexingStatus);
+//
+//                        response.put("indexingStatus", indexingStatus);
+//                        response.put("result", "success");
+//                    } else {
+//                        response.put("result", "fail");
+//                    }
+//                }
+//                break;
             case EXPOSE:
                 synchronized (obj) {
                     IndexingStatus registerStatus = indexingJobManager.findById(id);
