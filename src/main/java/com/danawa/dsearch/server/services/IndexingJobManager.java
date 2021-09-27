@@ -89,10 +89,12 @@ public class IndexingJobManager {
                 } else if (step == IndexStep.FULL_INDEX || step == IndexStep.DYNAMIC_INDEX) {
                     // indexer한테 상태를 조회한다.
                     updateIndexerStatus(id, indexingStatus);
-                } else if (step == IndexStep.PROPAGATE) {
-                    // elsticsearch한테 상태를 조회한다.
-                    updateElasticsearchStatus(id, indexingStatus);
-                } else if (step == IndexStep.EXPOSE) {
+                }
+//                else if (step == IndexStep.PROPAGATE) {
+//                    // elsticsearch한테 상태를 조회한다.
+//                    updateElasticsearchStatus(id, indexingStatus);
+//                }
+                else if (step == IndexStep.EXPOSE) {
 //                    EXPOSE
                     UUID clusterId = indexingStatus.getClusterId();
                     Collection collection = indexingStatus.getCollection();
@@ -274,17 +276,17 @@ public class IndexingJobManager {
             if ("SUCCESS".equalsIgnoreCase(status) && nextStep != null) {
                 logger.info("Indexing {}, id: {}, indexingStatus: {}", status, id, indexingStatus.toString());
                 // 다음 작업이 있을 경우.
+                indexingJobService.changeRefreshInterval(clusterId, indexingStatus.getCollection(), indexingStatus.getIndex());
                 indexingStatus = jobs.get(id);
-                indexingJobService.expose(clusterId, indexingStatus.getCollection(), indexingStatus.getIndex());
 //                indexingStatus = indexingJobService.propagate(clusterId, true, indexingStatus.getCollection(), indexingStatus.getNextStep(), index);
                 addLastIndexStatus(clusterId, indexingStatus.getCollection().getId(), index, indexingStatus.getStartTime(), "RUNNING", indexingStatus.getCurrentStep().name(), id);
-                jobs.put(id, indexingStatus);
-
+//                jobs.put(id, indexingStatus);
 //                IndexingStatus idxStat = jobs.get(id);
 //                idxStat.setStatus(status);
 //                idxStat.setEndTime(System.currentTimeMillis());
 //                indexingProcessQueue.put(id, idxStat);
                 logger.debug("next Step >> {}", nextStep);
+                indexingJobService.expose(clusterId, indexingStatus.getCollection(), indexingStatus.getIndex());
             } else if ("ERROR".equalsIgnoreCase(status) || "STOP".equalsIgnoreCase(status)) {
                 logger.info("Indexing {}, id: {}, indexingStatus: {}", status, id, indexingStatus.toString());
                 indexingJobService.expose(clusterId, indexingStatus.getCollection());

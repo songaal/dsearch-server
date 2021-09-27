@@ -196,6 +196,32 @@ public class IndexingJobService {
         return indexingStatus;
     }
 
+    public void changeRefreshInterval(UUID clusterId, Collection collection, String target) throws IOException {
+        try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)){
+
+            Map<String, Object> settings = new HashMap<>() ;
+            for(String key : propagate.keySet()){
+                settings.put(key, propagate.get(key));
+            }
+
+            // refresh_interval : -1, 1s, 2s, ...
+            if(collection.getRefresh_interval() != null){
+                // 0일때는 1로 셋팅.
+                int refresh_interval = collection.getRefresh_interval() == 0 ? 1 : collection.getRefresh_interval();
+
+                if(refresh_interval >= 0){
+                    settings.replace("refresh_interval", collection.getRefresh_interval() + "s");
+                } else {
+                    // -2 이하로 내려갈 때, -1로 고정.
+                    refresh_interval = -1;
+                    settings.replace("refresh_interval", refresh_interval + "");
+                }
+            }
+
+            client.indices().putSettings(new UpdateSettingsRequest().indices(target).settings(settings), RequestOptions.DEFAULT);
+        }
+    }
+
     /**
      * 색인 샤드의 TAG 제약을 풀고 전체 클러스터로 확장시킨다.
      * */
