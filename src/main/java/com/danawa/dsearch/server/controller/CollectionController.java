@@ -358,18 +358,24 @@ public class CollectionController {
                     IndexingStatus registerStatus = indexingJobManager.findById(id);
                     if (registerStatus == null) {
                         Queue<IndexStep> nextStep = new ArrayDeque<>();
-//                        nextStep.add(IndexStep.PROPAGATE);
                         nextStep.add(IndexStep.EXPOSE);
                         // 전처리 프로세스 (동적색인 off)
                         processService.preProcess(collection);
+
                         IndexingStatus indexingStatus = new IndexingStatus();
-//                        if ("외부색인".equalsIgnoreCase(type)) {
+                        logger.info("clusterId={}, id={}, collection={}, actionType={}, groupSeq={}, response={}, type={}", clusterId,
+                                id,
+                                collection,
+                                actionType,
+                                groupSeq,
+                                response,
+                                type);
                         if ("outer".equalsIgnoreCase(type)) {
                             indexingStatus = indexingJobService.indexing(clusterId, collection, true, IndexStep.FULL_INDEX, nextStep);
-//                        } else if ("내부색인".equalsIgnoreCase(type)) {
                         } else if ("inner".equalsIgnoreCase(type)) {
                             indexingStatus = indexingJobService.reindex(clusterId, collection, true, IndexStep.REINDEX, nextStep);
                         }
+
                         indexingStatus.setAction(actionType.getAction());
                         indexingStatus.setStatus("RUNNING");
                         logger.info("indexingStatus : {}", indexingStatus);
