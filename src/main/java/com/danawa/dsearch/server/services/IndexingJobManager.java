@@ -200,6 +200,7 @@ public class IndexingJobManager {
     }
     public void add(String collectionId, IndexingStatus indexingStatus, boolean register) throws IndexingJobFailureException {
         IndexingStatus registerIndexingStatus = findById(collectionId);
+        logger.info("indexingStatus2 : {}", indexingStatus);
         if (indexingStatus.getClusterId() == null) {
             throw new IndexingJobFailureException("Cluster Id Required Field.");
         }

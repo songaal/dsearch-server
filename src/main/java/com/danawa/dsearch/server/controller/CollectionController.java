@@ -372,6 +372,7 @@ public class CollectionController {
                         }
                         indexingStatus.setAction(actionType.getAction());
                         indexingStatus.setStatus("RUNNING");
+                        logger.info("indexingStatus : {}", indexingStatus);
                         indexingJobManager.add(collection.getId(), indexingStatus);
                         response.put("indexingStatus", indexingStatus);
                         response.put("result", "success");
