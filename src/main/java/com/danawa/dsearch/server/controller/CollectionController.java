@@ -398,10 +398,8 @@ public class CollectionController {
                     IndexingStatus registerStatus = indexingJobManager.findById(id);
                     if (registerStatus == null) {
                         IndexingStatus indexingStatus = new IndexingStatus();
-//                        if ("외부색인".equalsIgnoreCase(type)) {
                         if ("outer".equalsIgnoreCase(type)) {
                             indexingStatus = indexingJobService.indexing(clusterId, collection, false, IndexStep.FULL_INDEX);
-//                        } else if ("내부색인".equalsIgnoreCase(type)) {
                         } else if ("inner".equalsIgnoreCase(type)) {
                             indexingStatus = indexingJobService.reindex(clusterId, collection, false, IndexStep.REINDEX);
                         }
@@ -415,22 +413,6 @@ public class CollectionController {
                     }
                 }
                 break;
-//            case PROPAGATE:
-//                synchronized (obj) {
-//                    IndexingStatus registerStatus = indexingJobManager.findById(id);
-//                    if (registerStatus == null) {
-//                        IndexingStatus indexingStatus = indexingJobService.propagate(clusterId, false, collection, null);
-//                        indexingStatus.setStatus("RUNNING");
-//                        indexingStatus.setAction(actionType.getAction());
-//                        indexingJobManager.add(collection.getId(), indexingStatus);
-//
-//                        response.put("indexingStatus", indexingStatus);
-//                        response.put("result", "success");
-//                    } else {
-//                        response.put("result", "fail");
-//                    }
-//                }
-//                break;
             case EXPOSE:
                 synchronized (obj) {
                     IndexingStatus registerStatus = indexingJobManager.findById(id);

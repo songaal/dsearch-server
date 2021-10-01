@@ -93,10 +93,6 @@ public class IndexingJobManager {
                     // indexer한테 상태를 조회한다.
                     updateIndexerStatus(id, indexingStatus);
                 }
-//                else if (step == IndexStep.PROPAGATE) {
-//                    // elsticsearch한테 상태를 조회한다.
-//                    updateElasticsearchStatus(id, indexingStatus);
-//                }
                 else if (step == IndexStep.REINDEX) {
                     updateReindexStatus(id, indexingStatus);
                 } else if (step == IndexStep.EXPOSE) {
@@ -289,36 +285,41 @@ public class IndexingJobManager {
             IndexStep nextStep = indexingStatus.getNextStep().poll();
             if ("SUCCESS".equalsIgnoreCase(status) && nextStep != null) {
                 logger.info("Indexing {}, id: {}, indexingStatus: {}", status, id, indexingStatus.toString());
-                // 다음 작업이 있을 경우.
+                // 색인 끝난 이후 refresh_interval 변경
                 indexingJobService.changeRefreshInterval(clusterId, indexingStatus.getCollection(), indexingStatus.getIndex());
-//                indexingJobService.expose(clusterId, indexingStatus.getCollection());
+
                 // 결과 인덱스에 기록.
                 addLastIndexStatus(clusterId, indexingStatus.getCollection().getId(), index, indexingStatus.getStartTime(), "RUNNING", indexingStatus.getCurrentStep().name(), id);
                 indexingStatus.setAction("all");
-//                jobs.put(id, indexingStatus);
 
-//                IndexingStatus idxStat = jobs.get(id);
-//                idxStat.setStatus(status);
-//                idxStat.setEndTime(System.currentTimeMillis());
-//                indexingProcessQueue.put(id, idxStat);
+                // 인덱서가 조회시 끝났는지 확인
+                IndexingStatus resultStatus = jobs.get(id);
+                resultStatus.setStatus(status);
+                resultStatus.setEndTime(System.currentTimeMillis());
+                indexingProcessQueue.put(id, resultStatus);
 
                 logger.debug("next Step >> {}", nextStep);
+                // 다음 Step 추가
                 indexingJobService.expose(clusterId, indexingStatus.getCollection(), indexingStatus.getIndex());
             } else if ("ERROR".equalsIgnoreCase(status) || "STOP".equalsIgnoreCase(status)) {
                 logger.info("Indexing {}, id: {}, indexingStatus: {}", status, id, indexingStatus.toString());
                 indexingJobService.expose(clusterId, indexingStatus.getCollection());
+
                 // action 이 all (연속실행)일 경우
                 if ("all".equalsIgnoreCase(indexingStatus.getAction())) {
                     // 후처리 프로세스 (동적색인 on)
                     processService.postProcess(indexingStatus.getCollection());
                 }
             } else {
-                // 다음 작업이 없으면 제거.
-                IndexingStatus idxStat = jobs.get(id);
+                // 색인 끝난 이후 refresh_interval 변경
                 indexingJobService.changeRefreshInterval(clusterId, indexingStatus.getCollection(), indexingStatus.getIndex());
-                idxStat.setStatus("SUCCESS");
-                idxStat.setEndTime(System.currentTimeMillis());
-                indexingProcessQueue.put(id, idxStat);
+
+                // 인덱서가 조회시 끝났는지 확인
+                IndexingStatus resultStatus = jobs.get(id);
+                resultStatus.setStatus("SUCCESS");
+                resultStatus.setEndTime(System.currentTimeMillis());
+                indexingProcessQueue.put(id, resultStatus);
+
                 jobs.remove(id);
                 logger.debug("empty next status : {} Step >> {}", status, id);
             }
