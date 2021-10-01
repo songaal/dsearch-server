@@ -584,8 +584,8 @@ public class IndexingJobManager {
         }
     }
 
-
     public void setTimeout(long timeout) {
         this.timeout = timeout;
     }
+
 }

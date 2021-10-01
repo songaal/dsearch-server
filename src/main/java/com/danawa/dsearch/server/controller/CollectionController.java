@@ -371,20 +371,14 @@ public class CollectionController {
                                 response,
                                 type);
 
-                        if ("outer".equalsIgnoreCase(type)) {
-                            indexingStatus = indexingJobService.indexing(clusterId, collection, true, IndexStep.FULL_INDEX, nextStep);
-                            logger.info("outer indexingStatus: {}", indexingStatus);
-                        } else if ("inner".equalsIgnoreCase(type)) {
+                        if ("inner".equalsIgnoreCase(type)) {
                             indexingStatus = indexingJobService.reindex(clusterId, collection, true, IndexStep.REINDEX, nextStep);
-                            logger.info("inner indexingStatus: {}", indexingStatus);
                         }else{
                             indexingStatus = indexingJobService.indexing(clusterId, collection, true, IndexStep.FULL_INDEX, nextStep);
-                            logger.info("default indexingStatus: {}", indexingStatus);
                         }
 
                         indexingStatus.setAction(actionType.getAction());
                         indexingStatus.setStatus("RUNNING");
-                        logger.info("indexingStatus : {}", indexingStatus);
                         indexingJobManager.add(collection.getId(), indexingStatus);
                         response.put("indexingStatus", indexingStatus);
                         response.put("result", "success");
