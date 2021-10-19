@@ -280,8 +280,6 @@ public class CollectionController {
                 return IndexingActionType.ALL;
             case "indexing":
                 return IndexingActionType.INDEXING;
-//            case "propagate":
-//                return IndexingActionType.PROPAGATE;
             case "expose":
                 return IndexingActionType.EXPOSE;
             case "stop_propagation":
@@ -342,7 +340,6 @@ public class CollectionController {
                     IndexingStatus registerStatus = indexingJobManager.findById(id);
                     if (registerStatus == null) {
                         Queue<IndexStep> nextStep = new ArrayDeque<>();
-//                        nextStep.add(IndexStep.PROPAGATE);
                         nextStep.add(IndexStep.EXPOSE);
                         IndexingStatus indexingStatus = indexingJobService.indexing(clusterId, collection, true, IndexStep.FULL_INDEX, nextStep);
                         indexingStatus.setStatus("RUNNING");
@@ -369,22 +366,6 @@ public class CollectionController {
                     }
                 }
                 break;
-//            case PROPAGATE:
-//                synchronized (obj) {
-//                    IndexingStatus registerStatus = indexingJobManager.findById(id);
-//                    if (registerStatus == null) {
-//                        IndexingStatus indexingStatus = indexingJobService.propagate(clusterId, false, collection, null);
-//                        indexingStatus.setStatus("RUNNING");
-//                        indexingStatus.setAction(actionType.getAction());
-//                        indexingJobManager.add(collection.getId(), indexingStatus);
-//
-//                        response.put("indexingStatus", indexingStatus);
-//                        response.put("result", "success");
-//                    } else {
-//                        response.put("result", "fail");
-//                    }
-//                }
-//                break;
             case EXPOSE:
                 synchronized (obj) {
                     IndexingStatus registerStatus = indexingJobManager.findById(id);

@@ -14,13 +14,17 @@ import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.*;
+import org.elasticsearch.client.core.CountRequest;
+import org.elasticsearch.client.core.CountResponse;
 import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.MatchQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
@@ -73,6 +77,39 @@ public class IndexingJobService {
         return this.indexerJobManager;
     }
 
+    private void addIndexHistoryException(UUID clusterId, Collection collection, String errorMessage){
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            NoticeHandler.send(String.format("%s 컬렉션의 색인이 실패하였습니다.\n%s", collection.getBaseId(), errorMessage));
+            Collection.Index index = getTargetIndex(client, collection.getBaseId(), collection.getIndexA(), collection.getIndexB());
+
+            long currentTime = System.currentTimeMillis();
+
+            BoolQueryBuilder countQuery = QueryBuilders.boolQuery();
+            countQuery.filter().add(QueryBuilders.termQuery("index", index));
+            countQuery.filter().add(QueryBuilders.termQuery("startTime",  currentTime));
+            countQuery.filter().add(QueryBuilders.termQuery("jobType", IndexStep.FULL_INDEX));
+
+            CountResponse countResponse = client.count(new CountRequest(indexHistory).query(countQuery), RequestOptions.DEFAULT);
+            logger.debug("index: {}, startTime: {}, jobType: {}, result Count: {}", index, currentTime, IndexStep.FULL_INDEX, countResponse.getCount());
+
+            if (countResponse.getCount() == 0) {
+                Map<String, Object> source = new HashMap<>();
+                source.put("index", index);
+                source.put("jobType", IndexStep.FULL_INDEX);
+                source.put("startTime",  currentTime);
+                source.put("endTime",  currentTime);
+                source.put("autoRun", collection.isAutoRun());
+                source.put("status", "ERROR");
+                source.put("docSize", "0");
+                source.put("store", "0");
+                client.index(new IndexRequest().index(indexHistory).source(source), RequestOptions.DEFAULT);
+            }
+//            deleteLastIndexStatus(client, index, startTime);
+        } catch (IOException e) {
+            logger.error("{}", e);
+        }
+    }
+
     /**
      * 소스를 읽어들여 ES 색인에 입력하는 작업.
      * indexer를 외부 프로세스로 실행한다.
@@ -89,11 +126,9 @@ public class IndexingJobService {
 
 //            1. 대상 인덱스 찾기.
             logger.info("clusterId: {}, baseId: {}, 대상 인덱스 찾기", clusterId, collection.getBaseId());
-//            Collection.Index index = getTargetIndex(collection.getBaseId(), indexA, indexB);
             Collection.Index index = getTargetIndex(client, collection.getBaseId(), indexA, indexB);
 
 //            2. 인덱스 설정 변경.
-//            editPreparations(client, index); // 이전버전
             logger.info("{} 인덱스 설정 변경", index);
             editPreparations(client, collection, index);
 
@@ -190,7 +225,8 @@ public class IndexingJobService {
             indexingStatus.setCollection(collection);
         } catch (Exception e) {
             logger.error("", e);
-            // TODO history 남길지 여부...
+            // Connection Timeout 히스토리 남기기
+            addIndexHistoryException(clusterId, collection, e.getMessage());
             throw new IndexingJobFailureException(e);
         }
         return indexingStatus;
@@ -328,6 +364,9 @@ public class IndexingJobService {
                 client.indices().updateAliases(request, RequestOptions.DEFAULT);
             }
         }
+
+        // 교체 시 refresh interval 변경
+        changeRefreshInterval(clusterId, collection, target);
     }
 
 

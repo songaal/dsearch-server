@@ -89,13 +89,8 @@ public class IndexingJobManager {
                 } else if (step == IndexStep.FULL_INDEX || step == IndexStep.DYNAMIC_INDEX) {
                     // indexer한테 상태를 조회한다.
                     updateIndexerStatus(id, indexingStatus);
-                }
-//                else if (step == IndexStep.PROPAGATE) {
-//                    // elsticsearch한테 상태를 조회한다.
-//                    updateElasticsearchStatus(id, indexingStatus);
-//                }
-                else if (step == IndexStep.EXPOSE) {
-//                    EXPOSE
+                } else if (step == IndexStep.EXPOSE) {
+                    //  EXPOSE
                     UUID clusterId = indexingStatus.getClusterId();
                     Collection collection = indexingStatus.getCollection();
                     indexingJobService.expose(clusterId, collection, indexingStatus.getIndex());
@@ -161,15 +156,6 @@ public class IndexingJobManager {
                             } else {
                                 indexerJobManager.remove(UUID.fromString(indexingStatus.getIndexingJobId()));
                             }
-                            logger.error("[remove job] retry.. {}", indexingStatus.getRetry());
-                        } catch (Exception e1) {
-                            logger.error("", e1);
-                        }
-                    } else if (step == IndexStep.PROPAGATE) {
-                        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-                            jobs.remove(id);
-                            deleteLastIndexStatus(client, index, startTime);
-                            addIndexHistory(client, index, jobType, startTime, endTime, autoRun, "0", "ERROR", "0");
                             logger.error("[remove job] retry.. {}", indexingStatus.getRetry());
                         } catch (Exception e1) {
                             logger.error("", e1);
@@ -275,16 +261,16 @@ public class IndexingJobManager {
             IndexStep nextStep = indexingStatus.getNextStep().poll();
             if ("SUCCESS".equalsIgnoreCase(status) && nextStep != null) {
                 logger.info("Indexing {}, id: {}, indexingStatus: {}", status, id, indexingStatus.toString());
-                // 다음 작업이 있을 경우.
+                // refresh_interval 변경
                 indexingJobService.changeRefreshInterval(clusterId, indexingStatus.getCollection(), indexingStatus.getIndex());
-                indexingStatus = jobs.get(id);
-//                indexingStatus = indexingJobService.propagate(clusterId, true, indexingStatus.getCollection(), indexingStatus.getNextStep(), index);
+                // 성공 로그
                 addLastIndexStatus(clusterId, indexingStatus.getCollection().getId(), index, indexingStatus.getStartTime(), "RUNNING", indexingStatus.getCurrentStep().name(), id);
-//                jobs.put(id, indexingStatus);
-//                IndexingStatus idxStat = jobs.get(id);
-//                idxStat.setStatus(status);
-//                idxStat.setEndTime(System.currentTimeMillis());
-//                indexingProcessQueue.put(id, idxStat);
+
+                jobs.put(id, indexingStatus);
+                IndexingStatus idxStat = jobs.get(id);
+                idxStat.setStatus(status);
+                idxStat.setEndTime(System.currentTimeMillis());
+                indexingProcessQueue.put(id, idxStat);
                 logger.debug("next Step >> {}", nextStep);
                 indexingJobService.expose(clusterId, indexingStatus.getCollection(), indexingStatus.getIndex());
             } else if ("ERROR".equalsIgnoreCase(status) || "STOP".equalsIgnoreCase(status)) {
