@@ -304,19 +304,21 @@ public class IndexingJobService {
                     logger.debug("empty index");
                     return;
                 } else if (indexA.getUuid() == null && indexB.getUuid() != null) {
-//                인덱스가 하나일 경우 고정
+                    // 인덱스가 하나일 경우 고정
                     request.addAliasAction(new IndicesAliasesRequest.
                             AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
                             .index(indexB.getIndex()).alias(baseId));
+                    target = indexB.getIndex();
+
                 } else if (indexA.getUuid() != null && indexB.getUuid() == null) {
-//                인덱스가 하나일 경우 고정
+                    // 인덱스가 하나일 경우 고정
                     request.addAliasAction(new IndicesAliasesRequest.
                             AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
                             .index(indexA.getIndex()).alias(baseId));
+                    target = indexA.getIndex();
                 } else {
                     // index_history 조회하여 마지막 인덱스, 전파 완료한 인덱스 검색.
                     QueryBuilder queryBuilder = new BoolQueryBuilder()
-//                            .must(new MatchQueryBuilder("jobType", "PROPAGATE"))
                             .must(new MatchQueryBuilder("jobType", "FULL_INDEX"))
                             .must(new MatchQueryBuilder("status", "SUCCESS"))
                             .should(new MatchQueryBuilder("index", indexA.getIndex()))
@@ -333,7 +335,7 @@ public class IndexingJobService {
                     SearchHit[] searchHits = searchResponse.getHits().getHits();
 
                     if (searchHits.length == 1) {
-//                index_history 조회하여 대상 찾음.
+                        // index_history 조회하여 대상 찾음.
                         Map<String, Object> source = searchHits[0].getSourceAsMap();
                         String targetIndex = (String) source.get("index");
 
@@ -352,21 +354,26 @@ public class IndexingJobService {
                                 AliasActions(IndicesAliasesRequest.AliasActions.Type.REMOVE)
                                 .index(removeIndex.getIndex()).alias(baseId));
 
+                        target = addIndex.getIndex();
                     } else {
                         // default
                         request.addAliasAction(new IndicesAliasesRequest.
                                 AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
                                 .index(indexA.getIndex()).alias(baseId));
+
+                        target = indexA.getIndex();
                     }
                 }
 
                 // 교체
                 client.indices().updateAliases(request, RequestOptions.DEFAULT);
             }
-        }
 
-        // 교체 시 refresh interval 변경
-        changeRefreshInterval(clusterId, collection, target);
+            logger.info("{} : {}: {} : {}", collection, collection.getIndexA().getIndex(),
+                    collection.getIndexB().getIndex(), target);
+            changeRefreshInterval(clusterId, collection, target);
+
+        }
     }
 
 
