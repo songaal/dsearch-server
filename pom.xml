@@ -280,7 +280,8 @@
                         <id>install-Transformation altibase lib</id>
                         <phase>clean</phase>
                         <configuration>
-                            <file>${project.lib.path}/Altibase.jar</file>
+                            <file>${project.lib.path}/Altibase/Altibase/1.0.0/Altibase.jar</file>
+                            <!--<file>${project.lib.path}/Altibase.jar</file>-->
                             <repositoryLayout>default</repositoryLayout>
                             <groupId>Altibase</groupId>
                             <artifactId>Altibase</artifactId>
