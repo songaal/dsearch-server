@@ -209,7 +209,7 @@ public class IndexingJobManager {
      * indexer 조회 후 상태 업데이트.
      * */
     private void updateIndexerStatus(String id, IndexingStatus indexingStatus) throws IOException{
-        logger.info(">>> {} : {} : {}", indexingStatus.getClusterId(), indexingStatus.getIndex(), indexingStatus.getCollection().isExtIndexer());
+        logger.info("updateIndexerStatus [retryCount:{}] [id:{}] [status:{}] ", indexingStatus.getRetry(), id, indexingStatus);
 
         UUID clusterId = indexingStatus.getClusterId();
         String index = indexingStatus.getIndex();
