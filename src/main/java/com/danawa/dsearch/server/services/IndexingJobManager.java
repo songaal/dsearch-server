@@ -270,7 +270,7 @@ public class IndexingJobManager {
                 addLastIndexStatus(clusterId, indexingStatus.getCollection().getId(), index, indexingStatus.getStartTime(), "RUNNING", indexingStatus.getCurrentStep().name(), id);
 
                 // 다음 단계 셋팅
-                indexingStatus.setCurrentStep(nextStep);
+//                indexingStatus.setCurrentStep(nextStep);
 
                 // 다음단계가 있으므로 다시 스케줄에 넣는다.
                 jobs.put(id, indexingStatus);
