@@ -81,6 +81,8 @@ public class IndexingJobManager {
             String id = entry.getKey();
             IndexingStatus indexingStatus = entry.getValue();
             IndexStep step = indexingStatus.getCurrentStep();
+
+            logger.info("{} : {}", jobs.get(id), indexingStatus);
             try {
                 if (step == null) {
                     jobs.remove(id);
