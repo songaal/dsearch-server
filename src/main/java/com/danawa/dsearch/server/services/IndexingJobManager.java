@@ -264,13 +264,15 @@ public class IndexingJobManager {
             IndexStep nextStep = indexingStatus.getNextStep().poll();
             if ("SUCCESS".equalsIgnoreCase(status) && nextStep != null) {
                 logger.info("Indexing {}, id: {}, indexingStatus: {}", status, id, indexingStatus);
-                // refresh_interval 변경
+
+                // 색인 끝나면 refresh_interval 변경
                 indexingJobService.changeRefreshInterval(clusterId, indexingStatus.getCollection(), indexingStatus.getIndex());
-                // 성공 로그
+
+                // 성공 로그 남기기
                 addLastIndexStatus(clusterId, indexingStatus.getCollection().getId(), index, indexingStatus.getStartTime(), "RUNNING", indexingStatus.getCurrentStep().name(), id);
 
-                // 다음 단계 셋팅
-//                indexingStatus.setCurrentStep(nextStep);
+                // 다음 단계 셋팅 (안하면 Null Pointer Exception)
+                indexingStatus.setCurrentStep(nextStep);
 
                 // 다음단계가 있으므로 다시 스케줄에 넣는다.
                 jobs.put(id, indexingStatus);
@@ -278,14 +280,12 @@ public class IndexingJobManager {
                 idxStat.setStatus(status);
                 idxStat.setEndTime(System.currentTimeMillis());
 
-                // 조회용 큐
+                // 조회용 큐에
                 indexingProcessQueue.put(id, idxStat);
                 logger.debug("next Step >> {}", nextStep);
-                indexingJobService.expose(clusterId, indexingStatus.getCollection(), indexingStatus.getIndex());
             } else if ("ERROR".equalsIgnoreCase(status) || "STOP".equalsIgnoreCase(status)) {
                 logger.info("Indexing {}, id: {}, indexingStatus: {}", status, id, indexingStatus);
                 jobs.remove(id);
-                indexingJobService.expose(clusterId, indexingStatus.getCollection());
             } else {
                 // 다음 작업이 없으면 제거.
                 IndexingStatus idxStat = jobs.get(id);
