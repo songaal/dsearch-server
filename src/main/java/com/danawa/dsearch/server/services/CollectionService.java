@@ -109,7 +109,6 @@ public class CollectionService {
                         return;
                     }
                     Deque<IndexStep> nextStep = new ArrayDeque<>();
-                    nextStep.add(IndexStep.PROPAGATE);
                     nextStep.add(IndexStep.EXPOSE);
                     IndexingStatus status = indexingJobService.indexing(clusterId, registerCollection2, true, IndexStep.FULL_INDEX, nextStep);
                     indexingJobManager.add(registerCollection2.getId(), status);

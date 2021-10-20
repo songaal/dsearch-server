@@ -391,19 +391,6 @@ public class CollectionController {
                     }
                 }
                 break;
-            case STOP_PROPAGATION:
-                synchronized (obj) {
-                    IndexingStatus registerStatus = indexingJobManager.findById(id);
-                    if (registerStatus != null && registerStatus.getCurrentStep() == IndexStep.PROPAGATE) {
-                        indexingJobService.stopPropagation(clusterId, collection);
-                        indexingJobManager.setStopStatus(id, "STOP"); // 추가
-                        indexingJobManager.remove(id);
-                        response.put("result", "success");
-                    } else {
-                        response.put("result", "fail");
-                    }
-                }
-                break;
             case SUB_START:
                 synchronized (obj) {
                     IndexingStatus indexingStatus = indexingJobManager.findById(id);
