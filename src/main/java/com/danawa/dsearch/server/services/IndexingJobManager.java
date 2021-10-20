@@ -82,7 +82,6 @@ public class IndexingJobManager {
             IndexingStatus indexingStatus = entry.getValue();
             IndexStep step = indexingStatus.getCurrentStep();
 
-            logger.info("{} : {}", jobs.get(id), indexingStatus);
             try {
                 if (step == null) {
                     jobs.remove(id);
@@ -208,10 +207,11 @@ public class IndexingJobManager {
     /**
      * indexer 조회 후 상태 업데이트.
      * */
-    private void updateIndexerStatus(String id, IndexingStatus indexingStatus) throws IOException, IndexingJobFailureException {
+    private void updateIndexerStatus(String id, IndexingStatus indexingStatus) throws IOException{
+        logger.info("{} : {} : {}", indexingStatus.getClusterId(), indexingStatus.getIndex(), indexingStatus.getCollection());
+
         UUID clusterId = indexingStatus.getClusterId();
         String index = indexingStatus.getIndex();
-
         boolean isExtIndexer = indexingStatus.getCollection().isExtIndexer();
 
         // check
@@ -223,9 +223,11 @@ public class IndexingJobManager {
             Map<String, Object> body = responseEntity.getBody();
 
             // Null pointer Exception
+            logger.info("body: {}", body);
             if(body.get("status") != null) status = (String) body.get("status");
         } else {
             Job job = indexerJobManager.status(UUID.fromString(indexingStatus.getIndexingJobId()));
+            logger.info("job: {}", job);
             if (job != null) {
                 status = job.getStatus();
             }
@@ -236,7 +238,7 @@ public class IndexingJobManager {
             return;
         }
 
-        logger.debug("index: {}, status: {}", indexingStatus.getIndex(), status);
+        logger.info("index: {}, status: {}, indexingStatus: {}", indexingStatus.getIndex(), status, indexingStatus);
 
         if ("SUCCESS".equalsIgnoreCase(status) || "ERROR".equalsIgnoreCase(status) || "STOP".equalsIgnoreCase(status)) {
             // indexer job id 삭제.

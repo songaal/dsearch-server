@@ -369,30 +369,7 @@ public class IndexingJobService {
                 client.indices().updateAliases(request, RequestOptions.DEFAULT);
             }
 
-            logger.info("{} : {}: {} : {}", collection, collection.getIndexA().getIndex(),
-                    collection.getIndexB().getIndex(), target);
             changeRefreshInterval(clusterId, collection, target);
-
-        }
-    }
-
-
-    /**
-     * 전파 중지
-     * */
-    public void stopPropagation(UUID clusterId, Collection collection) throws IOException {
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            Collection.Index indexA = collection.getIndexA();
-            Collection.Index indexB = collection.getIndexB();
-//            1. 대상 인덱스 찾기.
-            Collection.Index index = getTargetIndex(collection.getBaseId(), indexA, indexB);
-//            Collection.Index index = getTargetIndex(client, collection.getBaseId(), indexA, indexB);
-
-//            2. 인덱스 설정 변경.
-            index.setStatus("STOP");
-//            editPreparations(client, index); // 이전버전
-            editPreparations(client, collection, index);
-            logger.info("stop propagation : {}", index.getIndex());
         }
     }
 
