@@ -281,11 +281,11 @@ public class IndexingJobManager {
                 // 조회용 큐
                 indexingProcessQueue.put(id, idxStat);
                 logger.debug("next Step >> {}", nextStep);
-//                indexingJobService.expose(clusterId, indexingStatus.getCollection(), indexingStatus.getIndex());
+                indexingJobService.expose(clusterId, indexingStatus.getCollection(), indexingStatus.getIndex());
             } else if ("ERROR".equalsIgnoreCase(status) || "STOP".equalsIgnoreCase(status)) {
                 logger.info("Indexing {}, id: {}, indexingStatus: {}", status, id, indexingStatus);
                 jobs.remove(id);
-//                indexingJobService.expose(clusterId, indexingStatus.getCollection());
+                indexingJobService.expose(clusterId, indexingStatus.getCollection());
             } else {
                 // 다음 작업이 없으면 제거.
                 IndexingStatus idxStat = jobs.get(id);
