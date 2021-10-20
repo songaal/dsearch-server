@@ -101,7 +101,7 @@ public class IndexingJobManager {
                     idxStat.setEndTime(System.currentTimeMillis());
                     indexingProcessQueue.put(id, idxStat);
                     jobs.remove(id);
-                    logger.info("Expose Success. id: {}, collection: {}, indexingStatus: {}", id, collection.getId(), indexingStatus.toString());
+                    logger.info("Expose Success. id: {}, collection: {}, indexingStatus: {}", id, collection.getId(), indexingStatus);
                     try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
                         indexingJobService.stopIndexing(indexingStatus.getScheme(), indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId());
                         deleteLastIndexStatus(client, indexingStatus.getIndex(), -1);
@@ -263,7 +263,7 @@ public class IndexingJobManager {
 
             IndexStep nextStep = indexingStatus.getNextStep().poll();
             if ("SUCCESS".equalsIgnoreCase(status) && nextStep != null) {
-                logger.info("Indexing {}, id: {}, indexingStatus: {}", status, id, indexingStatus.toString());
+                logger.info("Indexing {}, id: {}, indexingStatus: {}", status, id, indexingStatus);
                 // refresh_interval 변경
                 indexingJobService.changeRefreshInterval(clusterId, indexingStatus.getCollection(), indexingStatus.getIndex());
                 // 성공 로그
@@ -272,7 +272,7 @@ public class IndexingJobManager {
                 // 다음 단계 셋팅
                 indexingStatus.setCurrentStep(nextStep);
 
-                // 다시 스케줄에 넣는다.
+                // 다음단계가 있으므로 다시 스케줄에 넣는다.
                 jobs.put(id, indexingStatus);
                 IndexingStatus idxStat = jobs.get(id);
                 idxStat.setStatus(status);
@@ -283,7 +283,7 @@ public class IndexingJobManager {
                 logger.debug("next Step >> {}", nextStep);
 //                indexingJobService.expose(clusterId, indexingStatus.getCollection(), indexingStatus.getIndex());
             } else if ("ERROR".equalsIgnoreCase(status) || "STOP".equalsIgnoreCase(status)) {
-                logger.info("Indexing {}, id: {}, indexingStatus: {}", status, id, indexingStatus.toString());
+                logger.info("Indexing {}, id: {}, indexingStatus: {}", status, id, indexingStatus);
                 jobs.remove(id);
 //                indexingJobService.expose(clusterId, indexingStatus.getCollection());
             } else {
