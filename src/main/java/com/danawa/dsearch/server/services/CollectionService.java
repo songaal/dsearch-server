@@ -103,16 +103,22 @@ public class CollectionService {
             scheduled.put(scheduledKey, Objects.requireNonNull(scheduler.schedule(() -> {
                 try {
                     // 변경사항이 있을수 있으므로, 컬렉션 정보를 새로 가져온다.
-                    Collection registerCollection2 = findById(clusterId, collectionId);
-                    IndexingStatus indexingStatus = indexingJobManager.findById(registerCollection2.getId());
+                    Collection registerCollection = findById(clusterId, collectionId);
+                    logger.info("{}", registerCollection.getIndexingType());
+                    IndexingStatus indexingStatus = indexingJobManager.findById(registerCollection.getId());
                     if (indexingStatus != null) {
                         return;
                     }
                     Deque<IndexStep> nextStep = new ArrayDeque<>();
                     nextStep.add(IndexStep.EXPOSE);
-                    IndexingStatus status = indexingJobService.indexing(clusterId, registerCollection2, true, IndexStep.FULL_INDEX, nextStep);
-                    indexingJobManager.add(registerCollection2.getId(), status);
-                    logger.debug("enabled scheduled collection: {}", registerCollection2.getId());
+                    IndexingStatus status;
+                    if("inner".equalsIgnoreCase(registerCollection.getIndexingType())){
+                        status = indexingJobService.reindex(clusterId, registerCollection, true, IndexStep.REINDEX, nextStep);
+                    }else{
+                        status = indexingJobService.indexing(clusterId, registerCollection, true, IndexStep.FULL_INDEX, nextStep);
+                    }
+                    indexingJobManager.add(registerCollection.getId(), status);
+                    logger.debug("enabled scheduled collection: {}", registerCollection.getId());
                 } catch (IndexingJobFailureException | IOException e) {
                     logger.error("[INIT ERROR] ", e);
                 }
@@ -340,6 +346,8 @@ public class CollectionService {
         collection.setEsPort(String.valueOf(source.get("esPort")));
         collection.setEsUser(String.valueOf(source.get("esUser")));
         collection.setEsPassword(String.valueOf(source.get("esPassword")));
+        // 21.09.07
+        collection.setIndexingType(String.valueOf(source.get("indexingType")));
 
         collection.setExtIndexer(Boolean.parseBoolean(String.valueOf(source.get("extIndexer"))));
 
@@ -605,7 +613,25 @@ public class CollectionService {
             Collection registerCollection = findById(clusterId, id);
 
             String crons = registerCollection.getCron();
+            if (registerCollection.isScheduled()) {
+                registerSchedule(clusterId, registerCollection.getId(), crons);
+            }else{
+                removeSchedule(clusterId, registerCollection.getId(), crons);
+            }
+        }
+    }
 
+    public void editIndexingType(UUID clusterId, String id, String indexingType) throws IOException {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            Map<String, Object> sourceAsMap = new HashMap<>();
+            sourceAsMap.put("indexingType", indexingType);
+            client.update(new UpdateRequest()
+                    .index(collectionIndex)
+                    .id(id)
+                    .doc(sourceAsMap), RequestOptions.DEFAULT);
+
+            Collection registerCollection = findById(clusterId, id);
+            String crons = registerCollection.getCron();
             if (registerCollection.isScheduled()) {
                 registerSchedule(clusterId, registerCollection.getId(), crons);
             }else{

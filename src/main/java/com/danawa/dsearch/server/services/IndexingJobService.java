@@ -10,21 +10,30 @@ import com.danawa.fastcatx.indexer.IndexJobManager;
 import com.danawa.fastcatx.indexer.entity.Job;
 import com.google.gson.Gson;
 import org.apache.http.util.EntityUtils;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.*;
 import org.elasticsearch.client.core.CountRequest;
 import org.elasticsearch.client.core.CountResponse;
 import org.elasticsearch.client.indices.CreateIndexRequest;
+import org.elasticsearch.client.tasks.CancelTasksRequest;
+import org.elasticsearch.client.tasks.CancelTasksResponse;
+import org.elasticsearch.client.tasks.TaskId;
+import org.elasticsearch.client.tasks.TaskSubmissionResponse;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.MatchQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.reindex.BulkByScrollResponse;
+import org.elasticsearch.index.reindex.ReindexRequest;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
@@ -373,6 +382,130 @@ public class IndexingJobService {
         }
     }
 
+    public IndexingStatus reindex(UUID clusterId, Collection collection, boolean autoRun, IndexStep step) throws IndexingJobFailureException, IOException {
+        return reindex(clusterId, collection, autoRun, step, new ArrayDeque<>());
+    }
+    public IndexingStatus reindex(UUID clusterId, Collection collection, boolean autoRun, IndexStep step, Queue<IndexStep> nextStep) throws IndexingJobFailureException, IOException {
+        IndexingStatus indexingStatus = new IndexingStatus();
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            Collection.Index indexA = collection.getIndexA();
+            Collection.Index indexB = collection.getIndexB();
+
+            // 대상 인덱스 찾기. source, dest
+            logger.info("clusterId: {}, baseId: {}, 대상 인덱스 찾기", clusterId, collection.getBaseId());
+            Collection.Index destIndex = getTargetIndex(client, collection.getBaseId(), indexA, indexB);
+            Collection.Index sourceIndex = null;
+            if (indexA.getIndex().equals(destIndex.getIndex())) {
+                sourceIndex = indexB;
+            } else {
+                sourceIndex = indexA;
+            }
+
+            // 인덱스 설정 변경.
+            logger.info("{} 인덱스 설정 변경", destIndex);
+            editPreparations(client, collection, destIndex);
+
+            // 타겟 인덱스 삭제
+            boolean deleteConfirm = deleteIndex(clusterId, destIndex.getIndex());
+
+            // 타겟 인덱스 삭제가 정상
+            if(deleteConfirm) {
+                // 인덱스 설정
+                Map<String, Object> indexingSettings = new HashMap<>();
+                for (String key : indexing.keySet()) {
+                    indexingSettings.put(key, indexing.get(key));
+                }
+                if (collection.getIgnoreRoleYn() != null && collection.getIgnoreRoleYn().equals("Y")) {
+                    indexingSettings.remove("index.routing.allocation.include.role");
+                    indexingSettings.remove("index.routing.allocation.exclude.role");
+                } else {
+                    indexingSettings.replace("index.routing.allocation.include.role", "");
+                    indexingSettings.replace("index.routing.allocation.exclude.role", "index");
+                }
+                logger.debug("indexingSettings:{}", indexingSettings);
+
+                // 인덱스 생성
+                boolean createConfirm = createIndex(clusterId, destIndex.getIndex(), indexingSettings);
+
+                // 인덱스 생성이 정상
+                if(createConfirm) {
+                    // 런처 파라미터 변환작업
+                    logger.info("{} 런처 파라미터 변환 작업", destIndex);
+                    Collection.Launcher launcher = collection.getLauncher();
+                    Map<String, Object> body = convertRequestParams(launcher.getYaml());
+
+                    // reindex 설정값 default
+                    // 배치 사이즈 default : 1000
+                    int reindexBatchSize = 1000;
+                    // sliced-scroll 슬라이스를 사용 (병렬) default : 1
+                    int reindexSlices = 1;
+                    if(body.get("reindexBatchSize") != null) {
+                        try{
+                            reindexBatchSize = Integer.parseInt(body.get("reindexBatchSize").toString());
+                        }catch (NumberFormatException e){
+                            logger.info("{}", e);
+                        }
+                    }
+                    if(body.get("reindexSlices") != null) {
+                        try{
+                            reindexSlices = Integer.parseInt(body.get("reindexSlices").toString());
+                        }catch (NumberFormatException e){
+                            logger.info("{}", e);
+                        }
+                    }
+                    logger.debug("reindexBatchSize:{}, reindexSlices:{}", reindexBatchSize, reindexSlices);
+
+                    // reindex request 설정 세팅
+                    ReindexRequest reindexRequest = new ReindexRequest();
+                    reindexRequest.setSourceIndices(sourceIndex.getIndex());
+                    reindexRequest.setDestIndex(destIndex.getIndex());
+                    reindexRequest.setRefresh(true);
+                    reindexRequest.setSourceBatchSize(reindexBatchSize);
+                    reindexRequest.setSlices(reindexSlices);
+                    // reindex 호출
+                    TaskSubmissionResponse reindexSubmission = client.submitReindexTask(reindexRequest, RequestOptions.DEFAULT);
+                    // 작업 번호
+                    String taskId = reindexSubmission.getTask();
+                    logger.info("taskId : {} - source : {} -> dest : {}", taskId, sourceIndex.getIndex(), destIndex.getIndex());
+
+                    indexingStatus.setClusterId(clusterId);
+                    indexingStatus.setIndex(destIndex.getIndex());
+                    indexingStatus.setStartTime(System.currentTimeMillis());
+                    indexingStatus.setTaskId(taskId);
+                    indexingStatus.setAutoRun(autoRun);
+                    indexingStatus.setCurrentStep(step);
+                    //if (nextStep == null) {
+                    //    indexingStatus.setNextStep(new ArrayDeque<>());
+                    //} else {
+                        indexingStatus.setNextStep(nextStep);
+                    //}
+                    indexingStatus.setRetry(50);
+                    indexingStatus.setCollection(collection);
+                }
+            }
+        }
+        return indexingStatus;
+    }
+
+    public void stopReindexing(UUID clusterId, Collection collection, IndexingStatus indexingStatus) throws IOException {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            Collection.Index indexA = collection.getIndexA();
+            Collection.Index indexB = collection.getIndexB();
+
+            Collection.Index index = getTargetIndex(collection.getBaseId(), indexA, indexB);
+            // 취소 요청
+            Request request = new Request("POST", String.format("/_tasks/%s/_cancel", indexingStatus.getTaskId()));
+            request.addParameter("format", "json");
+            Response response = client.getLowLevelClient().performRequest(request);
+            String responseBodyString = EntityUtils.toString(response.getEntity());
+            Map<String, Object> entityMap = new Gson().fromJson(responseBodyString, Map.class);
+            //logger.info("entityMap : {}", entityMap);
+
+            index.setStatus("STOP");
+            logger.info("stop reindexing : {}", index.getIndex());
+        }
+    }
+
     private Collection.Index getTargetIndex(String baseId, Collection.Index indexA, Collection.Index indexB) {
         Collection.Index index;
         // 인덱스에 대한 alias를 확인
@@ -532,6 +665,33 @@ public class IndexingJobService {
                 logger.error("", e);
             }
         }
+    }
+
+    //check:reindex
+    public boolean deleteIndex(UUID clusterId, String index) throws IOException {
+        boolean flag = false;
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            DeleteIndexRequest request = new DeleteIndexRequest(index);
+            AcknowledgedResponse deleteIndexResponse = client.indices().delete(request, RequestOptions.DEFAULT);
+            flag = deleteIndexResponse.isAcknowledged();
+        }catch (Exception e){
+            logger.error("", e);
+        }
+        return flag;
+    }
+
+    //check:reindex
+    public boolean createIndex(UUID clusterId, String index, Map<String, ?> settings) throws IOException {
+        boolean flag = false;
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            CreateIndexRequest request = new CreateIndexRequest(index);
+            request.settings(settings);
+            AcknowledgedResponse createIndexResponse = client.indices().create(request, RequestOptions.DEFAULT);
+            flag = createIndexResponse.isAcknowledged();
+        } catch (Exception e) {
+            logger.error("", e);
+        }
+        return flag;
     }
 
     public Map<String, Object> getParams() {
