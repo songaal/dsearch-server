@@ -396,9 +396,9 @@ public class CollectionController {
                         } else if ("inner".equalsIgnoreCase(type)) {
                             indexingStatus = indexingJobService.reindex(clusterId, collection, false, IndexStep.REINDEX);
                         }
-                        indexingJobManager.add(collection.getId(), indexingStatus);
                         indexingStatus.setAction(actionType.getAction());
                         indexingStatus.setStatus("RUNNING");
+                        indexingJobManager.add(collection.getId(), indexingStatus);
                         response.put("indexingStatus", indexingStatus);
                         response.put("result", "success");
                     } else {
