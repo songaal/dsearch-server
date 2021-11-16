@@ -29,6 +29,7 @@ public class ClusterController {
     private final JdbcService jdbcService;
     private final IndicesService indicesService;
     private final IndexTemplateService indexTemplateService;
+    private final ElasticRoutingService elasticRoutingService;
 
     public ClusterController(@Value("${dsearch.delete}") String deletePrefix,
                              ClusterService clusterService,
@@ -36,7 +37,8 @@ public class ClusterController {
                              ReferenceService referenceService,
                              CollectionService collectionService,
                              IndicesService indicesService, JdbcService jdbcService,
-                            IndexTemplateService indexTemplateService) {
+                             IndexTemplateService indexTemplateService,
+                             ElasticRoutingService elasticRoutingService) {
         this.deletePrefix = deletePrefix;
         this.clusterService = clusterService;
         this.dictionaryService = dictionaryService;
@@ -45,6 +47,7 @@ public class ClusterController {
         this.indicesService = indicesService;
         this.jdbcService = jdbcService;
         this.indexTemplateService = indexTemplateService;
+        this.elasticRoutingService = elasticRoutingService;
     }
 
     @GetMapping
@@ -140,9 +143,11 @@ public class ClusterController {
         return new ResponseEntity<>(editCluster, HttpStatus.OK);
     }
 
-    @GetMapping("/check")
+    @PutMapping("/check")
     public ResponseEntity<?> check(@RequestHeader(value = "cluster-id") UUID clusterId,
-                                   @RequestParam boolean flag)  {
+                                   @RequestParam boolean flag) throws IOException {
+
+        elasticRoutingService.updateClusterAllocation(clusterId, flag ? "none" : "all");
 
         if(flag){
             // 해당 클러스터의 스케줄 제거
