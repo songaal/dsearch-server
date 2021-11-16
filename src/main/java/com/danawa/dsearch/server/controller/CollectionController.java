@@ -437,7 +437,11 @@ public class CollectionController {
             case STOP_INDEXING:
                 synchronized (obj) {
                     IndexingStatus indexingStatus = indexingJobManager.findById(id);
-                    if (indexingStatus != null && (indexingStatus.getCurrentStep() == IndexStep.FULL_INDEX || indexingStatus.getCurrentStep() == IndexStep.DYNAMIC_INDEX)) {
+                    if (indexingStatus != null
+                            &&
+                            (indexingStatus.getCurrentStep() == IndexStep.FULL_INDEX
+                                    || indexingStatus.getCurrentStep() == IndexStep.DYNAMIC_INDEX
+                                    || indexingStatus.getCurrentStep() == IndexStep.REINDEX)) {
                         Collection.Launcher launcher = collection.getLauncher();
                         indexingJobService.stopIndexing(indexingStatus.getScheme(), launcher.getHost(), launcher.getPort(), indexingStatus.getIndexingJobId());
                         response.put("indexingStatus", indexingStatus);

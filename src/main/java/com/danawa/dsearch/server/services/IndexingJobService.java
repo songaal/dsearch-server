@@ -473,6 +473,7 @@ public class IndexingJobService {
                     indexingStatus.setStartTime(System.currentTimeMillis());
                     indexingStatus.setTaskId(taskId);
                     indexingStatus.setAutoRun(autoRun);
+                    indexingStatus.setNextStep(nextStep);
                     indexingStatus.setCurrentStep(step);
                     indexingStatus.setRetry(50);
                     indexingStatus.setCollection(collection);
@@ -500,7 +501,6 @@ public class IndexingJobService {
             String responseBodyString = EntityUtils.toString(response.getEntity());
             Map<String, Object> entityMap = new Gson().fromJson(responseBodyString, Map.class);
             //logger.info("entityMap : {}", entityMap);
-
             index.setStatus("STOP");
             logger.info("stop reindexing : {}", index.getIndex());
         }
