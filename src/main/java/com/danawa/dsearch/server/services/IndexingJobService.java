@@ -391,7 +391,7 @@ public class IndexingJobService {
             Collection.Index indexA = collection.getIndexA();
             Collection.Index indexB = collection.getIndexB();
 
-            // 대상 인덱스 찾기. source, dest
+            // 1. 대상 인덱스 찾기. source, dest
             logger.info("clusterId: {}, baseId: {}, 대상 인덱스 찾기", clusterId, collection.getBaseId());
             Collection.Index destIndex = getTargetIndex(client, collection.getBaseId(), indexA, indexB);
             Collection.Index sourceIndex = null;
@@ -401,14 +401,14 @@ public class IndexingJobService {
                 sourceIndex = indexA;
             }
 
-            // 인덱스 설정 변경.
+            // 2. 인덱스 설정 변경.
             logger.info("{} 인덱스 설정 변경", destIndex);
             editPreparations(client, collection, destIndex);
 
-            // 타겟 인덱스 삭제
+            // 3. 타겟 인덱스 삭제
             boolean deleteConfirm = deleteIndex(clusterId, destIndex.getIndex());
 
-            // 타겟 인덱스 삭제가 정상
+            // 4. 타겟 인덱스 삭제가 정상
             if(deleteConfirm) {
                 // 인덱스 설정
                 Map<String, Object> indexingSettings = new HashMap<>();
@@ -474,15 +474,15 @@ public class IndexingJobService {
                     indexingStatus.setTaskId(taskId);
                     indexingStatus.setAutoRun(autoRun);
                     indexingStatus.setCurrentStep(step);
-                    //if (nextStep == null) {
-                    //    indexingStatus.setNextStep(new ArrayDeque<>());
-                    //} else {
-                        indexingStatus.setNextStep(nextStep);
-                    //}
                     indexingStatus.setRetry(50);
                     indexingStatus.setCollection(collection);
                 }
             }
+        } catch (Exception e) {
+            logger.error("", e);
+            // Connection Timeout 히스토리 남기기
+            addIndexHistoryException(clusterId, collection, e.getMessage());
+            throw new IndexingJobFailureException(e);
         }
         return indexingStatus;
     }

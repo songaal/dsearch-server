@@ -309,6 +309,23 @@ public class CollectionController {
         }
     }
 
+    enum IndexType {
+        // outer : 외부색인 ( index )
+        // inner : 내부색인 ( reindex )
+        OUTER("outer"), INNER("inner");
+
+        private String type;
+
+        IndexType(String type){
+            this.type = type;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+    }
+
     private void handleError(String host, String port, String collectionName, String action, Map<String, Object> response){
         // Host 에러 처리
         if(host == null || host.equals("")){
@@ -370,9 +387,9 @@ public class CollectionController {
                                 response,
                                 type);
 
-                        if ("inner".equalsIgnoreCase(type)) {
+                        if (IndexType.INNER.getType().equals(type)) {
                             indexingStatus = indexingJobService.reindex(clusterId, collection, true, IndexStep.REINDEX, nextStep);
-                        }else{
+                        } else if (IndexType.OUTER.getType().equals(type)) {
                             indexingStatus = indexingJobService.indexing(clusterId, collection, true, IndexStep.FULL_INDEX, nextStep);
                         }
 
@@ -391,10 +408,10 @@ public class CollectionController {
                     IndexingStatus registerStatus = indexingJobManager.findById(id);
                     if (registerStatus == null) {
                         IndexingStatus indexingStatus = new IndexingStatus();
-                        if ("outer".equalsIgnoreCase(type)) {
-                            indexingStatus = indexingJobService.indexing(clusterId, collection, false, IndexStep.FULL_INDEX);
-                        } else if ("inner".equalsIgnoreCase(type)) {
+                        if (IndexType.INNER.getType().equals(type)) {
                             indexingStatus = indexingJobService.reindex(clusterId, collection, false, IndexStep.REINDEX);
+                        } else if (IndexType.OUTER.getType().equals(type)) {
+                            indexingStatus = indexingJobService.indexing(clusterId, collection, false, IndexStep.FULL_INDEX);
                         }
                         indexingStatus.setAction(actionType.getAction());
                         indexingStatus.setStatus("RUNNING");
