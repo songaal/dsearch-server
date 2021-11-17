@@ -351,6 +351,9 @@ public class IndexingJobManager {
                 if (errorMap != null) {
                     logger.error("reindex error:{}", errorMap);
                     taskStatus = "ERROR";
+                } else if (responseMap.get("failures") != null) {
+                    logger.error("reindex failures:{}", responseMap.get("failures"));
+                    taskStatus = "ERROR";
                 } else if (responseMap.get("canceled") != null) {
                     logger.info("reindex canceled:{}", responseMap.get("canceled"));
                     taskStatus = "STOP";
