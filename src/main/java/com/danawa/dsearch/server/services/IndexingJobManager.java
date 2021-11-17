@@ -94,6 +94,7 @@ public class IndexingJobManager {
                     logger.info("currentStep: {} / index: {}", step, indexingStatus.getIndex());
                     updateIndexerStatus(id, indexingStatus);
                 } else if (step == IndexStep.REINDEX) {
+                    logger.info("currentStep: {} / index: {}", step, indexingStatus.getIndex());
                     updateReindexStatus(id, indexingStatus);
                 } else if (step == IndexStep.EXPOSE) {
                     //  EXPOSE
@@ -104,7 +105,6 @@ public class IndexingJobManager {
                     idxStat.setStatus("SUCCESS");
                     idxStat.setEndTime(System.currentTimeMillis());
                     indexingProcessQueue.put(id, idxStat);
-                    jobs.remove(id);
                     logger.info("Expose Success. id: {}, collection: {}, indexingStatus: {}", id, collection.getId(), indexingStatus);
                     try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
                         indexingJobService.stopIndexing(indexingStatus.getScheme(), indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId());
@@ -112,6 +112,9 @@ public class IndexingJobManager {
                     }catch (Exception e1){
                         logger.error("", e1);
                     }
+
+                    jobs.remove(id);
+
                     if ("all".equalsIgnoreCase(indexingStatus.getAction())) {
                         // 후처리 프로세스 (동적색인 on)
                         processService.postProcess(indexingStatus.getCollection());
@@ -122,7 +125,6 @@ public class IndexingJobManager {
                     IndexingStatus status = jobs.get(id);
                     status.setStatus("STOP");
                     status.setEndTime(System.currentTimeMillis());
-                    jobs.remove(id);
                     logger.error("index: {}, Timeout 8 hours..", status.getIndex());
                     UUID clusterId = status.getClusterId();
                     try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
@@ -132,6 +134,7 @@ public class IndexingJobManager {
                     }catch (Exception e1){
                         logger.error("", e1);
                     }
+                    jobs.remove(id);
                     if ("all".equalsIgnoreCase(indexingStatus.getAction())) {
                         // 후처리 프로세스 (동적색인 on)
                         processService.postProcess(indexingStatus.getCollection());
@@ -151,16 +154,15 @@ public class IndexingJobManager {
 
                     if("STOP".equalsIgnoreCase(indexingStatus.getStatus())){
                         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-                            jobs.remove(id);
                             indexingJobService.stopIndexing(indexingStatus.getScheme(), indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId());
                             deleteLastIndexStatus(client, index, startTime);
                             addIndexHistory(client, index, jobType, startTime, endTime, autoRun, "0", "ERROR", "0");
+                            jobs.remove(id);
                         }catch (Exception e1){
                             logger.error("", e1);
                         }
                     }else if (step == IndexStep.FULL_INDEX || step == IndexStep.DYNAMIC_INDEX) {
                         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-                            jobs.remove(id);
                             deleteLastIndexStatus(client, index, startTime);
                             addIndexHistory(client, index, jobType, startTime, endTime, autoRun, "0", "ERROR", "0");
 
@@ -170,6 +172,7 @@ public class IndexingJobManager {
                             } else {
                                 indexerJobManager.remove(UUID.fromString(indexingStatus.getIndexingJobId()));
                             }
+                            jobs.remove(id);
                             logger.error("[remove job] retry.. {}", indexingStatus.getRetry());
                         } catch (Exception e1) {
                             logger.error("", e1);

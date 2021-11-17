@@ -61,14 +61,8 @@ dsearch:
       reset: true
       threadSize: 1
     indexing:
-      "[index.routing.allocation.include.role]": index
-      "[index.routing.allocation.exclude.role]": null
-      "[index.number_of_replicas]": 1
       refresh_interval: "-1"
     propagate:
-      "[index.routing.allocation.include.role]": null
-      "[index.routing.allocation.exclude.role]": index
-      "[index.number_of_replicas]": 1
       refresh_interval: "1s"
   jdbc:
     setting: .dsearch_jdbc

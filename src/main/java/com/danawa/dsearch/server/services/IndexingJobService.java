@@ -157,23 +157,8 @@ public class IndexingJobService {
             }
 
             body.put("index", index.getIndex());
+            body.put("_indexingSettings", indexing);
 
-            Map<String, Object> tmp = new HashMap<>() ;
-            for(String key : indexing.keySet()){
-                tmp.put(key, indexing.get(key));
-            }
-
-            if(collection.getIgnoreRoleYn() != null && collection.getIgnoreRoleYn().equals("Y")) {
-                tmp.remove("index.routing.allocation.include.role");
-                tmp.remove("index.routing.allocation.exclude.role");
-            }else{
-                tmp.replace("index.routing.allocation.include.role", "");
-                tmp.replace("index.routing.allocation.exclude.role", "index");
-            }
-
-            body.put("_indexingSettings", tmp);
-
-            
             // null 대비 에러처리
             if(collection.getEsHost() != null && !collection.getEsHost().equals("")){
                 body.put("host", collection.getEsHost());    
@@ -243,11 +228,7 @@ public class IndexingJobService {
 
     public void changeRefreshInterval(UUID clusterId, Collection collection, String target) throws IOException {
         try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)){
-
-            Map<String, Object> settings = new HashMap<>() ;
-            for(String key : propagate.keySet()){
-                settings.put(key, propagate.get(key));
-            }
+            Map<String, Object> settings = propagate;
 
             // refresh_interval : -1, 1s, 2s, ...
             if(collection.getRefresh_interval() != null){
@@ -326,7 +307,7 @@ public class IndexingJobService {
                             .index(indexA.getIndex()).alias(baseId));
                     target = indexA.getIndex();
                 } else {
-                    // index_history 조회하여 마지막 인덱스, 전파 완료한 인덱스 검색.
+                    // index_history 조회하여 마지막 인덱스, 색인 완료한 인덱스 검색.
                     QueryBuilder queryBuilder = new BoolQueryBuilder()
                             .must(new MatchQueryBuilder("jobType", "FULL_INDEX"))
                             .must(new MatchQueryBuilder("status", "SUCCESS"))
@@ -411,21 +392,10 @@ public class IndexingJobService {
             // 4. 타겟 인덱스 삭제가 정상
             if(deleteConfirm) {
                 // 인덱스 설정
-                Map<String, Object> indexingSettings = new HashMap<>();
-                for (String key : indexing.keySet()) {
-                    indexingSettings.put(key, indexing.get(key));
-                }
-                if (collection.getIgnoreRoleYn() != null && collection.getIgnoreRoleYn().equals("Y")) {
-                    indexingSettings.remove("index.routing.allocation.include.role");
-                    indexingSettings.remove("index.routing.allocation.exclude.role");
-                } else {
-                    indexingSettings.replace("index.routing.allocation.include.role", "");
-                    indexingSettings.replace("index.routing.allocation.exclude.role", "index");
-                }
-                logger.debug("indexingSettings:{}", indexingSettings);
+                logger.debug("indexingSettings:{}", indexing);
 
                 // 인덱스 생성
-                boolean createConfirm = createIndex(clusterId, destIndex.getIndex(), indexingSettings);
+                boolean createConfirm = createIndex(clusterId, destIndex.getIndex(), indexing);
 
                 // 인덱스 생성이 정상
                 if(createConfirm) {
@@ -564,54 +534,19 @@ public class IndexingJobService {
     private void editPreparations(RestHighLevelClient client, Collection collection, Collection.Index index) throws IOException {
         // 인덱스 존재하지 않기 때문에 생성해주기.
         // 인덱스 템플릿이 존재하기 때문에 맵핑 설정 패쓰
-        // 셋팅무시 설정이 있을시 indexing 맵에서 role 제거
 
-//        logger.info("collection >>> {}", collection.toString());
         if (index.getUuid() == null) {
             boolean isAcknowledged;
-            if(collection.getIgnoreRoleYn() != null && collection.getIgnoreRoleYn().equals("Y")){
-                Map<String, Object> tmp = new HashMap<>() ;
-                for(String key : indexing.keySet()){
-                    tmp.put(key, indexing.get(key));
-                }
-
-                tmp.remove("index.routing.allocation.include.role");
-                tmp.remove("index.routing.allocation.exclude.role");
-                logger.info("ES 인덱스 없을 시, Createing indexing settings >>> {}", tmp);
-                logger.info("{}", index.getIndex());
-//                client.indices().create(new CreateIndexRequest("test-role").settings(tmp), RequestOptions.DEFAULT).isAcknowledged();
-                isAcknowledged = client.indices().create(new CreateIndexRequest(index.getIndex()).settings(tmp), RequestOptions.DEFAULT).isAcknowledged();
-            }else{
-                indexing.replace("index.routing.allocation.include.role", "index");
-                indexing.replace("index.routing.allocation.exclude.role", "");
-                logger.info("{}", index.getIndex());
-                logger.info("ES 인덱스 없을 시, indexing settings >>> {}", indexing);
-                isAcknowledged = client.indices().create(new CreateIndexRequest(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
-            }
+            logger.info("ES 인덱스 없을 시, indexing settings >>> {}", indexing);
+            isAcknowledged = client.indices().create(new CreateIndexRequest(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
             logger.debug("create settings : {} ", isAcknowledged);
         } else {
             // 기존 인덱스가 존재하기 때문에 셋팅 설정만 변경함.
             // settings에 index.routing.allocation.include._exclude=search* 호출
             // refresh interval: -1로 변경. 색인도중 검색노출하지 않음. 성능향상목적.
-            // 셋팅무시 설정이 있을시 indexing 맵에서 role 제거
-
             boolean isAcknowledged;
-            if(collection.getIgnoreRoleYn() != null && collection.getIgnoreRoleYn().equals("Y")){
-                Map<String, Object> tmp = new HashMap<>() ;
-                for(String key : indexing.keySet()){
-                    tmp.put(key, indexing.get(key));
-                }
-                tmp.remove("index.routing.allocation.include.role");
-                tmp.remove("index.routing.allocation.exclude.role");
-                logger.info("ES 인덱스 존재 시, Updated indexing settings >>> {}", tmp);
-
-                isAcknowledged = client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(tmp), RequestOptions.DEFAULT).isAcknowledged();
-            }else{
-                indexing.replace("index.routing.allocation.include.role", "index");
-                indexing.replace("index.routing.allocation.exclude.role", "");
-                logger.info("ES 인덱스 존재 시, indexing settings >>> {}", indexing);
-                isAcknowledged = client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
-            }
+            logger.info("ES 인덱스 존재 시, indexing settings >>> {}", indexing);
+            isAcknowledged = client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
             logger.debug("edit settings : {} ", isAcknowledged);
         }
     }
