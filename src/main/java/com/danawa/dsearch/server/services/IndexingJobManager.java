@@ -349,13 +349,14 @@ public class IndexingJobManager {
             } else if ("true".equals(completed)){
                 Map<String, Object> responseMap = (Map<String, Object>) entityMap.get("response");
                 Map<String, Object> errorMap = (Map<String, Object>) entityMap.get("error");
+                List<Object> failuresList = (List<Object>) entityMap.get("failures");
                 // 종료일 경우, canceled 값이 있으면 취소로 인한 종료, 없으면 정상 종료
                 logger.debug("responseMap:{}", responseMap);
                 if (errorMap != null) {
                     logger.error("reindex error:{}", errorMap);
                     taskStatus = "ERROR";
-                } else if (responseMap.get("failures") != null) {
-                    logger.error("reindex failures:{}", responseMap.get("failures"));
+                } else if (failuresList != null) {
+                    logger.error("reindex failures:{}", failuresList);
                     taskStatus = "ERROR";
                 } else if (responseMap.get("canceled") != null) {
                     logger.info("reindex canceled:{}", responseMap.get("canceled"));
