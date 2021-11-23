@@ -354,7 +354,7 @@ public class IndexingJobManager {
                 List<Map<String, Object>> failures = (List<Map<String, Object>>) responseMap.get("failures");
 
                 // 실제 생성된 document 갯수
-                createdDocSize = (String) responseMap.get("created");
+                createdDocSize = String.valueOf(responseMap.get("created"));
                 if(createdDocSize.contains(".")){
                     createdDocSize = createdDocSize.split("\\.")[0];
                 }
