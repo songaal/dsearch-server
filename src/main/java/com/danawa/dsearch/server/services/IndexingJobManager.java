@@ -355,6 +355,9 @@ public class IndexingJobManager {
 
                 // 실제 생성된 document 갯수
                 createdDocSize = (String) responseMap.get("created");
+                if(createdDocSize.contains(".")){
+                    createdDocSize = createdDocSize.split("\\.")[0];
+                }
 
                 // 종료일 경우
                 // canceled 값이 있으면 취소로 인한 종료
