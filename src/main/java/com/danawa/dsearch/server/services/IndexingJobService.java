@@ -439,7 +439,7 @@ public class IndexingJobService {
 
                     // reindex request 설정 세팅
                     ReindexRequest reindexRequest = new ReindexRequest();
-                    reindexRequest.setRequestsPerSecond(reindexRequestPerSec); // 추가
+                    if(reindexRequestPerSec > 0) reindexRequest.setRequestsPerSecond(reindexRequestPerSec); // 추가
                     reindexRequest.setSourceIndices(sourceIndex.getIndex());
                     reindexRequest.setDestIndex(destIndex.getIndex());
                     reindexRequest.setRefresh(false);
