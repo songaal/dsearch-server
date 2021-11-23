@@ -409,6 +409,8 @@ public class IndexingJobService {
                     int reindexBatchSize = 1000;
                     // sliced-scroll 슬라이스를 사용 (병렬) default : 1
                     int reindexSlices = 1;
+                    float reindexRequestPerSec = -1; // 수정한 부분
+
                     if(body.get("reindexBatchSize") != null) {
                         try{
                             reindexBatchSize = Integer.parseInt(body.get("reindexBatchSize").toString());
@@ -416,6 +418,7 @@ public class IndexingJobService {
                             logger.info("{}", e);
                         }
                     }
+
                     if(body.get("reindexSlices") != null) {
                         try{
                             reindexSlices = Integer.parseInt(body.get("reindexSlices").toString());
@@ -423,17 +426,29 @@ public class IndexingJobService {
                             logger.info("{}", e);
                         }
                     }
-                    logger.debug("reindexBatchSize:{}, reindexSlices:{}", reindexBatchSize, reindexSlices);
+
+                    if(body.get("reindexRequestPerSec") != null) { // 추가
+                        try{
+                            reindexRequestPerSec = Float.parseFloat(body.get("reindexRequestPerSec").toString());
+                        }catch (NumberFormatException e){
+                            logger.info("{}", e);
+                        }
+                    }
+
+                    logger.debug("reindexBatchSize:{}, reindexSlices:{}, reindexRequestPerSecond:{}", reindexBatchSize, reindexSlices, reindexRequestPerSec);
 
                     // reindex request 설정 세팅
                     ReindexRequest reindexRequest = new ReindexRequest();
+                    reindexRequest.setRequestsPerSecond(reindexRequestPerSec); // 추가
                     reindexRequest.setSourceIndices(sourceIndex.getIndex());
                     reindexRequest.setDestIndex(destIndex.getIndex());
-                    reindexRequest.setRefresh(true);
+                    reindexRequest.setRefresh(false);
                     reindexRequest.setSourceBatchSize(reindexBatchSize);
                     reindexRequest.setSlices(reindexSlices);
+
                     // reindex 호출
                     TaskSubmissionResponse reindexSubmission = client.submitReindexTask(reindexRequest, RequestOptions.DEFAULT);
+
                     // 작업 번호
                     String taskId = reindexSubmission.getTask();
                     logger.info("taskId : {} - source : {} -> dest : {}", taskId, sourceIndex.getIndex(), destIndex.getIndex());
