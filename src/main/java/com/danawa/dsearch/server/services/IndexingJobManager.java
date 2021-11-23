@@ -348,21 +348,34 @@ public class IndexingJobManager {
                 taskStatus = "RUNNING";
             } else if ("true".equals(completed)){
                 Map<String, Object> responseMap = (Map<String, Object>) entityMap.get("response");
-                Map<String, Object> errorMap = (Map<String, Object>) entityMap.get("error");
-                // 종료일 경우, canceled 값이 있으면 취소로 인한 종료, 없으면 정상 종료
-                logger.debug("responseMap:{}", responseMap);
-                if (errorMap != null) {
-                    logger.error("reindex error:{}", errorMap);
-                    taskStatus = "ERROR";
-                } else if (responseMap.get("failures") != null) {
-                    logger.error("reindex failures:{}", responseMap.get("failures"));
-                    taskStatus = "ERROR";
-                } else if (responseMap.get("canceled") != null) {
+                List<Map<String, Object>> failures = (List<Map<String, Object>>) responseMap.get("failures");
+
+                // 종료일 경우
+                // canceled 값이 있으면 취소로 인한 종료
+                // failures에 값이 있으면 에러로 인한 종료
+                if(failures.size() == 0){
+                    taskStatus = "SUCCESS";
+                }else if (responseMap.get("canceled") != null) {
                     logger.info("reindex canceled:{}", responseMap.get("canceled"));
                     taskStatus = "STOP";
-                } else {
-                    taskStatus = "SUCCESS";
+                }else{
+                    logger.error("reindex error:{}", failures);
+                    taskStatus = "ERROR";
                 }
+
+//                logger.debug("responseMap:{}", responseMap);
+//                if (errorMap != null) {
+//                    logger.error("reindex error:{}", errorMap);
+//                    taskStatus = "ERROR";
+//                } else if (responseMap.get("failures") != null) {
+//                    logger.error("reindex failures:{}", responseMap.get("failures"));
+//                    taskStatus = "ERROR";
+//                } else if (responseMap.get("canceled") != null) {
+//                    logger.info("reindex canceled:{}", responseMap.get("canceled"));
+//                    taskStatus = "STOP";
+//                } else {
+//                    taskStatus = "SUCCESS";
+//                }
             } else {
                 logger.info("reindex completed check!!! completed : {}", completed);
                 logger.debug("entityMap:{}", entityMap);
