@@ -330,6 +330,9 @@ public class IndexingJobManager {
         IndexStep step = indexingStatus.getCurrentStep();
         String taskId = indexingStatus.getTaskId();
         String taskStatus = indexingStatus.getStatus();
+
+        String createdDocSize = "0";
+
         // task 조회
         try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Request request = new Request("GET", String.format("/_tasks/%s", taskId));
@@ -349,6 +352,9 @@ public class IndexingJobManager {
             } else if ("true".equals(completed)){
                 Map<String, Object> responseMap = (Map<String, Object>) entityMap.get("response");
                 List<Map<String, Object>> failures = (List<Map<String, Object>>) responseMap.get("failures");
+
+                // 실제 생성된 document 갯수
+                createdDocSize = (String) responseMap.get("created");
 
                 // 종료일 경우
                 // canceled 값이 있으면 취소로 인한 종료
@@ -387,11 +393,14 @@ public class IndexingJobManager {
         if ("SUCCESS".equalsIgnoreCase(taskStatus) || "ERROR".equalsIgnoreCase(taskStatus) || "STOP".equalsIgnoreCase(taskStatus)) {
             try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
                 Map<String, Object> catIndex = catIndex(client, index);
-                String docSize = (String) catIndex.get("docs.count");
+//                String docSize = (String) catIndex.get("docs.count");
                 String store = (String) catIndex.get("store.size");
                 long startTime = indexingStatus.getStartTime();
                 deleteLastIndexStatus(client, index, startTime);
-                addIndexHistory(client, index, step.name(), startTime, System.currentTimeMillis(), indexingStatus.isAutoRun(), docSize, taskStatus, store);
+
+                // docSize 가 다르므로 처리 필요.
+                // cat으로 가져오던 docSize를 reindex response에서 가져옴
+                addIndexHistory(client, index, step.name(), startTime, System.currentTimeMillis(), indexingStatus.isAutoRun(), createdDocSize, taskStatus, store);
 
                 logger.info("REINDEX {}, id: {}, indexingStatus: {}", taskStatus, id, indexingStatus.toString());
 
@@ -597,3 +606,4 @@ public class IndexingJobManager {
         this.timeout = timeout;
     }
 }
+
