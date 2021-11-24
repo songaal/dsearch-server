@@ -360,14 +360,14 @@ public class IndexingJobManager {
                 }
 
                 // 종료일 경우
-                // canceled 값이 있으면 취소로 인한 종료
-                // failures에 값이 있으면 에러로 인한 종료
-                if(failures.size() == 0){
-                    taskStatus = "SUCCESS";
-                }else if (responseMap.get("canceled") != null) {
-                    logger.info("reindex canceled:{}", responseMap.get("canceled"));
+                // 1. canceled 값이 있으면 취소로 인한 종료
+                // 2. failures에 값이 있으면 에러로 인한 종료
+                if (responseMap.get("canceled") != null) {
+                    logger.info("reindex canceled: {}", responseMap.get("canceled"));
                     taskStatus = "STOP";
-                }else{
+                } else if(failures.size() == 0){
+                    taskStatus = "SUCCESS";
+                } else {
                     logger.error("reindex error:{}", failures);
                     taskStatus = "ERROR";
                 }
