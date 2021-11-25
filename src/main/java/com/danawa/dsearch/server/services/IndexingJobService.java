@@ -24,6 +24,8 @@ import org.elasticsearch.client.*;
 import org.elasticsearch.client.core.CountRequest;
 import org.elasticsearch.client.core.CountResponse;
 import org.elasticsearch.client.indices.CreateIndexRequest;
+import org.elasticsearch.client.indices.GetIndexRequest;
+import org.elasticsearch.client.indices.GetIndexResponse;
 import org.elasticsearch.client.tasks.CancelTasksRequest;
 import org.elasticsearch.client.tasks.CancelTasksResponse;
 import org.elasticsearch.client.tasks.TaskId;
@@ -52,6 +54,8 @@ import org.yaml.snakeyaml.Yaml;
 import java.io.IOException;
 import java.net.URI;
 import java.util.*;
+
+import static java.lang.Thread.sleep;
 
 @Service
 @ConfigurationProperties(prefix = "dsearch.collection")
@@ -619,15 +623,49 @@ public class IndexingJobService {
 
     //check:reindex
     public boolean deleteIndex(UUID clusterId, String index) throws IOException {
-        boolean flag = false;
+        boolean isDeleted = false;
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            // 인덱스 삭제 요청
             DeleteIndexRequest request = new DeleteIndexRequest(index);
-            AcknowledgedResponse deleteIndexResponse = client.indices().delete(request, RequestOptions.DEFAULT);
-            flag = deleteIndexResponse.isAcknowledged();
+//            AcknowledgedResponse deleteIndexResponse = client.indices().delete(request, RequestOptions.DEFAULT);
+//            flag = deleteIndexResponse.isAcknowledged();
+
+            // 아무것도 하지 않음. 체크는 아래에서 진행.
+            client.indices().deleteAsync(request, RequestOptions.DEFAULT, new ActionListener<AcknowledgedResponse>() {
+                @Override
+                public void onResponse(AcknowledgedResponse acknowledgedResponse) { }
+                @Override
+                public void onFailure(Exception e) { }
+            });
+
+            // 인덱스 삭제 여부 체크
+            while (true) {
+                GetIndexRequest checkRequest = new GetIndexRequest("*");
+                GetIndexResponse response = client.indices().get(checkRequest, RequestOptions.DEFAULT);
+                String[] indices = response.getIndices();
+
+                // 해당 index가 없다면 -> isDelete = true
+                // 해당 index가 있다면 -> isDelete = false
+                for(String s : indices){
+                    if(s.equals(index)){
+                        // 아직까지 삭제 안됨
+                        isDeleted = false;
+                        break;
+                    }else{
+                        isDeleted = true;
+                    }
+                }
+
+                if(isDeleted){
+                    break;
+                }else{
+                    sleep(500);
+                }
+            }
         }catch (Exception e){
             logger.error("", e);
         }
-        return flag;
+        return isDeleted;
     }
 
     //check:reindex
