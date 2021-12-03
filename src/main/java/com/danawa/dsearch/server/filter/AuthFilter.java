@@ -25,7 +25,7 @@ public class AuthFilter implements Filter {
             "/", "/info",
             "/collections/idxp", "/collections/idxp/status", "/collections/setTimeout",
             "/collections/getSettings", "/collections/setSettings", // IndexProcess용
-            "/auth/sign-in", "/auth/sign-out", "/dictionaries/remote"
+            "/auth/sign-in", "/auth/sign-out", "/dictionaries/remote", "/clusters/check"
     );
 
     @Autowired
