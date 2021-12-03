@@ -356,9 +356,9 @@ public class CollectionController {
                     IndexingStatus registerStatus = indexingJobManager.findById(id);
                     if (registerStatus == null) {
                         IndexingStatus indexingStatus = indexingJobService.indexing(clusterId, collection, false, IndexStep.FULL_INDEX);
-                        indexingJobManager.add(collection.getId(), indexingStatus);
                         indexingStatus.setAction(actionType.getAction());
                         indexingStatus.setStatus("RUNNING");
+                        indexingJobManager.add(collection.getId(), indexingStatus);
                         response.put("indexingStatus", indexingStatus);
                         response.put("result", "success");
                     } else {
