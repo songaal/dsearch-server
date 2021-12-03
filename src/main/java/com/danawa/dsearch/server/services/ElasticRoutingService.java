@@ -3,15 +3,17 @@ package com.danawa.dsearch.server.services;
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
-import org.elasticsearch.client.*;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.settings.Settings;
 import org.springframework.stereotype.Service;
 
-import java.io.*;
-import java.util.*;
+import java.io.IOException;
+import java.util.UUID;
 
 @Service
 public class ElasticRoutingService {
+
     private final ElasticsearchFactory elasticsearchFactory;
 
     public ElasticRoutingService(ElasticsearchFactory elasticsearchFactory) {

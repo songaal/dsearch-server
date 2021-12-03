@@ -71,7 +71,6 @@ public class IndexingJobService {
 
     private Map<String, Object> params;
     private Map<String, Object> indexing;
-    private Map<String, Object> propagate;
 
     public IndexingJobService(ElasticsearchFactory elasticsearchFactory,
                               @Value("${dsearch.jdbc.setting}") String jdbcSystemIndex,
@@ -162,7 +161,6 @@ public class IndexingJobService {
 
             body.put("index", index.getIndex());
             body.put("_indexingSettings", indexing);
-
             // null 대비 에러처리
             if(collection.getEsHost() != null && !collection.getEsHost().equals("")){
                 body.put("host", collection.getEsHost());    
@@ -232,7 +230,9 @@ public class IndexingJobService {
 
     public void changeRefreshInterval(UUID clusterId, Collection collection, String target) throws IOException {
         try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)){
-            Map<String, Object> settings = propagate;
+
+            // refresh_interval 을 따로 컬렉션 인덱스에서 가지고 있어서, 복사해서 사용.
+            Map<String, Object> settings = new HashMap<>() ;
 
             // refresh_interval : -1, 1s, 2s, ...
             if(collection.getRefresh_interval() != null){
@@ -240,11 +240,11 @@ public class IndexingJobService {
                 int refresh_interval = collection.getRefresh_interval() == 0 ? 1 : collection.getRefresh_interval();
 
                 if(refresh_interval >= 0){
-                    settings.replace("refresh_interval", collection.getRefresh_interval() + "s");
+                    settings.put("refresh_interval", collection.getRefresh_interval() + "s");
                 } else {
                     // -2 이하로 내려갈 때, -1로 고정.
                     refresh_interval = -1;
-                    settings.replace("refresh_interval", refresh_interval + "");
+                    settings.put("refresh_interval", refresh_interval + "");
                 }
             }
 
@@ -563,9 +563,9 @@ public class IndexingJobService {
             // 기존 인덱스가 존재하기 때문에 셋팅 설정만 변경함.
             // settings에 index.routing.allocation.include._exclude=search* 호출
             // refresh interval: -1로 변경. 색인도중 검색노출하지 않음. 성능향상목적.
-            boolean isAcknowledged;
+            // 셋팅무시 설정이 있을시 indexing 맵에서 role 제거
             logger.info("ES 인덱스 존재 시, indexing settings >>> {}", indexing);
-            isAcknowledged = client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
+            boolean isAcknowledged = client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
             logger.debug("edit settings : {} ", isAcknowledged);
         }
     }
@@ -698,32 +698,8 @@ public class IndexingJobService {
         this.indexing = indexing;
     }
 
-    public Map<String, Object> getPropagate() {
-        return propagate;
-    }
-
-    public void setPropagate(Map<String, Object> propagate) {
-        this.propagate = propagate;
-    }
-
-    public void setRefreshInterval(String refresh_interval) {
-        this.propagate.put("refresh_interval", refresh_interval);
-    }
-
-    public String getRefreshInterval() {
-        return (String) this.propagate.get("refresh_interval");
-    }
-
-    public Map<String,Object> getPropagateSettings() {
-        return this.propagate;
-    }
-
     public Map<String,Object> getIndexingSettings() {
         return this.indexing;
-    }
-
-    public void setPropagateSettings(Map<String, Object> settings) {
-        this.propagate = settings;
     }
 
     public void setIndexingSettings(Map<String, Object> settings) {

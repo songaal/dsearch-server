@@ -161,11 +161,11 @@ public class IndexingJobManager {
                         }catch (Exception e1){
                             logger.error("", e1);
                         }
+                        jobs.remove(id);
                     }else if (step == IndexStep.FULL_INDEX || step == IndexStep.DYNAMIC_INDEX) {
                         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
                             deleteLastIndexStatus(client, index, startTime);
                             addIndexHistory(client, index, jobType, startTime, endTime, autoRun, "0", "ERROR", "0");
-
                             if (indexingStatus.getCollection().isExtIndexer()) {
                                 URI deleteUrl = URI.create(String.format("http://%s:%d/async/%s", indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId()));
                                 restTemplate.exchange(deleteUrl, HttpMethod.DELETE, new HttpEntity<>(new HashMap<>()), String.class);
@@ -177,6 +177,7 @@ public class IndexingJobManager {
                         } catch (Exception e1) {
                             logger.error("", e1);
                         }
+                        jobs.remove(id);
                     } else {
                         jobs.remove(id);
                         logger.error("[remove job] retry.. {}", indexingStatus.getRetry());
@@ -593,17 +594,12 @@ public class IndexingJobManager {
     public Map<String, Object> getSettings(){
         Map<String, Object> settings = new HashMap<>();
         settings.put("indexing", this.indexingJobService.getIndexingSettings());
-        settings.put("propagate", this.indexingJobService.getPropagateSettings());
         return settings;
     }
-    public void setSettings(String type, Map<String, Object> settings){
-        if(type.equals("indexing")){
-            this.indexingJobService.setIndexingSettings(settings);
-        }else if(type.equals("propagate")){
-            this.indexingJobService.setPropagateSettings(settings);
-        }
-    }
 
+    public void setSettings(String type, Map<String, Object> settings){
+        this.indexingJobService.setIndexingSettings(settings);
+    }
 
     public void setTimeout(long timeout) {
         this.timeout = timeout;

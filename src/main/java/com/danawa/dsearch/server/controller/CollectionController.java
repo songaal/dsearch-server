@@ -407,12 +407,7 @@ public class CollectionController {
                 synchronized (obj) {
                     IndexingStatus registerStatus = indexingJobManager.findById(id);
                     if (registerStatus == null) {
-                        IndexingStatus indexingStatus = new IndexingStatus();
-                        if (IndexType.INNER.getType().equals(type)) {
-                            indexingStatus = indexingJobService.reindex(clusterId, collection, false, IndexStep.REINDEX);
-                        } else if (IndexType.OUTER.getType().equals(type)) {
-                            indexingStatus = indexingJobService.indexing(clusterId, collection, false, IndexStep.FULL_INDEX);
-                        }
+                        IndexingStatus indexingStatus = indexingJobService.indexing(clusterId, collection, false, IndexStep.FULL_INDEX);
                         indexingStatus.setAction(actionType.getAction());
                         indexingStatus.setStatus("RUNNING");
                         indexingJobManager.add(collection.getId(), indexingStatus);
