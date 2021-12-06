@@ -10,32 +10,21 @@ import com.danawa.fastcatx.indexer.IndexJobManager;
 import com.danawa.fastcatx.indexer.entity.Job;
 import com.google.gson.Gson;
 import org.apache.http.util.EntityUtils;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.*;
 import org.elasticsearch.client.core.CountRequest;
 import org.elasticsearch.client.core.CountResponse;
 import org.elasticsearch.client.indices.CreateIndexRequest;
-import org.elasticsearch.client.indices.GetIndexRequest;
-import org.elasticsearch.client.indices.GetIndexResponse;
-import org.elasticsearch.client.tasks.CancelTasksRequest;
-import org.elasticsearch.client.tasks.CancelTasksResponse;
-import org.elasticsearch.client.tasks.TaskId;
-import org.elasticsearch.client.tasks.TaskSubmissionResponse;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.MatchQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.index.reindex.BulkByScrollResponse;
-import org.elasticsearch.index.reindex.ReindexRequest;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
@@ -54,8 +43,6 @@ import org.yaml.snakeyaml.Yaml;
 import java.io.IOException;
 import java.net.URI;
 import java.util.*;
-
-import static java.lang.Thread.sleep;
 
 @Service
 @ConfigurationProperties(prefix = "dsearch.collection")
@@ -89,7 +76,7 @@ public class IndexingJobService {
         return this.indexerJobManager;
     }
 
-    private void addIndexHistoryException(UUID clusterId, Collection collection, String errorMessage){
+    private void addIndexHistoryException(UUID clusterId, Collection collection, String errorMessage) {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             NoticeHandler.send(String.format("%s 컬렉션의 색인이 실패하였습니다.\n%s", collection.getBaseId(), errorMessage));
             Collection.Index index = getTargetIndex(client, collection.getBaseId(), collection.getIndexA(), collection.getIndexB());
@@ -98,7 +85,7 @@ public class IndexingJobService {
 
             BoolQueryBuilder countQuery = QueryBuilders.boolQuery();
             countQuery.filter().add(QueryBuilders.termQuery("index", index));
-            countQuery.filter().add(QueryBuilders.termQuery("startTime",  currentTime));
+            countQuery.filter().add(QueryBuilders.termQuery("startTime", currentTime));
             countQuery.filter().add(QueryBuilders.termQuery("jobType", IndexStep.FULL_INDEX));
 
             CountResponse countResponse = client.count(new CountRequest(indexHistory).query(countQuery), RequestOptions.DEFAULT);
@@ -108,8 +95,8 @@ public class IndexingJobService {
                 Map<String, Object> source = new HashMap<>();
                 source.put("index", index);
                 source.put("jobType", IndexStep.FULL_INDEX);
-                source.put("startTime",  currentTime);
-                source.put("endTime",  currentTime);
+                source.put("startTime", currentTime);
+                source.put("endTime", currentTime);
                 source.put("autoRun", collection.isAutoRun());
                 source.put("status", "ERROR");
                 source.put("docSize", "0");
@@ -126,10 +113,12 @@ public class IndexingJobService {
      * 소스를 읽어들여 ES 색인에 입력하는 작업.
      * indexer를 외부 프로세스로 실행한다.
      *
-     * @return IndexingStatus*/
+     * @return IndexingStatus
+     */
     public IndexingStatus indexing(UUID clusterId, Collection collection, boolean autoRun, IndexStep step) throws IndexingJobFailureException {
         return indexing(clusterId, collection, autoRun, step, new ArrayDeque<>());
     }
+
     public IndexingStatus indexing(UUID clusterId, Collection collection, boolean autoRun, IndexStep step, Queue<IndexStep> nextStep) throws IndexingJobFailureException {
         IndexingStatus indexingStatus = new IndexingStatus();
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
@@ -162,20 +151,20 @@ public class IndexingJobService {
             body.put("index", index.getIndex());
             body.put("_indexingSettings", indexing);
             // null 대비 에러처리
-            if(collection.getEsHost() != null && !collection.getEsHost().equals("")){
-                body.put("host", collection.getEsHost());    
+            if (collection.getEsHost() != null && !collection.getEsHost().equals("")) {
+                body.put("host", collection.getEsHost());
             }
 
             int esPort = 9200;
-            if(collection.getEsPort() != null && !collection.getEsPort().equals("")){
-                try{
+            if (collection.getEsPort() != null && !collection.getEsPort().equals("")) {
+                try {
                     esPort = Integer.parseInt(collection.getEsPort());
-                }catch (NumberFormatException e){
+                } catch (NumberFormatException e) {
                     logger.info("{}", e);
                 }
                 body.put("port", esPort);
             }
-            
+
             body.put("scheme", collection.getEsScheme());
             body.put("esUsername", collection.getEsUser());
             body.put("esPassword", collection.getEsPassword());
@@ -229,17 +218,17 @@ public class IndexingJobService {
     }
 
     public void changeRefreshInterval(UUID clusterId, Collection collection, String target) throws IOException {
-        try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)){
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
 
             // refresh_interval 을 따로 컬렉션 인덱스에서 가지고 있어서, 복사해서 사용.
-            Map<String, Object> settings = new HashMap<>() ;
+            Map<String, Object> settings = new HashMap<>();
 
             // refresh_interval : -1, 1s, 2s, ...
-            if(collection.getRefresh_interval() != null){
+            if (collection.getRefresh_interval() != null) {
                 // 0일때는 1로 셋팅.
                 int refresh_interval = collection.getRefresh_interval() == 0 ? 1 : collection.getRefresh_interval();
 
-                if(refresh_interval >= 0){
+                if (refresh_interval >= 0) {
                     settings.put("refresh_interval", collection.getRefresh_interval() + "s");
                 } else {
                     // -2 이하로 내려갈 때, -1로 고정.
@@ -254,10 +243,11 @@ public class IndexingJobService {
 
     /**
      * 색인을 대표이름으로 alias 하고 노출한다.
-     * */
+     */
     public void expose(UUID clusterId, Collection collection) throws IOException {
         expose(clusterId, collection, null);
     }
+
     public void expose(UUID clusterId, Collection collection, String target) throws IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             String baseId = collection.getBaseId();
@@ -367,134 +357,6 @@ public class IndexingJobService {
         }
     }
 
-    public IndexingStatus reindex(UUID clusterId, Collection collection, boolean autoRun, IndexStep step) throws IndexingJobFailureException, IOException {
-        return reindex(clusterId, collection, autoRun, step, new ArrayDeque<>());
-    }
-    public IndexingStatus reindex(UUID clusterId, Collection collection, boolean autoRun, IndexStep step, Queue<IndexStep> nextStep) throws IndexingJobFailureException, IOException {
-        IndexingStatus indexingStatus = new IndexingStatus();
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            Collection.Index indexA = collection.getIndexA();
-            Collection.Index indexB = collection.getIndexB();
-
-            // 1. 대상 인덱스 찾기. source, dest
-            logger.info("clusterId: {}, baseId: {}, 대상 인덱스 찾기", clusterId, collection.getBaseId());
-            Collection.Index destIndex = getTargetIndex(client, collection.getBaseId(), indexA, indexB);
-            Collection.Index sourceIndex = null;
-            if (indexA.getIndex().equals(destIndex.getIndex())) {
-                sourceIndex = indexB;
-            } else {
-                sourceIndex = indexA;
-            }
-
-            // 2. 인덱스 설정 변경.
-            logger.info("{} 인덱스 설정 변경", destIndex);
-            editPreparations(client, collection, destIndex);
-
-            // 3. 타겟 인덱스 삭제
-            boolean deleteConfirm = deleteIndex(clusterId, destIndex.getIndex());
-
-            // 4. 타겟 인덱스 삭제가 정상
-            if(deleteConfirm) {
-                // 인덱스 설정
-                logger.debug("indexingSettings:{}", indexing);
-
-                // 인덱스 생성
-                boolean createConfirm = createIndex(clusterId, destIndex.getIndex(), indexing);
-
-                // 인덱스 생성이 정상
-                if(createConfirm) {
-                    // 런처 파라미터 변환작업
-                    logger.info("{} 런처 파라미터 변환 작업", destIndex);
-                    Collection.Launcher launcher = collection.getLauncher();
-                    Map<String, Object> body = convertRequestParams(launcher.getYaml());
-
-                    // reindex 설정값 default
-                    // 배치 사이즈 default : 1000
-                    int reindexBatchSize = 1000;
-                    // sliced-scroll 슬라이스를 사용 (병렬) default : 1
-                    int reindexSlices = 1;
-                    float reindexRequestPerSec = -1; // 수정한 부분
-
-                    if(body.get("reindexBatchSize") != null) {
-                        try{
-                            reindexBatchSize = Integer.parseInt(body.get("reindexBatchSize").toString());
-                        }catch (NumberFormatException e){
-                            logger.info("{}", e);
-                        }
-                    }
-
-                    if(body.get("reindexSlices") != null) {
-                        try{
-                            reindexSlices = Integer.parseInt(body.get("reindexSlices").toString());
-                        }catch (NumberFormatException e){
-                            logger.info("{}", e);
-                        }
-                    }
-
-                    if(body.get("reindexRequestPerSec") != null) { // 추가
-                        try{
-                            reindexRequestPerSec = Float.parseFloat(body.get("reindexRequestPerSec").toString());
-                        }catch (NumberFormatException e){
-                            logger.info("{}", e);
-                        }
-                    }
-
-                    logger.debug("reindexBatchSize:{}, reindexSlices:{}, reindexRequestPerSecond:{}", reindexBatchSize, reindexSlices, reindexRequestPerSec);
-
-                    // reindex request 설정 세팅
-                    ReindexRequest reindexRequest = new ReindexRequest();
-                    if(reindexRequestPerSec > 0) reindexRequest.setRequestsPerSecond(reindexRequestPerSec); // 추가
-                    reindexRequest.setSourceIndices(sourceIndex.getIndex());
-                    reindexRequest.setDestIndex(destIndex.getIndex());
-                    reindexRequest.setRefresh(false);
-                    reindexRequest.setSourceBatchSize(reindexBatchSize);
-                    reindexRequest.setSlices(reindexSlices);
-
-                    // reindex 호출
-                    TaskSubmissionResponse reindexSubmission = client.submitReindexTask(reindexRequest, RequestOptions.DEFAULT);
-
-                    // 작업 번호
-                    String taskId = reindexSubmission.getTask();
-                    logger.info("taskId : {} - source : {} -> dest : {}", taskId, sourceIndex.getIndex(), destIndex.getIndex());
-
-                    indexingStatus.setClusterId(clusterId);
-                    indexingStatus.setIndex(destIndex.getIndex());
-                    indexingStatus.setStartTime(System.currentTimeMillis());
-                    indexingStatus.setTaskId(taskId);
-                    indexingStatus.setAutoRun(autoRun);
-                    indexingStatus.setNextStep(nextStep);
-                    indexingStatus.setCurrentStep(step);
-                    indexingStatus.setRetry(50);
-                    indexingStatus.setCollection(collection);
-                }
-            }
-        } catch (Exception e) {
-            logger.error("", e);
-            // Connection Timeout 히스토리 남기기
-            addIndexHistoryException(clusterId, collection, e.getMessage());
-            throw new IndexingJobFailureException(e);
-        }
-        return indexingStatus;
-    }
-
-    public void stopReindexing(UUID clusterId, Collection collection, IndexingStatus indexingStatus) throws IOException {
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            Collection.Index indexA = collection.getIndexA();
-            Collection.Index indexB = collection.getIndexB();
-
-            Collection.Index index = getTargetIndex(collection.getBaseId(), indexA, indexB);
-            // 취소 요청
-            Request request = new Request("POST", String.format("/_tasks/%s/_cancel", indexingStatus.getTaskId()));
-            request.addParameter("format", "json");
-            Response response = client.getLowLevelClient().performRequest(request);
-            String responseBodyString = EntityUtils.toString(response.getEntity());
-            Map<String, Object> entityMap = new Gson().fromJson(responseBodyString, Map.class);
-            //logger.info("entityMap : {}", entityMap);
-            index.setStatus("STOP");
-            logger.info("stop reindexing : {}", index.getIndex());
-        }
-    }
-
     private Collection.Index getTargetIndex(String baseId, Collection.Index indexA, Collection.Index indexB) {
         Collection.Index index;
         // 인덱스에 대한 alias를 확인
@@ -519,7 +381,7 @@ public class IndexingJobService {
             return index;
         }
 
-        try{
+        try {
             RestClient lowLevelClient = client.getLowLevelClient();
             Request request = new Request("GET", "_cat/aliases");
             request.addParameter("format", "json");
@@ -527,23 +389,23 @@ public class IndexingJobService {
             String entityString = EntityUtils.toString(response.getEntity());
             List<Map<String, Object>> entityMap = new Gson().fromJson(entityString, List.class);
 
-            for(Map<String, Object> item : entityMap){
-                if(item.get("alias").equals(baseId)){
+            for (Map<String, Object> item : entityMap) {
+                if (item.get("alias").equals(baseId)) {
                     String currentIndex = (String) item.get("index");
-                    String suffix = currentIndex.substring(currentIndex.length()-2);
+                    String suffix = currentIndex.substring(currentIndex.length() - 2);
 
-                    if(suffix.equals("-a")){
+                    if (suffix.equals("-a")) {
                         index = indexB;
-                    }else if(suffix.equals("-b")){
+                    } else if (suffix.equals("-b")) {
                         index = indexA;
-                    }else{
+                    } else {
                         index = indexA;
                     }
                     break;
                 }
             }
 
-        }catch (IOException e){
+        } catch (IOException e) {
             logger.error("{}", e);
         }
 
@@ -553,7 +415,6 @@ public class IndexingJobService {
     private void editPreparations(RestHighLevelClient client, Collection collection, Collection.Index index) throws IOException {
         // 인덱스 존재하지 않기 때문에 생성해주기.
         // 인덱스 템플릿이 존재하기 때문에 맵핑 설정 패쓰
-
         if (index.getUuid() == null) {
             boolean isAcknowledged;
             logger.info("ES 인덱스 없을 시, indexing settings >>> {}", indexing);
@@ -561,8 +422,7 @@ public class IndexingJobService {
             logger.debug("create settings : {} ", isAcknowledged);
         } else {
             // 기존 인덱스가 존재하기 때문에 셋팅 설정만 변경함.
-            // settings에 index.routing.allocation.include._exclude=search* 호출
-            // refresh interval: -1로 변경. 색인도중 검색노출하지 않음. 성능향상목적.
+            // refresh interval: -1로 변경. 색인도중 검색노출하지 않음. 성능 향상 목적.
             // 셋팅무시 설정이 있을시 indexing 맵에서 role 제거
             logger.info("ES 인덱스 존재 시, indexing settings >>> {}", indexing);
             boolean isAcknowledged = client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
@@ -588,14 +448,16 @@ public class IndexingJobService {
     public void stopIndexing(String scheme, String host, int port, String jobId) {
         try {
             indexerJobManager.stop(UUID.fromString(jobId));
-        } catch (Exception ignore) {  }
+        } catch (Exception ignore) {
+        }
         try {
             restTemplate.exchange(new URI(String.format("%s://%s:%d/async/stop?id=%s", scheme, host, port, jobId)),
                     HttpMethod.PUT,
                     new HttpEntity(new HashMap<>()),
                     String.class
             );
-        } catch (Exception ignore) { }
+        } catch (Exception ignore) {
+        }
     }
 
     public void subStart(String scheme, String host, int port, String jobId, String groupSeq, boolean isExtIndexer) {
@@ -621,67 +483,6 @@ public class IndexingJobService {
         }
     }
 
-    //check:reindex
-    public boolean deleteIndex(UUID clusterId, String index) throws IOException {
-        boolean isDeleted = false;
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            // 인덱스 삭제 요청
-            DeleteIndexRequest request = new DeleteIndexRequest(index);
-//            AcknowledgedResponse deleteIndexResponse = client.indices().delete(request, RequestOptions.DEFAULT);
-//            flag = deleteIndexResponse.isAcknowledged();
-
-            // 아무것도 하지 않음. 체크는 아래에서 진행.
-            client.indices().deleteAsync(request, RequestOptions.DEFAULT, new ActionListener<AcknowledgedResponse>() {
-                @Override
-                public void onResponse(AcknowledgedResponse acknowledgedResponse) { }
-                @Override
-                public void onFailure(Exception e) { }
-            });
-
-            // 인덱스 삭제 여부 체크
-            while (true) {
-                GetIndexRequest checkRequest = new GetIndexRequest("*");
-                GetIndexResponse response = client.indices().get(checkRequest, RequestOptions.DEFAULT);
-                String[] indices = response.getIndices();
-
-                // 해당 index가 없다면 -> isDelete = true
-                // 해당 index가 있다면 -> isDelete = false
-                for(String s : indices){
-                    if(s.equals(index)){
-                        // 아직까지 삭제 안됨
-                        isDeleted = false;
-                        break;
-                    }else{
-                        isDeleted = true;
-                    }
-                }
-
-                if(isDeleted){
-                    break;
-                }else{
-                    sleep(500);
-                }
-            }
-        }catch (Exception e){
-            logger.error("", e);
-        }
-        return isDeleted;
-    }
-
-    //check:reindex
-    public boolean createIndex(UUID clusterId, String index, Map<String, ?> settings) throws IOException {
-        boolean flag = false;
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            CreateIndexRequest request = new CreateIndexRequest(index);
-            request.settings(settings);
-            AcknowledgedResponse createIndexResponse = client.indices().create(request, RequestOptions.DEFAULT);
-            flag = createIndexResponse.isAcknowledged();
-        } catch (Exception e) {
-            logger.error("", e);
-        }
-        return flag;
-    }
-
     public Map<String, Object> getParams() {
         return params;
     }
@@ -698,7 +499,7 @@ public class IndexingJobService {
         this.indexing = indexing;
     }
 
-    public Map<String,Object> getIndexingSettings() {
+    public Map<String, Object> getIndexingSettings() {
         return this.indexing;
     }
 

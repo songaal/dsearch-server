@@ -31,20 +31,17 @@ public class CollectionController {
     private final CollectionService collectionService;
     private final IndexingJobService indexingJobService;
     private final IndexingJobManager indexingJobManager;
-    private final ProcessService processService;
 
     public CollectionController(@Value("${dsearch.collection.index-suffix-a}") String indexSuffixA,
                                 @Value("${dsearch.collection.index-suffix-b}") String indexSuffixB,
                                 CollectionService collectionService, ClusterService clusterService,
-                                IndexingJobService indexingJobService, IndexingJobManager indexingJobManager,
-                                ProcessService processService) {
+                                IndexingJobService indexingJobService, IndexingJobManager indexingJobManager) {
         this.indexSuffixA = indexSuffixA;
         this.indexSuffixB = indexSuffixB;
         this.collectionService = collectionService;
         this.indexingJobService = indexingJobService;
         this.indexingJobManager = indexingJobManager;
         this.clusterService = clusterService;
-        this.processService = processService;
     }
 
     @PostMapping
@@ -91,7 +88,7 @@ public class CollectionController {
                                             @RequestParam String action,
                                             @PathVariable String id,
                                             @RequestBody Collection collection) throws IOException {
-        logger.info("action: {}, id: {}, collection: {}, type: {}", action, id, collection.getBaseId());
+        logger.info("action: {}, id: {}, baseId: {}", action, id, collection.getBaseId());
         if ("source".equalsIgnoreCase(action)) {
             collectionService.editSource(clusterId, id, collection);
         } else if ("schedule".equalsIgnoreCase(action)) {
@@ -104,14 +101,11 @@ public class CollectionController {
     @PutMapping("/{id}/action")
     public ResponseEntity<?> indexing(@RequestHeader(value = "cluster-id") UUID clusterId,
                                       @PathVariable String id,
-                                      @RequestParam String action,
-                                      @RequestParam String type) throws IndexingJobFailureException, IOException {
+                                      @RequestParam String action) throws IndexingJobFailureException, IOException {
         Map<String, Object> response = new HashMap<>();
         IndexingActionType actionType = getActionType(action);
         Collection collection = collectionService.findById(clusterId, id);
-        logger.info("{}, {}, {}, {}", clusterId, id, action, type);
-
-        registerIndexingJob(clusterId, id, collection, actionType, "", response, type);
+        registerIndexingJob(clusterId, id, collection, actionType, "", response);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
@@ -173,7 +167,7 @@ public class CollectionController {
         }
 
         // 인덱싱 도우미 메서드
-        registerIndexingJob(clusterId, id, collection, actionType, groupSeq, response, "");
+        registerIndexingJob(clusterId, id, collection, actionType, groupSeq, response);
 
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
@@ -250,17 +244,6 @@ public class CollectionController {
         }else{
             return new ResponseEntity<>(HttpStatus.NOT_ACCEPTABLE);
         }
-    }
-
-    //check:reindex
-    @PutMapping("/{id}/indexingType")
-    public ResponseEntity<?> indexing(@RequestHeader(value = "cluster-id") UUID clusterId,
-                                      @PathVariable String id,
-                                      @RequestParam String type) throws IOException {
-        Map<String, Object> response = new HashMap<>();
-        logger.info("{}, {}", id, type);
-        collectionService.editIndexingType(clusterId, id, type);
-        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     /**
@@ -366,8 +349,13 @@ public class CollectionController {
             Collection collection,
             IndexingActionType actionType,
             String groupSeq,
-            Map<String, Object> response,
-            String type) throws IndexingJobFailureException, IOException {
+            Map<String, Object> response) throws IndexingJobFailureException, IOException {
+        logger.info("clusterId={}, id={}, collection={}, actionType={}, groupSeq={}, response={}", clusterId,
+                id,
+                collection,
+                actionType,
+                groupSeq,
+                response);
         switch (actionType){
             case ALL:
                 synchronized (obj) {
@@ -375,24 +363,7 @@ public class CollectionController {
                     if (registerStatus == null) {
                         Queue<IndexStep> nextStep = new ArrayDeque<>();
                         nextStep.add(IndexStep.EXPOSE);
-                        // 전처리 프로세스 (동적색인 off)
-                        processService.preProcess(collection);
-
-                        IndexingStatus indexingStatus = new IndexingStatus();
-                        logger.info("clusterId={}, id={}, collection={}, actionType={}, groupSeq={}, response={}, type={}", clusterId,
-                                id,
-                                collection,
-                                actionType,
-                                groupSeq,
-                                response,
-                                type);
-
-                        if (IndexType.INNER.getType().equals(type)) {
-                            indexingStatus = indexingJobService.reindex(clusterId, collection, true, IndexStep.REINDEX, nextStep);
-                        } else if (IndexType.OUTER.getType().equals(type)) {
-                            indexingStatus = indexingJobService.indexing(clusterId, collection, true, IndexStep.FULL_INDEX, nextStep);
-                        }
-
+                        IndexingStatus indexingStatus = indexingJobService.indexing(clusterId, collection, true, IndexStep.FULL_INDEX, nextStep);
                         indexingStatus.setAction(actionType.getAction());
                         indexingStatus.setStatus("RUNNING");
                         indexingJobManager.add(collection.getId(), indexingStatus);
@@ -435,8 +406,7 @@ public class CollectionController {
                     if (indexingStatus != null
                             &&
                             (indexingStatus.getCurrentStep() == IndexStep.FULL_INDEX
-                                    || indexingStatus.getCurrentStep() == IndexStep.DYNAMIC_INDEX
-                                    || indexingStatus.getCurrentStep() == IndexStep.REINDEX)) {
+                                    || indexingStatus.getCurrentStep() == IndexStep.DYNAMIC_INDEX )) {
                         Collection.Launcher launcher = collection.getLauncher();
                         indexingJobService.stopIndexing(indexingStatus.getScheme(), launcher.getHost(), launcher.getPort(), indexingStatus.getIndexingJobId());
                         response.put("indexingStatus", indexingStatus);
@@ -454,20 +424,6 @@ public class CollectionController {
                         logger.info("sub_start >>>> {}, groupSeq: {}", collection.getName(), groupSeq);
                         Collection.Launcher launcher = collection.getLauncher();
                         indexingJobService.subStart(indexingStatus.getScheme(), launcher.getHost(), launcher.getPort(), indexingStatus.getIndexingJobId(), groupSeq, collection.isExtIndexer());
-                        response.put("indexingStatus", indexingStatus);
-                        response.put("result", "success");
-                    } else {
-                        response.put("result", "fail");
-                    }
-                }
-                break;
-            case STOP_REINDEXING:
-                synchronized (obj) {
-                    IndexingStatus indexingStatus = indexingJobManager.findById(id);
-                    if (indexingStatus != null && (indexingStatus.getCurrentStep() == IndexStep.REINDEX)) {
-                        indexingStatus.setStatus("STOP");
-                        indexingJobService.stopReindexing(clusterId, collection, indexingStatus);
-                        indexingJobManager.setStopStatus(id, "STOP"); // 추가
                         response.put("indexingStatus", indexingStatus);
                         response.put("result", "success");
                     } else {

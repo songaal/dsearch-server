@@ -112,11 +112,7 @@ public class CollectionService {
                     Deque<IndexStep> nextStep = new ArrayDeque<>();
                     nextStep.add(IndexStep.EXPOSE);
                     IndexingStatus status;
-                    if("inner".equalsIgnoreCase(registerCollection.getIndexingType())){
-                        status = indexingJobService.reindex(clusterId, registerCollection, true, IndexStep.REINDEX, nextStep);
-                    }else{
-                        status = indexingJobService.indexing(clusterId, registerCollection, true, IndexStep.FULL_INDEX, nextStep);
-                    }
+                    status = indexingJobService.indexing(clusterId, registerCollection, true, IndexStep.FULL_INDEX, nextStep);
                     indexingJobManager.add(registerCollection.getId(), status);
                     logger.debug("enabled scheduled collection: {}", registerCollection.getId());
                 } catch (IndexingJobFailureException | IOException e) {

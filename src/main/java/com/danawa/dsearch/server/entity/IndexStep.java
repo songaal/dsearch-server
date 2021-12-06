@@ -3,6 +3,5 @@ package com.danawa.dsearch.server.entity;
 public enum IndexStep {
     FULL_INDEX,
     DYNAMIC_INDEX,
-    EXPOSE,
-    REINDEX;
+    EXPOSE
 }

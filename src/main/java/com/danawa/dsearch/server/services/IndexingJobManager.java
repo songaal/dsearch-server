@@ -46,7 +46,6 @@ public class IndexingJobManager {
     private final IndexingJobService indexingJobService;
     private final ElasticsearchFactory elasticsearchFactory;
     private final IndexJobManager indexerJobManager;
-    private final ProcessService processService;
 
     private final String lastIndexStatusIndex = ".dsearch_last_index_status";
     private final String indexHistory = ".dsearch_index_history";
@@ -60,8 +59,7 @@ public class IndexingJobManager {
     public IndexingJobManager(IndexingJobService indexingJobService,
                               ElasticsearchFactory elasticsearchFactory,
                               IndexJobManager indexerJobManager,
-                              @Value("${dsearch.timeout}") long timeout,
-                              ProcessService processService) {
+                              @Value("${dsearch.timeout}") long timeout) {
         this.indexerJobManager = indexerJobManager;
         this.timeout = timeout;
         this.indexingJobService = indexingJobService;
@@ -70,7 +68,6 @@ public class IndexingJobManager {
         factory.setConnectTimeout(10 * 1000);
         factory.setReadTimeout(10 * 1000);
         restTemplate = new RestTemplate(factory);
-        this.processService = processService;
     }
 
     @Scheduled(fixedDelay = 500)
@@ -91,11 +88,7 @@ public class IndexingJobManager {
                     throw new IndexingJobFailureException("STEP is Null");
                 } else if (step == IndexStep.FULL_INDEX || step == IndexStep.DYNAMIC_INDEX) {
                     // indexer한테 상태를 조회한다.
-                    logger.info("currentStep: {} / index: {}", step, indexingStatus.getIndex());
                     updateIndexerStatus(id, indexingStatus);
-                } else if (step == IndexStep.REINDEX) {
-                    logger.info("currentStep: {} / index: {}", step, indexingStatus.getIndex());
-                    updateReindexStatus(id, indexingStatus);
                 } else if (step == IndexStep.EXPOSE) {
                     //  EXPOSE
                     UUID clusterId = indexingStatus.getClusterId();
@@ -114,11 +107,6 @@ public class IndexingJobManager {
                     }
 
                     jobs.remove(id);
-
-                    if ("all".equalsIgnoreCase(indexingStatus.getAction())) {
-                        // 후처리 프로세스 (동적색인 on)
-                        processService.postProcess(indexingStatus.getCollection());
-                    }
                 }
 
                 if (System.currentTimeMillis() - indexingStatus.getStartTime() >= timeout){
@@ -135,10 +123,6 @@ public class IndexingJobManager {
                         logger.error("", e1);
                     }
                     jobs.remove(id);
-                    if ("all".equalsIgnoreCase(indexingStatus.getAction())) {
-                        // 후처리 프로세스 (동적색인 on)
-                        processService.postProcess(indexingStatus.getCollection());
-                    }
                 }
             } catch (Exception e) {
                 logger.error("", e);
@@ -225,7 +209,6 @@ public class IndexingJobManager {
      * indexer 조회 후 상태 업데이트.
      * */
     private void updateIndexerStatus(String id, IndexingStatus indexingStatus) throws IOException{
-        logger.info("updateIndexerStatus [retryCount:{}] [id:{}] [status:{}] ", indexingStatus.getRetry(), id, indexingStatus);
 
         UUID clusterId = indexingStatus.getClusterId();
         String index = indexingStatus.getIndex();
@@ -253,7 +236,7 @@ public class IndexingJobManager {
             return;
         }
 
-        logger.info("index: {}, status: {}", indexingStatus.getIndex(), status);
+        logger.info("index: {}, status: {}, retryCount: {}", indexingStatus.getIndex(), status, indexingStatus.getRetry());
 
         if ("SUCCESS".equalsIgnoreCase(status) || "ERROR".equalsIgnoreCase(status) || "STOP".equalsIgnoreCase(status)) {
             // indexer job id 삭제.
@@ -302,11 +285,6 @@ public class IndexingJobManager {
             } else if ("ERROR".equalsIgnoreCase(status) || "STOP".equalsIgnoreCase(status)) {
                 logger.info("Indexing {}, id: {}, indexingStatus: {}", status, id, indexingStatus);
                 jobs.remove(id);
-                // action 이 all (연속실행)일 경우
-                if ("all".equalsIgnoreCase(indexingStatus.getAction())) {
-                    // 후처리 프로세스 (동적색인 on)
-                    processService.postProcess(indexingStatus.getCollection());
-                }
             } else {
                 // 다음 작업이 없으면 제거.
                 IndexingStatus idxStat = jobs.get(id);
@@ -320,125 +298,6 @@ public class IndexingJobManager {
             indexingStatus.setStatus(status);
             jobs.put(id, indexingStatus);
         }
-    }
-
-    /**
-     * reindex 조회 후 상태 업데이트.
-     * */
-    private void updateReindexStatus(String id, IndexingStatus indexingStatus) throws IOException, IndexingJobFailureException {
-        UUID clusterId = indexingStatus.getClusterId();
-        String index = indexingStatus.getIndex();
-        IndexStep step = indexingStatus.getCurrentStep();
-        String taskId = indexingStatus.getTaskId();
-        String taskStatus = indexingStatus.getStatus();
-
-        String createdDocSize = "0";
-
-        // task 조회
-        try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            Request request = new Request("GET", String.format("/_tasks/%s", taskId));
-            request.addParameter("format", "json");
-            Response response = client.getLowLevelClient().performRequest(request);
-            String responseBodyString = EntityUtils.toString(response.getEntity());
-            Map<String ,Object> entityMap = new Gson().fromJson(responseBodyString, Map.class);
-            //logger.info("entityMap : {}", entityMap);
-            String completed = entityMap.get("completed").toString();
-            Map<String, Object> taskMap = (Map<String, Object>) entityMap.get("task");
-            Map<String, Object> statusMap = (Map<String, Object>) taskMap.get("status");
-            logger.debug("reindexing... total:{}, updated:{}, created:{}, deleted:{}", statusMap.get("total"), statusMap.get("updated"), statusMap.get("created"), statusMap.get("deleted"));
-
-            // completed false 이면 실행중, true 이면 종료(완료)
-            if("false".equals(completed)) {
-                taskStatus = "RUNNING";
-            } else if ("true".equals(completed)){
-                Map<String, Object> responseMap = (Map<String, Object>) entityMap.get("response");
-                List<Map<String, Object>> failures = (List<Map<String, Object>>) responseMap.get("failures");
-
-                // 실제 생성된 document 갯수
-                createdDocSize = String.valueOf(responseMap.get("created"));
-                if(createdDocSize.contains(".")){
-                    createdDocSize = createdDocSize.split("\\.")[0];
-                }
-
-                // 종료일 경우
-                // 1. canceled 값이 있으면 취소로 인한 종료
-                // 2. failures에 값이 있으면 에러로 인한 종료
-                if (responseMap.get("canceled") != null) {
-                    logger.info("reindex canceled: {}", responseMap.get("canceled"));
-                    taskStatus = "STOP";
-                } else if(failures.size() == 0){
-                    taskStatus = "SUCCESS";
-                } else {
-                    logger.error("reindex error:{}", failures);
-                    taskStatus = "ERROR";
-                }
-
-//                logger.debug("responseMap:{}", responseMap);
-//                if (errorMap != null) {
-//                    logger.error("reindex error:{}", errorMap);
-//                    taskStatus = "ERROR";
-//                } else if (responseMap.get("failures") != null) {
-//                    logger.error("reindex failures:{}", responseMap.get("failures"));
-//                    taskStatus = "ERROR";
-//                } else if (responseMap.get("canceled") != null) {
-//                    logger.info("reindex canceled:{}", responseMap.get("canceled"));
-//                    taskStatus = "STOP";
-//                } else {
-//                    taskStatus = "SUCCESS";
-//                }
-            } else {
-                logger.info("reindex completed check!!! completed : {}", completed);
-                logger.debug("entityMap:{}", entityMap);
-                taskStatus = "ERROR";
-            }
-        }
-
-        logger.debug("reindex Check.. index: {}, is {}", index, taskStatus);
-        if ("SUCCESS".equalsIgnoreCase(taskStatus) || "ERROR".equalsIgnoreCase(taskStatus) || "STOP".equalsIgnoreCase(taskStatus)) {
-            try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-                Map<String, Object> catIndex = catIndex(client, index);
-//                String docSize = (String) catIndex.get("docs.count");
-                String store = (String) catIndex.get("store.size");
-                long startTime = indexingStatus.getStartTime();
-                deleteLastIndexStatus(client, index, startTime);
-
-                // docSize 가 다르므로 처리 필요.
-                // cat으로 가져오던 docSize를 reindex response에서 가져옴
-                addIndexHistory(client, index, step.name(), startTime, System.currentTimeMillis(), indexingStatus.isAutoRun(), createdDocSize, taskStatus, store);
-
-                logger.info("REINDEX {}, id: {}, indexingStatus: {}", taskStatus, id, indexingStatus.toString());
-
-                IndexStep nextStep = indexingStatus.getNextStep().poll();
-                if ("SUCCESS".equalsIgnoreCase(taskStatus) && nextStep != null) {
-                    indexingJobService.changeRefreshInterval(clusterId, indexingStatus.getCollection(), indexingStatus.getIndex());
-
-                    indexingStatus.setCurrentStep(nextStep);
-                    indexingStatus.setStartTime(System.currentTimeMillis());
-                    indexingStatus.setEndTime(0);
-                    indexingStatus.setRetry(50);
-                    indexingStatus.setAutoRun(true);
-                    jobs.put(id, indexingStatus);
-                    logger.debug("next Step >> {}", nextStep);
-                } else {
-                    indexingJobService.changeRefreshInterval(clusterId, indexingStatus.getCollection(), indexingStatus.getIndex());
-                    IndexingStatus idxStat = jobs.get(id);
-                    idxStat.setStatus(taskStatus);
-                    idxStat.setEndTime(System.currentTimeMillis());
-                    indexingProcessQueue.put(id, idxStat);
-                    jobs.remove(id);
-                    logger.debug("empty next status : {} Step >> {}", taskStatus, id);
-                }
-                // action 이 all (연속실행) 이면서 상태가 error 또는 stop 일 경우
-                if ("all".equalsIgnoreCase(indexingStatus.getAction()) && ("ERROR".equalsIgnoreCase(taskStatus) || "STOP".equalsIgnoreCase(taskStatus))) {
-                    // 후처리 프로세스 (동적색인 on)
-                    processService.postProcess(indexingStatus.getCollection());
-                }
-            }
-        } else {
-            indexingStatus.setStatus(taskStatus);
-            jobs.put(id, indexingStatus);
-        }
-
     }
 
     private Map<String ,Object> catIndex(RestHighLevelClient client, String index) throws IOException {
