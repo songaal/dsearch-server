@@ -1,6 +1,7 @@
 FROM openjdk:8
 
 ENV TZ=Asia/Seoul
+ENV LOG4J_FORMAT_MSG_NO_LOOKUPS=true
 
 RUN apt-get update -y
 RUN apt-get install rsync -y
