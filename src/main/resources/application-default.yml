@@ -1,6 +1,8 @@
 server:
   port: 8080
 spring:
+  profiles:
+    active: local
   h2:
     console:
       enabled: true
@@ -29,8 +31,8 @@ spring:
 #    max-history: 7
 #    clean-history-on-start: true
 #    max-size: 100MB
-logging:
-  config: classpath:log4j2.xml
+#logging:
+#  config: classpath:log4j2.xml
 dsearch:
   notice:
     telegram:

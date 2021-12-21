@@ -9,6 +9,8 @@ server:
 #    trust-store: dsearch.pkcs12
 #    trust-store-password: ${DSEARCH_PASSWORD:''}
 spring:
+  profiles:
+    active: prod
   h2:
     console:
       enabled: true
@@ -37,8 +39,8 @@ spring:
 #    path: /var/log
 #    max-history: 30
 #    max-size: 500MB
-logging:
-  config: classpath:log4j2-prod.xml
+#logging:
+#  config: classpath:log4j2-prod.xml
 dsearch:
   notice:
     telegram:
