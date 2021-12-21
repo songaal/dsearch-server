@@ -14,7 +14,7 @@
     </appender>
 
     <appender name="dsearch_file" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>./logs/dsearch.log</file>
+        <file>/data/logs/dsearch.log</file>
         <filter class="ch.qos.logback.classic.filter.LevelFilter">
             <level>INFO</level>
             <onMatch>ACCEPT</onMatch> <!-- 해당 레벨만 기록한다. -->
@@ -24,12 +24,12 @@
             <pattern>[%d{yyyy-MM-dd HH:mm:ss.SSS} %p] [%t] (%F:%L\) - %m%n</pattern>
         </encoder>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>./logs/dsearch-%d{yyyy-MM-dd}.log</fileNamePattern>
+            <fileNamePattern>/data/logs/dsearch-%d{yyyy-MM-dd}.log</fileNamePattern>
         </rollingPolicy>
     </appender>
 
     <appender name="indexer_file" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>./logs/dsearch-indexer.log</file>
+        <file>/data/logs/dsearch-indexer.log</file>
         <filter class="ch.qos.logback.classic.filter.LevelFilter">
             <level>INFO</level>
             <onMatch>ACCEPT</onMatch> <!-- 해당 레벨만 기록한다. -->
@@ -39,12 +39,12 @@
             <pattern>[%d{yyyy-MM-dd HH:mm:ss.SSS} %p] [%t] (%F:%L\) - %m%n</pattern>
         </encoder>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>./logs/dsearch-indexer-%d{yyyy-MM-dd}.log</fileNamePattern>
+            <fileNamePattern>/data/logs/dsearch-indexer-%d{yyyy-MM-dd}.log</fileNamePattern>
         </rollingPolicy>
     </appender>
 
     <appender name="errorFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>./logs/error.log</file>
+        <file>/data/logs/error.log</file>
         <filter class="ch.qos.logback.classic.filter.LevelFilter">
             <level>INFO</level>
             <onMatch>ACCEPT</onMatch> <!-- 해당 레벨만 기록한다. -->
@@ -54,7 +54,7 @@
             <pattern>[%d{yyyy-MM-dd HH:mm:ss.SSS} %p] [%t] (%F:%L\) - %m%n</pattern>
         </encoder>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>./logs/error-%d{yyyy-MM-dd}.log</fileNamePattern>
+            <fileNamePattern>/data/logs/error-%d{yyyy-MM-dd}.log</fileNamePattern>
         </rollingPolicy>
     </appender>
 
