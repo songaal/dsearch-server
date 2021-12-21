@@ -30,8 +30,6 @@ spring:
 #    path: /var/log
 #    max-history: 30
 #    max-size: 500MB
-#logging:
-#  config: classpath:log4j2-dev.xml
 dsearch:
   notice:
     telegram:

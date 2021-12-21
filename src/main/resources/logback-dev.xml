@@ -2,7 +2,7 @@
 <configuration>
 
     <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
-        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
             <level>INFO</level>
             <onMatch>ACCEPT</onMatch> <!-- 해당 레벨만 기록한다. -->
             <onMismatch>DENY</onMismatch> <!-- 다른 수준의 레벨은 기록하지 않는다.(상위 레벨도 기록 안함), 상위 수준의 레벨에 대한 기록을 원하면 ACCEPT 로 하면 기록된다. -->
@@ -15,7 +15,7 @@
 
     <appender name="dsearch_file" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>./logs/dsearch.log</file>
-        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
             <level>INFO</level>
             <onMatch>ACCEPT</onMatch> <!-- 해당 레벨만 기록한다. -->
             <onMismatch>DENY</onMismatch> <!-- 다른 수준의 레벨은 기록하지 않는다.(상위 레벨도 기록 안함), 상위 수준의 레벨에 대한 기록을 원하면 ACCEPT 로 하면 기록된다. -->
@@ -30,7 +30,7 @@
 
     <appender name="indexer_file" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>./logs/dsearch-indexer.log</file>
-        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
             <level>INFO</level>
             <onMatch>ACCEPT</onMatch> <!-- 해당 레벨만 기록한다. -->
             <onMismatch>DENY</onMismatch> <!-- 다른 수준의 레벨은 기록하지 않는다.(상위 레벨도 기록 안함), 상위 수준의 레벨에 대한 기록을 원하면 ACCEPT 로 하면 기록된다. -->
@@ -45,7 +45,7 @@
 
     <appender name="errorFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>./logs/error.log</file>
-        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
             <level>INFO</level>
             <onMatch>ACCEPT</onMatch> <!-- 해당 레벨만 기록한다. -->
             <onMismatch>DENY</onMismatch> <!-- 다른 수준의 레벨은 기록하지 않는다.(상위 레벨도 기록 안함), 상위 수준의 레벨에 대한 기록을 원하면 ACCEPT 로 하면 기록된다. -->
