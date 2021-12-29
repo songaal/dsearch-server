@@ -1,0 +1,14 @@
+FROM openjdk:8
+
+ENV TZ=Asia/Seoul
+
+RUN mkdir -p /data/indexFile
+RUN apt-get update -y
+RUN apt-get install rsync -y
+
+ARG PROJECT_NAME
+ARG VERSION
+
+WORKDIR /app
+
+CMD ["java", "-jar", "$PROJECT_NAME-$VERSION.jar"]
