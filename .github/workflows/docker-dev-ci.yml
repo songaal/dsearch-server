@@ -1,10 +1,10 @@
-name: docker-ci-workflow
+name: docker-dev-ci
 
 on:
   push:
-    branches: [ release/**, hotfix/**, develop, feature/**, bugfix/** ]
+    branches: [ develop, feature/**, bugfix/** ]
   pull_request:
-    branches: [ release/**, hotfix/**, develop, feature/**, bugfix/** ]
+    branches: [ develop, feature/**, bugfix/** ]
 
 env:
   CONTAINER_REGISTRY: ghcr.io
