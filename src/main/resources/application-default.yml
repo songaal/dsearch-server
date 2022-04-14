@@ -20,8 +20,6 @@ spring:
     multipart:
       max-file-size: 200MB
       max-request-size: 200MB
-  config:
-    use-legacy-processing: true
 #logging:
 #  level:
 #    level:
