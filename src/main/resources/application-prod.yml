@@ -31,6 +31,9 @@ spring:
       max-request-size: 200MB
   config:
     use-legacy-processing: true
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
 #logging:
 #  level:
 #    level:
