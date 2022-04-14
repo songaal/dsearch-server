@@ -1,6 +1,5 @@
 package com.danawa.dsearch.server.config;
 
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -15,9 +14,7 @@ public class WebMvcConfig {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
-                registry.addMapping("/*/*")
-//                registry.addMapping("/**/*")
-//                        .allowedOrigins("*")
+                registry.addMapping("/**/*")
                         .allowedOriginPatterns("*")
                         .allowedMethods(
                                 HttpMethod.GET.name(),
@@ -33,8 +30,7 @@ public class WebMvcConfig {
                         .maxAge(3600);
 
 //                registry.addMapping("/**")
-                registry.addMapping("/*")
-//                        .allowedOrigins("*")
+                registry.addMapping("/**")
                         .allowedOriginPatterns("*")
                         .allowedMethods(
                                 HttpMethod.GET.name(),
