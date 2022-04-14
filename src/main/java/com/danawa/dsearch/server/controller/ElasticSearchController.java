@@ -37,7 +37,7 @@ public class ElasticSearchController {
         return new ResponseEntity<>(clusterStatus, HttpStatus.OK);
     }
 
-    @RequestMapping({"/*", "/**"})
+    @RequestMapping(value = {"/*", "/**"})
     public ResponseEntity<?> proxy(HttpServletRequest request,
                                    @RequestHeader(value = "cluster-id") UUID clusterId,
                                    @RequestParam Map<String,String> queryStringMap,
