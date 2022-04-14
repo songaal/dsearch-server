@@ -17,7 +17,8 @@ public class WebMvcConfig {
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/*/*")
 //                registry.addMapping("/**/*")
-                        .allowedOrigins("*")
+//                        .allowedOrigins("*")
+                        .allowedOriginPatterns("*")
                         .allowedMethods(
                                 HttpMethod.GET.name(),
                                 HttpMethod.POST.name(),
@@ -33,7 +34,8 @@ public class WebMvcConfig {
 
 //                registry.addMapping("/**")
                 registry.addMapping("/*")
-                        .allowedOrigins("*")
+//                        .allowedOrigins("*")
+                        .allowedOriginPatterns("*")
                         .allowedMethods(
                                 HttpMethod.GET.name(),
                                 HttpMethod.POST.name(),
