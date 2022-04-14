@@ -14,6 +14,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     public void configure(WebSecurity web) throws Exception {
         web.ignoring().antMatchers("/resources/**", "/h2-console/**");
+//        web.ignoring().antMatchers("/resources/*", "/h2-console/*");
     }
 
     @Override
@@ -21,6 +22,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         http.cors().and().csrf().disable();
         http.authorizeRequests()
                 .mvcMatchers("/**")
+//                .mvcMatchers("/*")
                 .permitAll();
     }
 

@@ -15,8 +15,10 @@ public class WebMvcConfig {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
-                registry.addMapping("/**/*")
-                        .allowedOrigins("*")
+                registry.addMapping("/*/*")
+//                registry.addMapping("/**/*")
+//                        .allowedOrigins("*")
+                        .allowedOriginPatterns("*")
                         .allowedMethods(
                                 HttpMethod.GET.name(),
                                 HttpMethod.POST.name(),
@@ -30,8 +32,10 @@ public class WebMvcConfig {
                         .exposedHeaders("x-bearer-token")
                         .maxAge(3600);
 
-                registry.addMapping("/**")
-                        .allowedOrigins("*")
+//                registry.addMapping("/**")
+                registry.addMapping("/*")
+//                        .allowedOrigins("*")
+                        .allowedOriginPatterns("*")
                         .allowedMethods(
                                 HttpMethod.GET.name(),
                                 HttpMethod.POST.name(),
