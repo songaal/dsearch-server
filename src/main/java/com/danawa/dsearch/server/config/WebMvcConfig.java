@@ -19,9 +19,6 @@ public class WebMvcConfig {
                         .allowedOriginPatterns("/*/*")
                         .allowedOriginPatterns("/**/*")
                         .allowedOriginPatterns("*")
-                        .allowedOrigins("*")
-                        .allowedOrigins("/*/*")
-                        .allowedOrigins("/**/*")
                         .allowedMethods(
                                 HttpMethod.GET.name(),
                                 HttpMethod.POST.name(),
