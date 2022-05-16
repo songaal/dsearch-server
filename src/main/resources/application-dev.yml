@@ -74,7 +74,7 @@ dsearch:
   build:
     name: @project.name@
     version: @project.version@
-  # timeout = 15 hours
-  timeout: 54000000
+  # timeout = 18 hours
+  timeout: 64800000
   comments:
     setting: .dsearch_mapping_comments
