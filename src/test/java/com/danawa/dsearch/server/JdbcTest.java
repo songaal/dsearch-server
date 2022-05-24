@@ -1,6 +1,6 @@
 package com.danawa.dsearch.server;
 
-import com.danawa.dsearch.server.entity.JdbcRequest;
+import com.danawa.dsearch.server.jdbc.entity.JdbcRequest;
 import org.junit.jupiter.api.Test;
 
 import org.slf4j.Logger;

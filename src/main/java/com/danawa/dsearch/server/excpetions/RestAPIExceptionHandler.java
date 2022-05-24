@@ -1,6 +1,6 @@
 package com.danawa.dsearch.server.excpetions;
 
-import com.danawa.dsearch.server.entity.ErrorResponse;
+import com.danawa.dsearch.server.excpetions.entity.ErrorResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -16,7 +16,6 @@ import java.io.IOException;
 @ControllerAdvice
 public class RestAPIExceptionHandler extends ResponseEntityExceptionHandler {
     private static Logger logger = LoggerFactory.getLogger(RestAPIExceptionHandler.class);
-
 
     @ExceptionHandler(value = {ElasticQueryException.class})
     protected ResponseEntity<Object> elasticsearchException(Exception ex, WebRequest request) {

@@ -1,8 +1,6 @@
 package com.danawa.dsearch.server;
 
-import com.danawa.dsearch.server.services.DictionaryService;
-import lombok.SneakyThrows;
-import org.junit.Before;
+import com.danawa.dsearch.server.dictionary.DictionaryService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

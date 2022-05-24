@@ -1,6 +1,6 @@
 package com.danawa.dsearch.server;
 
-import com.danawa.dsearch.server.entity.AnalyzerTokens;
+import com.danawa.dsearch.server.rankingtuning.entity.AnalyzerTokens;
 import org.apache.http.HttpHost;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;

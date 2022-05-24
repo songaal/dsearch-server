@@ -1,31 +1,16 @@
 package com.danawa.dsearch.server;
 
-import com.danawa.dsearch.server.entity.Cluster;
-import com.danawa.dsearch.server.repository.ClusterRepository;
-import com.danawa.dsearch.server.services.ClusterService;
+import com.danawa.dsearch.server.clusters.entity.Cluster;
+import com.danawa.dsearch.server.clusters.repository.ClusterRepository;
 import org.assertj.core.api.Assertions;
-import org.hibernate.annotations.CreationTimestamp;
-import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringApplication;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.context.annotation.aspectj.EnableSpringConfigured;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.CurrentSecurityContext;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import javax.annotation.Resource;
-import javax.persistence.Column;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 
 @SpringBootTest

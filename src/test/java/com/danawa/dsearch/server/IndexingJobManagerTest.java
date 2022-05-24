@@ -1,7 +1,7 @@
 package com.danawa.dsearch.server;
 
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
-import com.danawa.dsearch.server.services.IndexingJobManager;
+import com.danawa.dsearch.server.collections.service.IndexingJobManager;
 import com.google.gson.Gson;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.client.Request;

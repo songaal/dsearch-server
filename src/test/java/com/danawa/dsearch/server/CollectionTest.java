@@ -1,8 +1,8 @@
 package com.danawa.dsearch.server;
 
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
-import com.danawa.dsearch.server.services.CollectionService;
-import com.danawa.dsearch.server.services.IndexingJobService;
+import com.danawa.dsearch.server.collections.service.CollectionService;
+import com.danawa.dsearch.server.collections.service.IndexingJobService;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
