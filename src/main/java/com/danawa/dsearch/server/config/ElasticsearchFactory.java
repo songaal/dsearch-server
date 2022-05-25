@@ -1,7 +1,7 @@
 package com.danawa.dsearch.server.config;
 
 import com.danawa.dsearch.server.clusters.entity.Cluster;
-import com.danawa.dsearch.server.clusters.ClusterService;
+import com.danawa.dsearch.server.clusters.service.ClusterService;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;

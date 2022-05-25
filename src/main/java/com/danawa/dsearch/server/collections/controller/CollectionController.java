@@ -1,6 +1,6 @@
 package com.danawa.dsearch.server.collections.controller;
 
-import com.danawa.dsearch.server.clusters.ClusterService;
+import com.danawa.dsearch.server.clusters.service.ClusterService;
 import com.danawa.dsearch.server.collections.service.IndexingJobManager;
 import com.danawa.dsearch.server.collections.service.IndexingJobService;
 import com.danawa.dsearch.server.collections.service.CollectionService;
@@ -234,9 +234,8 @@ public class CollectionController {
     }
 
     @PostMapping(value = "/setSettings")
-    public ResponseEntity<?> setSettings(@RequestParam String type, @RequestBody Map<String, Object> settings) {
-        System.out.println(type);
-        System.out.println(settings);
+    public ResponseEntity<?> setSettings(@RequestParam String type,
+                                         @RequestBody Map<String, Object> settings) {
         if(type.equals("indexing")){
             indexingJobManager.setSettings("indexing", settings);
             return new ResponseEntity<>(HttpStatus.OK);

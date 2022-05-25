@@ -4,7 +4,7 @@ import com.danawa.dsearch.server.auth.entity.AuthUser;
 import com.danawa.dsearch.server.auth.entity.User;
 import com.danawa.dsearch.server.excpetions.NotFoundUserException;
 import com.danawa.dsearch.server.auth.service.AuthService;
-import com.danawa.dsearch.server.clusters.ClusterService;
+import com.danawa.dsearch.server.clusters.service.ClusterService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;

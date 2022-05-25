@@ -2,7 +2,7 @@ package com.danawa.dsearch.server;
 
 import com.danawa.dsearch.server.collections.service.CollectionService;
 import com.danawa.dsearch.server.collections.service.IndexingJobService;
-import com.danawa.dsearch.server.indices.IndicesService;
+import com.danawa.dsearch.server.indices.service.IndicesService;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

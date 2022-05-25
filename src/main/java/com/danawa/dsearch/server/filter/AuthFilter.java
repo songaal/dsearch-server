@@ -52,22 +52,6 @@ public class AuthFilter implements Filter {
             }
 
         }
-
-//        String uri = request.getRequestURI();
-//        HttpSession session = request.getSession();
-//        AuthUser authUser = (AuthUser) session.getAttribute(AuthController.SESSION_KEY);
-//        logger.trace("session: {}, uri: {}", session.getId(), uri);
-//        if (authUser != null) {
-//            chain.doFilter(req, resp);
-//            addSameSite(response);
-//        } else if (bypassUri.contains(uri)) {
-//            chain.doFilter(req, resp);
-//            addSameSite(response);
-//        } else {
-//            response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
-//        }
     }
-
-
 
 }
