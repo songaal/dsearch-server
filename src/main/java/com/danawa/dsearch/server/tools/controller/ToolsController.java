@@ -1,5 +1,6 @@
 package com.danawa.dsearch.server.tools.controller;
 
+import com.danawa.dsearch.server.tools.entity.AnalysisToolRequest;
 import com.danawa.dsearch.server.tools.service.ToolsService;
 import com.google.gson.Gson;
 import org.apache.http.util.EntityUtils;
@@ -43,11 +44,11 @@ public class ToolsController {
 
     @PostMapping("/detail/analysis")
     public ResponseEntity<?> getDetailAnalysis(@RequestHeader(value = "cluster-id") UUID clusterId,
-                                               @RequestBody Map<String, Object> request) throws Exception {
+                                               @RequestBody AnalysisToolRequest request) throws Exception {
 
         // text필드에 있는 특수문자 처리 :  ex.) 15"
-        String text = (String) request.get("text");
-        request.replace("text", text.replace("\"", "\\\""));
+        String text = request.getText().replace("\"", "\\\"");
+        request.setText(text);
         logger.info("{}", request);
         Response response = toolsService.getDetailAnalysis(clusterId, request);
         String responseBody = EntityUtils.toString(response.getEntity());

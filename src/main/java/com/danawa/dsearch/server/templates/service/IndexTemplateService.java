@@ -64,8 +64,13 @@ public class IndexTemplateService {
             searchRequest.source(builder);
             SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
 
+            Map<String, Object> data = (Map) comments.get("data");
+
+            Map<String, Object> map = new HashMap<>();
+            map.put("comments", data.get("comments"));
+            map.put("name", data.get("name"));
+
             if(searchResponse.getHits().getHits().length == 0){
-                Map<String, Object> data = (Map) comments.get("data");
                 XContentBuilder source = jsonBuilder()
                         .startObject()
                         .field("comments", data.get("comments"))
@@ -78,23 +83,11 @@ public class IndexTemplateService {
                 client.index(indexRequest, RequestOptions.DEFAULT).toString();
             }else if(comments.get("id") == null){
                 SearchHit[] hits = searchResponse.getHits().getHits();
-
-                Map<String, Object> map = new HashMap<>();
-                Map<String, Object> data = (Map) comments.get("data");
-                map.put("comments", data.get("comments"));
-                map.put("name", data.get("name"));
-
                 client.update(new UpdateRequest()
                         .index(commentsIndex)
                         .id(hits[0].getId())
                         .doc(map), RequestOptions.DEFAULT);
             }else{
-                // 설명이 있을때
-                Map<String, Object> map = new HashMap<>();
-                Map<String, Object> data = (Map) comments.get("data");
-                map.put("comments", data.get("comments"));
-                map.put("name", data.get("name"));
-
                 client.update(new UpdateRequest()
                         .index(commentsIndex)
                         .id((String) comments.get("id"))
