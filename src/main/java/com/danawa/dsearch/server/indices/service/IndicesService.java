@@ -36,7 +36,6 @@ import java.util.concurrent.TimeUnit;
 public class IndicesService {
     private static Logger logger = LoggerFactory.getLogger(IndicesService.class);
     private final ElasticsearchFactory elasticsearchFactory;
-
     private final String lastIndexStatusIndex = ".dsearch_last_index_status";
     private final String lastIndexStatusIndexJson = "last_index_status.json";
     private final String indexHistory = ".dsearch_index_history";

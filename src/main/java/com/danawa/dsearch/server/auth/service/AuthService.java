@@ -55,7 +55,7 @@ public class AuthService {
         User systemManager = userService.findByEmail(email);
         if (systemManager == null) {
             User systemManagerUser = new User(username, encoder.encode(password), email);
-            systemManagerUser = userService.set(systemManagerUser);
+            systemManagerUser = userService.addDefaultSystemManager(systemManagerUser);
             Role systemManagerRole = roleService.add(Role.builder()
                     .name(SYSTEM_MANAGER_ROLE)
                     .analysis(true)
@@ -85,10 +85,10 @@ public class AuthService {
         return authUser;
     }
 
-    public AuthUser findAuthUserByToken(String token) {
+    public AuthUser findAuthUserByToken(String token) throws NotFoundUserException {
         Claim userIdClaim = jwtUtils.getClaims(token, JWTUtils.USER_ID);
         if (userIdClaim == null) {
-            return null;
+            throw new NotFoundUserException("Not Found User");
         }
         User registerUser = userService.find(userIdClaim.asLong());
         UserRoles userRoles = userRolesService.findByUserId(registerUser.getId());

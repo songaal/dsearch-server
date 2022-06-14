@@ -36,13 +36,9 @@ import java.util.*;
 public class ClusterService {
     private static Logger logger = LoggerFactory.getLogger(ClusterService.class);
     private final ClusterRepository clusterRepository;
-    private final ClusterRepositorySupport clusterRepositorySupport;
 
-
-    public ClusterService(ClusterRepository clusterRepository,
-                          ClusterRepositorySupport clusterRepositorySupport) {
+    public ClusterService(ClusterRepository clusterRepository) {
         this.clusterRepository = clusterRepository;
-        this.clusterRepositorySupport = clusterRepositorySupport;
     }
 
     public List<Cluster> findAll() {
@@ -51,21 +47,27 @@ public class ClusterService {
     }
 
     public List<Cluster> findByHostAndPort(String host, int port) {
-        return clusterRepository.findByHostAndPort(host, port);
+        List<Cluster> clusterList = clusterRepository.findByHostAndPort(host, port);
+        return clusterList == null ? new ArrayList<>() : clusterList;
     }
 
     public Cluster find(UUID id) {
-        return clusterRepository.findById(id).get();
+        try{
+            return clusterRepository.findById(id).get();
+        }catch (NoSuchElementException e){
+            return null;
+        }
     }
 
-    public Cluster add(Cluster cluster) {
+    public Cluster add(Cluster cluster) throws NullPointerException {
+        if(cluster == null) throw new NullPointerException("Cluster가 null 입니다");
         cluster.setId(null);
         Cluster registerCluster = clusterRepository.save(cluster);
         clusterRepository.flush();
         return registerCluster;
     }
 
-    public Cluster remove(UUID id) {
+    public Cluster remove(UUID id) throws NoSuchElementException{
         Cluster registerCluster = clusterRepository.findById(id).get();
         clusterRepository.delete(registerCluster);
         return registerCluster;

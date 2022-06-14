@@ -3,6 +3,7 @@ package com.danawa.dsearch.server.pipeline.service;
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
 import com.danawa.dsearch.server.utils.JsonUtils;
 import com.google.gson.Gson;
+import org.apache.commons.lang.NullArgumentException;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.client.*;
 import org.slf4j.Logger;
@@ -21,17 +22,20 @@ public class PipelineService {
     public PipelineService(ElasticsearchFactory elasticsearchFactory) {
         this.elasticsearchFactory = elasticsearchFactory;
     }
+    public String getPipeLineLists(UUID clusterId) throws IOException {
+        if(clusterId == null){
+            throw new NullArgumentException("");
+        }
 
-    public Response getPipeLineLists(UUID clusterId) throws IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             RestClient restClient = client.getLowLevelClient();
             Request request = new Request("GET", "_ingest/pipeline?pretty");
             Response response = restClient.performRequest(request);
-            return response;
+            return EntityUtils.toString(response.getEntity());
         }
     }
 
-    public Response testPipeline(UUID clusterId, String name, String body, boolean isDetail) throws IOException {
+    public String testPipeline(UUID clusterId, String name, String body, boolean isDetail) throws IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             String detail = "";
             RestClient restClient = client.getLowLevelClient();
@@ -41,45 +45,44 @@ public class PipelineService {
             Request request = new Request("POST", "_ingest/pipeline/" + name +"/_simulate" + detail);
             request.setJsonEntity(body);
             Response response = restClient.performRequest(request);
-            return response;
+            return EntityUtils.toString(response.getEntity());
         }
     }
 
-    public Response addPipeLine(UUID clusterId, String name, String body) throws IOException {
+    public String addPipeLine(UUID clusterId, String name, String body) throws IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             RestClient restClient = client.getLowLevelClient();
             Request request = new Request("PUT", "_ingest/pipeline/" + name);
             request.setJsonEntity(body);
             Response response = restClient.performRequest(request);
-            return response;
+            return EntityUtils.toString(response.getEntity());
         }
     }
 
-    public Response getPipeLine(UUID clusterId, String name) throws IOException {
+    public String getPipeLine(UUID clusterId, String name) throws IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             RestClient restClient = client.getLowLevelClient();
             Request request = new Request("GET", "_ingest/pipeline/" + name);
             Response response = restClient.performRequest(request);
-            return response;
+            return EntityUtils.toString(response.getEntity());
         }
     }
 
-    public Response deletePipeLine(UUID clusterId, String name) throws IOException {
+    public String deletePipeLine(UUID clusterId, String name) throws IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             RestClient restClient = client.getLowLevelClient();
             Request request = new Request("DELETE", "_ingest/pipeline/" + name);
             Response response = restClient.performRequest(request);
-            return response;
+            return EntityUtils.toString(response.getEntity());
         }
     }
 
     public String download(UUID clusterId, Map<String, Object> message) throws IOException{
         // 1. 파이프라인 조회
-        Response response = getPipeLineLists(clusterId);
+        String pipelines = getPipeLineLists(clusterId);
 
         // 2. 파이프라인 json 형태로 변경
         StringBuffer sb = new StringBuffer();
-        String pipelines = EntityUtils.toString(response.getEntity());
 
         Gson gson = JsonUtils.createCustomGson();
         Map<String, Object> pipelineMap = gson.fromJson(pipelines, Map.class);

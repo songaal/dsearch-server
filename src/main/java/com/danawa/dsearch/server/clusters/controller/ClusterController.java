@@ -101,7 +101,7 @@ public class ClusterController {
     }
 
     @PostMapping
-    public ResponseEntity<?> add(@RequestBody Cluster cluster) throws IOException {
+    public ResponseEntity<?> add(@RequestBody Cluster cluster) throws IOException, NullPointerException {
         Cluster registerCluster = clusterService.add(cluster);
         dictionaryService.fetchSystemIndex(registerCluster.getId());
         referenceService.fetchSystemIndex(registerCluster.getId());

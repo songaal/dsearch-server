@@ -5,6 +5,8 @@ import com.danawa.dsearch.server.indices.service.IndicesService;
 import com.danawa.dsearch.server.jdbc.entity.JdbcRequest;
 import com.danawa.dsearch.server.utils.JsonUtils;
 import com.google.gson.Gson;
+import org.apache.commons.lang.NullArgumentException;
+import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.index.IndexRequest;
@@ -29,7 +31,6 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.*;
 
-
 @Service
 public class JdbcService {
     private static Logger logger = LoggerFactory.getLogger(JdbcService.class);
@@ -37,7 +38,6 @@ public class JdbcService {
     private final String JDBC_JSON = "jdbc.json";
     private final ElasticsearchFactory elasticsearchFactory;
     private IndicesService indicesService;
-
     public JdbcService(@Value("${dsearch.jdbc.setting}") String jdbcIndex, IndicesService indicesService, ElasticsearchFactory elasticsearchFactory) {
         this.jdbcIndex = jdbcIndex;
         this.indicesService = indicesService;
@@ -59,16 +59,19 @@ public class JdbcService {
             connection.close();
             flag = true;
         }catch (SQLException sqlException){
-            logger.debug("", sqlException);
+            System.out.println(sqlException.getMessage());
+            logger.error("{}", sqlException);
         }catch (ClassNotFoundException classNotFoundException){
-            logger.debug("", classNotFoundException);
+            System.out.println(classNotFoundException.getMessage());
+            logger.error("{}", classNotFoundException);
         } catch (Exception e){
-            logger.debug("", e);
+            System.out.println(e.getMessage());
+            logger.error("{}", e);
         }
         return flag;
     }
 
-    public SearchResponse getJdbcList(UUID clusterId) throws IOException {
+    public List<Map<String, Object>> getJdbcList(UUID clusterId) throws IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             SearchRequest searchRequest = new SearchRequest();
             searchRequest.indices(jdbcIndex);
@@ -78,43 +81,85 @@ public class JdbcService {
             searchRequest.source(searchSourceBuilder);
 
             SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
-            return searchResponse;
+            return convertSearchResponseToList(searchResponse);
         }
     }
 
-    public IndexResponse addJdbcSource(UUID clusterId, JdbcRequest jdbcRequest) throws IOException {
+    private List<Map<String, Object>> convertSearchResponseToList(SearchResponse response){
+        List<Map<String, Object>> list = new ArrayList<>();
+        for(SearchHit searchHit: response.getHits().getHits()){
+            Map<String,Object> sourceAsMap = searchHit.getSourceAsMap();
+            sourceAsMap.put("_id", searchHit.getId());
+            list.add(sourceAsMap);
+        }
+        return list;
+    }
+
+    public boolean addJdbcSource(UUID clusterId, JdbcRequest jdbcRequest) throws IOException, NullArgumentException {
+        if(clusterId == null || jdbcRequest == null){
+            throw new NullArgumentException("");
+        }
+
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Map<String, Object> jsonMap = new HashMap<>();
 
             handleErrorJdbcSource(jdbcRequest, jsonMap, JdbcRequestType.ADD);
             IndexRequest indexRequest = new IndexRequest(jdbcIndex).source(jsonMap);
             IndexResponse indexResponse = client.index(indexRequest, RequestOptions.DEFAULT);
-            return indexResponse;
+
+            return convertResponseToBoolean(indexResponse);
+        }
+    }
+    private boolean convertResponseToBoolean(DocWriteResponse response){
+        System.out.println(response.getResult().toString());
+        switch (response.getResult()){
+            case CREATED:
+            case DELETED:
+            case UPDATED:
+                return true;
+            default:
+                return false;
         }
     }
 
-    public DeleteResponse deleteJdbcSource(UUID clusterId, String id) throws IOException {
+    public boolean deleteJdbcSource(UUID clusterId, String id) throws IOException, NullArgumentException {
+        if(clusterId == null || id == null){
+            logger.info("clusterId or id is null");
+            throw new NullArgumentException("");
+        } else if (id.equals("")) {
+            return false;
+        }
+
+        System.out.println(id);
+
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             DeleteRequest request = new DeleteRequest(jdbcIndex, id);
             DeleteResponse deleteResponse = client.delete(request, RequestOptions.DEFAULT);
-            return deleteResponse;
+            return convertResponseToBoolean(deleteResponse);
         }
     }
 
-    public UpdateResponse updateJdbcSource(UUID clusterId, String id, JdbcRequest jdbcRequest) throws IOException {
+    public boolean updateJdbcSource(UUID clusterId, String id, JdbcRequest jdbcRequest) throws IOException {
+        if(clusterId == null || id == null || jdbcRequest == null){
+            throw new NullArgumentException("");
+        } else if (id.equals("")) {
+            return false;
+        }
+
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Map<String, Object> jsonMap = new HashMap<>();
 
             handleErrorJdbcSource(jdbcRequest, jsonMap, JdbcRequestType.UPDATE);
             UpdateRequest updateRequest = new UpdateRequest(jdbcIndex, id).doc(jsonMap);
             UpdateResponse updateResponse = client.update(updateRequest, RequestOptions.DEFAULT);
-            return updateResponse;
+            return convertResponseToBoolean(updateResponse);
         }
     }
 
     public String download(UUID clusterId, Map<String, Object> message){
         StringBuffer sb = new StringBuffer();
         Map<String, Object> jdbc = new HashMap<>();
+
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             SearchRequest searchRequest = new SearchRequest();
             searchRequest.indices(jdbcIndex).source(new SearchSourceBuilder().query(QueryBuilders.matchAllQuery()).size(10000).from(0));

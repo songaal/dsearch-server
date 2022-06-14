@@ -8,7 +8,8 @@ import com.danawa.dsearch.server.clusters.entity.Cluster;
 import com.danawa.dsearch.server.collections.entity.Collection;
 import com.danawa.dsearch.server.collections.entity.IndexStep;
 import com.danawa.dsearch.server.collections.entity.IndexingStatus;
-import com.danawa.dsearch.server.excpetions.DuplicateException;
+import com.danawa.dsearch.server.excpetions.CronParseException;
+import com.danawa.dsearch.server.excpetions.DuplicatedUserException;
 import com.danawa.dsearch.server.excpetions.IndexingJobFailureException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +49,7 @@ public class CollectionController {
 
     @PostMapping
     public ResponseEntity<?> addCollection(@RequestHeader(value = "cluster-id") UUID clusterId,
-                                           @RequestBody Collection collection) throws IOException, DuplicateException {
+                                           @RequestBody Collection collection) throws IOException, DuplicatedUserException {
         collectionService.add(clusterId, collection);
         return new ResponseEntity<>(HttpStatus.OK);
     }
@@ -89,7 +90,7 @@ public class CollectionController {
     public ResponseEntity<?> editCollection(@RequestHeader(value = "cluster-id") UUID clusterId,
                                             @RequestParam String action,
                                             @PathVariable String id,
-                                            @RequestBody Collection collection) throws IOException {
+                                            @RequestBody Collection collection) throws IOException, CronParseException {
         logger.info("action: {}, id: {}, baseId: {}", action, id, collection.getBaseId());
         if ("source".equalsIgnoreCase(action)) {
             collectionService.editSource(clusterId, id, collection);

@@ -2,6 +2,7 @@ package com.danawa.dsearch.server.tools.service;
 
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
 import com.danawa.dsearch.server.tools.entity.AnalysisToolRequest;
+import org.apache.http.util.EntityUtils;
 import org.elasticsearch.client.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,12 +23,14 @@ public class ToolsService {
         this.elasticsearchFactory = elasticsearchFactory;
     }
 
-    public Response getPlugins(UUID clusterId) throws IOException {
+    public String getPlugins(UUID clusterId) throws IOException {
         try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             RestClient restClient = client.getLowLevelClient();
             Request request = new Request("GET", "_cat/plugins");
             Response response = restClient.performRequest(request);
-            return response;
+
+            String responseBody = EntityUtils.toString(response.getEntity());
+            return responseBody;
         }
     }
 
@@ -57,7 +60,7 @@ public class ToolsService {
         }
     }
 
-    public Response getDetailAnalysis(UUID clusterId, AnalysisToolRequest request) throws IOException {
+    public String getDetailAnalysis(UUID clusterId, AnalysisToolRequest request) throws IOException {
 
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             RestClient restClient = client.getLowLevelClient();
@@ -77,8 +80,8 @@ public class ToolsService {
             Request pluginRequest = new Request(method, endPoint);
             pluginRequest.setJsonEntity(setJson);
             Response pluginResponse = restClient.performRequest(pluginRequest);
-
-            return pluginResponse;
+            String response = EntityUtils.toString(pluginResponse.getEntity());
+            return response;
         }
     }
 }

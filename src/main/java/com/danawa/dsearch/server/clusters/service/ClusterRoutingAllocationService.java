@@ -20,11 +20,16 @@ public class ClusterRoutingAllocationService {
         this.elasticsearchFactory = elasticsearchFactory;
     }
 
-    public ClusterUpdateSettingsResponse updateClusterAllocation(UUID clusterId, String allocate) throws IOException {
+    public boolean updateClusterAllocation(UUID clusterId, String allocate) {
         RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
         ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest();
         request.transientSettings(Settings.builder().put("cluster.routing.allocation.enable", allocate));
         // 정상적으로 호출되었을때만 response에 객체가 생성됨
-        return client.cluster().putSettings(request, RequestOptions.DEFAULT);
+        try {
+            client.cluster().putSettings(request, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            return false;
+        }
+        return true;
     }
 }

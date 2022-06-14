@@ -32,9 +32,7 @@ public class AuthController {
     public ResponseEntity<?> getAuth(@RequestHeader(required = false, value = "cluster-id") String clusterId,
                                      @RequestHeader(value = "x-bearer-token") String token) throws NotFoundUserException {
         AuthUser authUser = authService.findAuthUserByToken(token);
-        if (authUser == null) {
-            throw new NotFoundUserException("Not Found User");
-        }
+
         if (clusterId != null && !"".equalsIgnoreCase(clusterId)) {
             authUser.setCluster(clusterService.find(UUID.fromString(clusterId)));
         }

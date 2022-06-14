@@ -5,12 +5,14 @@ import com.danawa.dsearch.server.collections.entity.IndexStep;
 import com.danawa.dsearch.server.collections.entity.IndexingStatus;
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
 import com.danawa.dsearch.server.collections.entity.Collection;
-import com.danawa.dsearch.server.excpetions.DuplicateException;
+import com.danawa.dsearch.server.excpetions.CronParseException;
+import com.danawa.dsearch.server.excpetions.DuplicatedUserException;
 import com.danawa.dsearch.server.excpetions.IndexingJobFailureException;
 import com.danawa.dsearch.server.clusters.service.ClusterService;
 import com.danawa.dsearch.server.indices.service.IndicesService;
 import com.danawa.dsearch.server.utils.JsonUtils;
 import com.google.gson.Gson;
+import org.apache.commons.lang.NullArgumentException;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
@@ -47,7 +49,6 @@ import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 @Service
 public class CollectionService {
     private static Logger logger = LoggerFactory.getLogger(CollectionService.class);
-
     private ConcurrentHashMap<String, ScheduledFuture<?>> scheduled = new ConcurrentHashMap<>();
     private final String lastIndexStatusIndex = ".dsearch_last_index_status";
 
@@ -216,7 +217,7 @@ public class CollectionService {
         indicesService.createSystemIndex(clusterId, collectionIndex, COLLECTION_INDEX_JSON);
     }
 
-    public void add(UUID clusterId, Collection collection) throws IOException, DuplicateException {
+    public void add(UUID clusterId, Collection collection) throws IOException, DuplicatedUserException {
         try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             SearchRequest searchRequest = new SearchRequest().indices(collectionIndex);
 
@@ -232,7 +233,7 @@ public class CollectionService {
 //            searchRequest.source(new SearchSourceBuilder().query(new TermQueryBuilder("baseId", collection.getBaseId())));
             SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
             if (searchResponse.getHits().getTotalHits().value > 0) {
-                throw new DuplicateException("duplicate baseId");
+                throw new DuplicatedUserException("duplicate baseId");
             }
 
             String indexNameA = collection.getBaseId() + indexSuffixA;
@@ -255,6 +256,8 @@ public class CollectionService {
     }
 
     public List<Collection> findAll(UUID clusterId) throws IOException {
+        if(clusterId == null) throw new NullArgumentException("");
+
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Request indicesRequest = new Request("GET", "/_cat/indices");
             indicesRequest.addParameter("format", "json");
@@ -405,6 +408,8 @@ public class CollectionService {
     }
 
     public Collection findById(UUID clusterId, String id) throws IOException {
+        if(clusterId == null || id == null || id.equals("")) throw new NullArgumentException("");
+
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             GetResponse getResponse = client.get(new GetRequest().index(collectionIndex).id(id), RequestOptions.DEFAULT);
             Collection collection = convertMapToObject(getResponse.getId(), getResponse.getSourceAsMap());
@@ -486,6 +491,8 @@ public class CollectionService {
     }
 
     public void deleteById(UUID clusterId, String id) throws IOException {
+        if(clusterId == null || id == null || id.equals("")) throw new NullArgumentException("");
+
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Collection collection = findById(clusterId, id);
             Collection.Index indexA = collection.getIndexA();
@@ -542,7 +549,9 @@ public class CollectionService {
         }
     }
 
-    public void editSource(UUID clusterId, String id, Collection collection) throws IOException {
+    public void editSource(UUID clusterId, String id, Collection collection) throws IOException, CronParseException {
+        if(clusterId == null || id == null || id.equals("") || collection == null) throw new NullArgumentException("");
+
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             GetResponse getResponse = client.get(new GetRequest().index(collectionIndex).id(id), RequestOptions.DEFAULT);
             Map<String, Object> sourceAsMap = getResponse.getSourceAsMap();
@@ -601,7 +610,8 @@ public class CollectionService {
         }
     }
 
-    public void editSchedule(UUID clusterId, String id, Collection collection) throws IOException {
+    public void editSchedule(UUID clusterId, String id, Collection collection) throws IOException, CronParseException {
+        if(clusterId == null || id == null || id.equals("") || collection == null) throw new NullArgumentException("");
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             GetResponse getResponse = client.get(new GetRequest().index(collectionIndex).id(id), RequestOptions.DEFAULT);
             Map<String, Object> sourceAsMap = getResponse.getSourceAsMap();
@@ -621,26 +631,9 @@ public class CollectionService {
         }
     }
 
-    public void editIndexingType(UUID clusterId, String id, String indexingType) throws IOException {
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            Map<String, Object> sourceAsMap = new HashMap<>();
-            sourceAsMap.put("indexingType", indexingType);
-            client.update(new UpdateRequest()
-                    .index(collectionIndex)
-                    .id(id)
-                    .doc(sourceAsMap), RequestOptions.DEFAULT);
-
-            Collection registerCollection = findById(clusterId, id);
-            String crons = registerCollection.getCron();
-            if (registerCollection.isScheduled()) {
-                registerSchedule(clusterId, registerCollection.getId(), crons);
-            }else{
-                removeSchedule(clusterId, registerCollection.getId(), crons);
-            }
-        }
-    }
-
     public Collection findByName(UUID clusterId, String name) throws IOException {
+        if(clusterId == null || name == null || name.equals("") ) throw new NullArgumentException("");
+
         List<Collection> list = findAll(clusterId);
         Collection result = null;
         for(Collection collection : list){
@@ -653,7 +646,9 @@ public class CollectionService {
     }
 
     public void removeAllSchedule(UUID clusterId){
-        for( String key : scheduled.keySet()){
+        if(clusterId == null) throw new NullArgumentException("");
+
+        for(String key : scheduled.keySet()){
             if(key.contains(clusterId.toString())){
                 logger.info("스케줄 제거, clusterId: {}, scheduled key: {}", clusterId, key);
                 scheduled.get(key).cancel(true);
@@ -663,6 +658,8 @@ public class CollectionService {
     }
 
     public void registerAllSchedule(UUID clusterId){
+        if(clusterId == null) throw new NullArgumentException("");
+
         try {
            /** 컬렉션의 스케쥴이 enabled 이면 다시 스케쥴을 등록한다. */
             List<Collection> collectionList = findAll(clusterId);
@@ -683,8 +680,16 @@ public class CollectionService {
         }
     }
 
-    public void removeSchedule(UUID clusterId, String collectionId, String crons ){
+    public void removeSchedule(UUID clusterId, String collectionId, String crons ) throws CronParseException {
+        if(clusterId == null || collectionId == null || collectionId.equals("") || crons == null) throw new NullArgumentException("");
+
         String[] cronList = crons.split("\\|\\|");
+        if(cronList.length > 0){
+            String[] splitted = cronList[0].split(" ");
+            if(splitted.length != 5){
+                throw new CronParseException("");
+            }
+        }
 
         for(String cron : cronList){
             String scheduledKey = String.format("%s-%s-%s", clusterId.toString(), collectionId, cron);
@@ -703,6 +708,8 @@ public class CollectionService {
     }
 
     public String download(UUID clusterId, Map<String, Object> message){
+        if(clusterId == null || message == null) throw new NullArgumentException("");
+
         StringBuffer sb = new StringBuffer();
         Map<String, Object> collection = new HashMap<>();
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {

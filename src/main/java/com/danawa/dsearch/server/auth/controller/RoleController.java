@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 @RestController
 @RequestMapping("/roles")
@@ -34,7 +35,7 @@ public class RoleController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> find(@PathVariable long id) {
+    public ResponseEntity<?> find(@PathVariable long id) throws NotFoundUserException {
         return new ResponseEntity<>(roleService.find(id), HttpStatus.OK);
     }
 
@@ -50,7 +51,7 @@ public class RoleController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> remove(@PathVariable long id) {
+    public ResponseEntity<?> remove(@PathVariable long id) throws NotFoundUserException {
         return new ResponseEntity<>(roleService.remove(id), HttpStatus.OK);
     }
 

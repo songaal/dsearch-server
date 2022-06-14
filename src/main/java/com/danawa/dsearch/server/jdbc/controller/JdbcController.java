@@ -20,33 +20,44 @@ public class JdbcController {
 
     @PostMapping("/")
     public ResponseEntity<?> getConnectionTest(@RequestBody JdbcRequest jdbcRequest) throws Exception {
-        Map<String, Object> resultEntitiy = new HashMap<String, Object>();
+        System.out.println(jdbcRequest.getUrl());
+        System.out.println(jdbcRequest.getDriver());
+        Map<String, Object> response = new HashMap<String, Object>();
         boolean flag = jdbcService.connectionTest(jdbcRequest);
-        resultEntitiy.put("message", flag);
-        return new ResponseEntity<>(resultEntitiy, HttpStatus.OK);
+        response.put("message", flag);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @GetMapping("/list")
     public ResponseEntity<?> getJdbcList(@RequestHeader(value = "cluster-id") UUID clusterId) throws Exception {
-        return new ResponseEntity<>(jdbcService.getJdbcList(clusterId), HttpStatus.OK);
+        Map<String, Object> response = new HashMap<>();
+        response.put("list", jdbcService.getJdbcList(clusterId));
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @PutMapping("/add")
     public ResponseEntity<?> addJdbcSource(@RequestHeader(value = "cluster-id") UUID clusterId,
                                            @RequestBody JdbcRequest jdbcRequest) throws Exception {
+        Map<String, Object> response = new HashMap<>();
+        response.put("isSuccess", jdbcService.addJdbcSource(clusterId, jdbcRequest));
         return new ResponseEntity<>(jdbcService.addJdbcSource(clusterId, jdbcRequest), HttpStatus.OK);
     }
 
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<?> deleteJdbcSource(@RequestHeader(value = "cluster-id") UUID clusterId,
                                               @PathVariable String id) throws Exception {
-        return new ResponseEntity<>(jdbcService.deleteJdbcSource(clusterId, id), HttpStatus.OK);
+        Map<String, Object> response = new HashMap<>();
+        response.put("isSuccess", jdbcService.deleteJdbcSource(clusterId, id));
+        System.out.println(response.get("isSuccess"));
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @PostMapping("/update/{id}")
     public ResponseEntity<?> updateJdbcSource(@RequestHeader(value = "cluster-id") UUID clusterId,
                                               @RequestBody JdbcRequest jdbcRequest,
                                               @PathVariable String id) throws Exception {
-        return new ResponseEntity<>(jdbcService.updateJdbcSource(clusterId, id, jdbcRequest), HttpStatus.OK);
+        Map<String, Object> response = new HashMap<>();
+        response.put("isSuccess", jdbcService.updateJdbcSource(clusterId, id, jdbcRequest));
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }

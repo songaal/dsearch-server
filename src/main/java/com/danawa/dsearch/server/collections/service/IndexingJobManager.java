@@ -42,7 +42,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public class IndexingJobManager {
     private static Logger logger = LoggerFactory.getLogger(IndexingJobManager.class);
     private static RestTemplate restTemplate;
-
     private final IndexingJobService indexingJobService;
     private final ElasticsearchFactory elasticsearchFactory;
     private final IndexJobManager indexerJobManager;

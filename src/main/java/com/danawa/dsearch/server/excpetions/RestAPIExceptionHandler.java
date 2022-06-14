@@ -38,7 +38,7 @@ public class RestAPIExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(value = {
             NotFoundException.class,
-            DuplicateException.class
+            DuplicatedUserException.class
     })
     protected ResponseEntity<Object> handleNotFoundException(Exception ex, WebRequest request) {
         return handleExceptionInternal(ex,

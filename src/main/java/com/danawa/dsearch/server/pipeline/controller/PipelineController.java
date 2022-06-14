@@ -25,24 +25,24 @@ public class PipelineController {
 
     @GetMapping("/list")
     public ResponseEntity<?> getPipeLineLists(@RequestHeader(value = "cluster-id") UUID clusterId) throws IOException {
-        Response pluginResponse = pipelineService.getPipeLineLists(clusterId);
-        return new ResponseEntity<>(EntityUtils.toString(pluginResponse.getEntity()), HttpStatus.OK);
+        String response = pipelineService.getPipeLineLists(clusterId);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @GetMapping("/{name}")
-    public ResponseEntity<?> getPipeLineLists(@RequestHeader(value = "cluster-id") UUID clusterId,
+    public ResponseEntity<?> getPipeLine(@RequestHeader(value = "cluster-id") UUID clusterId,
                                               @PathVariable String name) throws Exception {
-        Response response = pipelineService.getPipeLine(clusterId, name);
-        return new ResponseEntity<>(EntityUtils.toString(response.getEntity()), HttpStatus.OK);
+        String response = pipelineService.getPipeLine(clusterId, name);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @PutMapping(value = "/{name}")
-    public ResponseEntity<?> setPipeLine(@RequestHeader(value = "cluster-id") UUID clusterId,
+    public ResponseEntity<?> addPipeLine(@RequestHeader(value = "cluster-id") UUID clusterId,
                                          @PathVariable String name,
                                          @RequestBody HashMap<String, Object> body) throws Exception {
         ObjectMapper mapper = new ObjectMapper();
-        Response response = pipelineService.addPipeLine(clusterId, name, mapper.writeValueAsString(body));
-        return new ResponseEntity<>(EntityUtils.toString(response.getEntity()), HttpStatus.OK);
+        String response = pipelineService.addPipeLine(clusterId, name, mapper.writeValueAsString(body));
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @PostMapping(value = "/{name}")
@@ -51,14 +51,14 @@ public class PipelineController {
                                          @RequestParam boolean isDetail,
                                          @RequestBody HashMap<String, Object> body) throws Exception {
         ObjectMapper mapper = new ObjectMapper();
-        Response response = pipelineService.testPipeline(clusterId, name, mapper.writeValueAsString(body), isDetail);
-        return new ResponseEntity<>(EntityUtils.toString(response.getEntity()), HttpStatus.OK);
+        String response = pipelineService.testPipeline(clusterId, name, mapper.writeValueAsString(body), isDetail);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @DeleteMapping("/{name}")
     public ResponseEntity<?> deletePipeLine(@RequestHeader(value = "cluster-id") UUID clusterId,
                                          @PathVariable String name) throws Exception {
-        Response response = pipelineService.deletePipeLine(clusterId, name);
-        return new ResponseEntity<>(EntityUtils.toString(response.getEntity()), HttpStatus.OK);
+        String response = pipelineService.deletePipeLine(clusterId, name);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }

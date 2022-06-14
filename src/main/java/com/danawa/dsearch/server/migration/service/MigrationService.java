@@ -31,6 +31,7 @@ public class MigrationService {
 
     public Map<String, Object> uploadFile(UUID clusterId, MultipartFile file) {
         Map<String, Object> result = new HashMap<>();
+
         try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)){
             InputStream in = file.getInputStream();
             BufferedInputStream bis = new BufferedInputStream(in);

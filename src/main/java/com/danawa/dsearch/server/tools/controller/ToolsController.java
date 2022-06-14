@@ -26,8 +26,7 @@ public class ToolsController {
     public ResponseEntity<?> getPlugins(@RequestHeader(value = "cluster-id") UUID clusterId) throws Exception {
         Map<String, Object> resultEntitiy = new HashMap<String, Object>();
 
-        Response pluginResponse = toolsService.getPlugins(clusterId);
-        String responseBody = EntityUtils.toString(pluginResponse.getEntity());
+        String responseBody = toolsService.getPlugins(clusterId);
         String[] splitLists = responseBody.split("\n");
         Set<String> plugins = new HashSet<>();
         for(String list : splitLists){
@@ -50,9 +49,13 @@ public class ToolsController {
         String text = request.getText().replace("\"", "\\\"");
         request.setText(text);
         logger.info("{}", request);
-        Response response = toolsService.getDetailAnalysis(clusterId, request);
-        String responseBody = EntityUtils.toString(response.getEntity());
+        String responseBody = toolsService.getDetailAnalysis(clusterId, request);
 
+        String mapString = apply_tools_policy(responseBody);
+        return new ResponseEntity<>(mapString, HttpStatus.OK);
+    }
+
+    private String apply_tools_policy(String responseBody){
         // 관리도구 수정사항 - 2021-03-30
         Gson gson = new Gson();
         Map<String, Object> map = new HashMap<>();
@@ -139,7 +142,7 @@ public class ToolsController {
         sb.setLength(0);
 
         String mapString = gson.toJson(map);
-        return new ResponseEntity<>(mapString, HttpStatus.OK);
+        return mapString;
     }
 }
 

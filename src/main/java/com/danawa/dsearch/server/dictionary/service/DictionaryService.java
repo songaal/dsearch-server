@@ -143,33 +143,6 @@ public class DictionaryService {
         }
     }
 
-    public List<SearchHit> findAll(UUID clusterId, String type) throws IOException {
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
-            List<SearchHit> documentList = new ArrayList<>();
-
-            Scroll scroll = new Scroll(new TimeValue(5, TimeUnit.SECONDS));
-            SearchResponse response = client.search(new SearchRequest()
-                    .indices(dictionaryIndex)
-                    .scroll(scroll)
-                    .source(new SearchSourceBuilder()
-                            .query(new TermQueryBuilder("type", type))
-                            .from(0)
-                            .size(10000)
-                    ), RequestOptions.DEFAULT);
-
-            while (response.getScrollId() != null && response.getHits().getHits().length > 0) {
-                documentList.addAll(Arrays.asList(response.getHits().getHits()));
-                response = client.scroll(new SearchScrollRequest()
-                                .scroll(scroll)
-                                .scrollId(response.getScrollId())
-                        , RequestOptions.DEFAULT);
-            }
-
-            logger.debug("hits Size: {}", documentList.size());
-            return documentList;
-        }
-    }
-
     public DocumentPagination documentPagination(UUID clusterId, String type, long pageNum, long rowSize, boolean isMatch, String searchColumns, String value) throws IOException {
         BoolQueryBuilder boolQueryBuilder = new BoolQueryBuilder().filter(new TermQueryBuilder("type", type));
 
@@ -222,7 +195,6 @@ public class DictionaryService {
                             .source(new SearchSourceBuilder().query(queryBuilder))
                     , RequestOptions.DEFAULT);
 
-            logger.info("{}", response.getHits().getHits());
             if (response.getHits().getTotalHits().value > 0) {
                 throw new ServiceException("Duplicate Exception");
             }
@@ -246,6 +218,7 @@ public class DictionaryService {
             refreshUpdateTime(clusterId, type);
 
             updateDocumentDictApplyIndex(dictionaryApplyIndex, clusterId, type);
+
             return indexResponse;
         }
     }
@@ -254,7 +227,7 @@ public class DictionaryService {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
             GetResponse response = client.get(new GetRequest().index(dictionaryIndex).id(id), RequestOptions.DEFAULT);
             String type = String.valueOf(response.getSourceAsMap().get("type"));
-            if (!type .equalsIgnoreCase(dictionary)) {
+            if (!type.equalsIgnoreCase(dictionary)) {
                 throw new ServiceException("Document NotFound Exception");
             }
 
@@ -269,7 +242,9 @@ public class DictionaryService {
         }
     }
 
-    public UpdateResponse updateDocument(UUID clusterId, String id, Map<String, Object> request) throws IOException {
+    public UpdateResponse updateDocument(UUID clusterId,
+                                         String id,
+                                         Map<String, Object> request) throws IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
             XContentBuilder builder = jsonBuilder()
                     .startObject()
@@ -327,7 +302,33 @@ public class DictionaryService {
         return sb;
     }
 
-    public void refreshUpdateTime(UUID clusterId, String type) {
+    private List<SearchHit> findAll(UUID clusterId, String type) throws IOException {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
+            List<SearchHit> documentList = new ArrayList<>();
+
+            Scroll scroll = new Scroll(new TimeValue(5, TimeUnit.SECONDS));
+            SearchResponse response = client.search(new SearchRequest()
+                    .indices(dictionaryIndex)
+                    .scroll(scroll)
+                    .source(new SearchSourceBuilder()
+                            .query(new TermQueryBuilder("type", type))
+                            .from(0)
+                            .size(10000)
+                    ), RequestOptions.DEFAULT);
+
+            while (response.getScrollId() != null && response.getHits().getHits().length > 0) {
+                documentList.addAll(Arrays.asList(response.getHits().getHits()));
+                response = client.scroll(new SearchScrollRequest()
+                                .scroll(scroll)
+                                .scrollId(response.getScrollId())
+                        , RequestOptions.DEFAULT);
+            }
+
+            logger.debug("hits Size: {}", documentList.size());
+            return documentList;
+        }
+    }
+    private void refreshUpdateTime(UUID clusterId, String type) {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
             SearchRequest searchRequest = new SearchRequest()
                     .indices(dictionaryApplyIndex).source(new SearchSourceBuilder()
@@ -418,22 +419,6 @@ public class DictionaryService {
         response.put("remoteClusterId", remoteClusterId);
         return response;
     }
-
-    public void updateTime(UUID clusterId, String id) throws IOException{
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
-            UpdateRequest updateRequest = new UpdateRequest()
-                    .index(dictionaryApplyIndex)
-                    .id(id)
-                    .doc(jsonBuilder()
-                            .startObject()
-                            .field("appliedTime", new Date())
-                            .endObject());
-            client.update(updateRequest, RequestOptions.DEFAULT);
-        } catch (Exception e) {
-            logger.warn("dictionary appliedTime edit fail: {}", e.getMessage());
-        }
-    }
-
 
     public Map<String, Object> insertDictFileToIndex(UUID clusterId, String dictName, String dictType, MultipartFile file, List<String> fields){
         Map<String, Object> result = new HashMap<>();
@@ -557,7 +542,7 @@ public class DictionaryService {
         return result;
     }
 
-    public void resetDict(UUID clusterId, String dictName) {
+    public boolean resetDict(UUID clusterId, String dictName) {
         logger.info("reset dictionaryName: {}", dictName);
         try (RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
             DeleteByQueryRequest deleteByQueryRequest = new DeleteByQueryRequest();
@@ -567,12 +552,13 @@ public class DictionaryService {
             updateDocumentDictApplyIndex(dictionaryApplyIndex, clusterId, dictName);
         }catch (IOException e){
             logger.error("{}", e);
+            return false;
         }
+        return true;
     }
 
     private void updateDocumentDictApplyIndex(String index, UUID clusterId, String id) {
         // 사전 데이터가 변경되거나 추가/삭제 될 때 apply 인덱스의 doc을 업데이트
-
         try (RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
             String _id = id.toLowerCase();
             XContentBuilder builder = jsonBuilder()
@@ -580,7 +566,6 @@ public class DictionaryService {
                     .field("id", _id)
                     .field("updatedTime", sdf.format(new Date()))
                     .endObject();
-            logger.info("{}", id.toLowerCase());
             UpdateRequest updateRequest = new UpdateRequest(index, _id).docAsUpsert(true).upsert(builder).doc(builder);
             UpdateResponse response = client.update(updateRequest, RequestOptions.DEFAULT);
             logger.info("status code: {}", response.status().getStatus());
@@ -588,23 +573,4 @@ public class DictionaryService {
             logger.warn("dict_apply updated fail : {}", e.getMessage());
         }
     }
-
-    public List<Map<String, Object>> selectApplyList(UUID clusterId) {
-        List<Map<String, Object>> list = new ArrayList<>();
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            SearchRequest request = new SearchRequest();
-            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-            searchSourceBuilder.size(1000);
-            searchSourceBuilder.query(QueryBuilders.matchAllQuery());
-            request.indices(dictionaryApplyIndex).source(searchSourceBuilder);
-            SearchResponse response = client.search(request, RequestOptions.DEFAULT);
-            for (SearchHit hit : response.getHits().getHits()) {
-                list.add(hit.getSourceAsMap());
-            }
-        } catch (Exception e) {
-            logger.error("", e);
-        }
-        return list;
-    }
-
 }

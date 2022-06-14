@@ -1,11 +1,15 @@
 package com.danawa.dsearch.server.auth.service;
 
+import com.danawa.dsearch.server.auth.entity.UserProfile;
 import com.danawa.dsearch.server.auth.entity.dto.UpdateUserRequest;
 import com.danawa.dsearch.server.auth.entity.User;
 import com.danawa.dsearch.server.auth.entity.UserRoles;
+import com.danawa.dsearch.server.excpetions.DuplicatedUserException;
+import com.danawa.dsearch.server.excpetions.InvalidPasswordException;
 import com.danawa.dsearch.server.excpetions.NotFoundUserException;
 import com.danawa.dsearch.server.auth.repository.UserRepository;
 import com.danawa.dsearch.server.auth.repository.UserRepositorySupport;
+import org.apache.commons.lang.NullArgumentException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
@@ -26,7 +30,8 @@ public class UserService {
     private final UserRolesService userRolesService;
 
     public UserService(UserRepositorySupport userRepositorySupport,
-                       UserRepository userRepository, UserRolesService userRolesService) {
+                       UserRepository userRepository,
+                       UserRolesService userRolesService) {
         this.userRepositorySupport = userRepositorySupport;
         this.userRepository = userRepository;
         this.userRolesService = userRolesService;
@@ -36,44 +41,52 @@ public class UserService {
         return userRepository.findAll();
     }
 
-    public User find(long id) {
-        return userRepository.findById(id).get();
+    public User find(long id) throws NotFoundUserException {
+        return userRepository.findById(id).orElseThrow(() -> new NotFoundUserException("Not Found User") );
     }
 
-    public User add(User user) {
+    public User add(User user) throws DuplicatedUserException, NullArgumentException {
+        if(user == null || user.getUsername() == null || user.getEmail() == null || user.getPassword() == null){
+            throw new NullArgumentException("User is Null or User instance variables(name, email, password) is null");
+        }
+
+        User registerUser = findByEmail(user.getEmail());
+        if (registerUser != null) {
+            throw new DuplicatedUserException("User Duplicate");
+        }
+
         String uuid = UUID.randomUUID().toString().substring(0, 5);
         user.setId(null);
         user.setPassword(encoder.encode(uuid));
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
 
-        User registerUser = new User(user.getUsername(), uuid, user.getEmail());
-        registerUser.setId(user.getId());
+        registerUser = new User(savedUser.getUsername(), uuid, savedUser.getEmail());
+        registerUser.setId(savedUser.getId());
         return registerUser;
     }
 
-    public User set(User user) {
-        return userRepository.save(user);
+    public User addDefaultSystemManager(User systemManager) {
+        return userRepository.save(systemManager);
     }
 
-    public User editPassword(Long id, UpdateUserRequest updateUser) throws NotFoundUserException {
+    public User editPassword(Long id, String password, String updatePassword) throws NotFoundUserException, InvalidPasswordException {
         User registerUser = find(id);
         if (registerUser == null) {
             throw new NotFoundUserException("Not Found User");
         }
-        if(!encoder.matches(updateUser.getPassword(), registerUser.getPassword())) {
-            throw new NotFoundUserException("Invalid password");
+
+        if(!encoder.matches(password, registerUser.getPassword())) {
+            throw new InvalidPasswordException("Invalid password");
         }
-        registerUser.setPassword(encoder.encode(updateUser.getUpdatePassword()));
+
+        registerUser.setPassword(encoder.encode(updatePassword));
         registerUser = userRepository.save(registerUser);
         registerUser.setPassword(null);
         return registerUser;
     }
 
     public User remove(Long id) throws NotFoundUserException {
-        User user = userRepository.findById(id).get();
-        if (user == null) {
-            throw new NotFoundUserException("Not Found User");
-        }
+        User user = userRepository.findById(id).orElseThrow(() -> new NotFoundUserException("Not Found User"));
         userRolesService.deleteByUserId(id);
         userRepository.delete(user);
         return user;
@@ -83,9 +96,9 @@ public class UserService {
         return userRepositorySupport.findByEmail(email);
     }
 
-    public User resetPassword(Long id) {
+    public User resetPassword(Long id) throws NotFoundUserException {
         String uuid = UUID.randomUUID().toString().substring(0, 5);
-        User registerUser = userRepository.findById(id).get();
+        User registerUser = userRepository.findById(id).orElseThrow(() -> new NotFoundUserException("Not Found User"));
         registerUser.setPassword(encoder.encode(uuid));
         userRepository.save(registerUser);
         return User.builder()
@@ -95,17 +108,14 @@ public class UserService {
                 .build();
     }
 
-    public User editProfile(Long id, UpdateUserRequest updateUser) throws NotFoundUserException {
-        User registerUser = userRepository.findById(id).get();
-        if (registerUser == null) {
-            throw new NotFoundUserException("Not Found User");
-        }
-        registerUser.setEmail(updateUser.getEmail());
-        registerUser.setUsername(updateUser.getUsername());
+    public User editProfile(Long id, UserProfile profile) throws NotFoundUserException {
+        User registerUser = userRepository.findById(id).orElseThrow(() -> new NotFoundUserException("Not Found User"));
+        registerUser.setEmail(profile.getEmail());
+        registerUser.setUsername(profile.getUsername());
         userRepository.save(registerUser);
         UserRoles userRoles = userRolesService.findByUserId(registerUser.getId());
-        userRoles.setRoleId(updateUser.getRoleId());
-        userRolesService.set(userRoles);
+        userRoles.setRoleId(profile.getRoleId());
+        userRolesService.add(userRoles);
         return User.builder()
                 .username(registerUser.getUsername())
                 .email(registerUser.getEmail())

@@ -35,9 +35,6 @@ public class UserRolesService {
     public UserRoles findByUserId(Long id) {
         return userRolesRepositorySupport.findByUserId(id);
     }
-    public UserRoles set(UserRoles userRoles) {
-        return userRolesRepository.save(userRoles);
-    }
 
     public UserRoles add(UserRoles userRoles) {
         return userRolesRepository.save(userRoles);
