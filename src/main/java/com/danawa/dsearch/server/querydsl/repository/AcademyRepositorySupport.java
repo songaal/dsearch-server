@@ -7,7 +7,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
-import static com.danawa.dsearch.server.entity.QAcademy.academy;
+import static com.danawa.dsearch.server.querydsl.entity.QAcademy.academy;
 
 @Repository
 public class AcademyRepositorySupport extends QuerydslRepositorySupport {
