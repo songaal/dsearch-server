@@ -5,11 +5,10 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.springframework.data.jpa.repository.support.QuerydslRepositorySupport;
 import org.springframework.stereotype.Repository;
 
-import static com.danawa.dsearch.server.entity.QUserRoles.userRoles;
+import static com.danawa.dsearch.server.auth.entity.QUserRoles.userRoles;
 
 @Repository
 public class UserRolesRepositorySupport extends QuerydslRepositorySupport {
-
     private final JPAQueryFactory queryFactory;
 
     public UserRolesRepositorySupport(JPAQueryFactory queryFactory) {

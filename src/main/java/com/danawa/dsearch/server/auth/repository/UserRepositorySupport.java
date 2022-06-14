@@ -7,7 +7,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
-import static com.danawa.dsearch.server.entity.QUser.user;
+import static com.danawa.dsearch.server.auth.entity.QUser.user;
 
 @Repository
 public class UserRepositorySupport extends QuerydslRepositorySupport {
