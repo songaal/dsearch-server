@@ -773,6 +773,7 @@ public class CollectionService {
             if(isRemovableKey(key, clusterId, collectionId)){
                 logger.info("Schedule Removed key : {}", key);
                 removeCronJob(key);
+                logger.info("{} is deleted", isAliveSchedule(key));
             }
         }
     }
