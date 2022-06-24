@@ -313,12 +313,12 @@ public class CollectionServiceTest {
 
     @Test
     @DisplayName("스케줄 삭제 확인")
-    public void remove_schedule_success() throws CronParseException, InterruptedException {
+    public void remove_schedule_success() throws CronParseException {
         UUID clusterId = UUID.randomUUID();
         String collectionId = "id";
         String crons = "30 18 * * *";
         String key = String.format("%s-%s-%s", clusterId, collectionId, crons);
-        collectionService.registerOneSchedule(clusterId, collectionId, crons);
+        collectionService.registerCronJob(clusterId, collectionId, crons);
         System.out.println(key + " : " + collectionService.isAliveSchedule(key));
         collectionService.removeSchedule(clusterId, collectionId, crons);
         System.out.println(key + " : " + collectionService.isAliveSchedule(key));
