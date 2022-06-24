@@ -694,6 +694,7 @@ public class CollectionService {
         for(String cron : cronList){
             String scheduledKey = makeScheduleKey(clusterId, collectionId, cron);
             removeCronJob(scheduledKey);
+            logger.info("{} deleted in schedule", isAliveSchedule(scheduledKey));
         }
     }
 
