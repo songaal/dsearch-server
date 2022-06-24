@@ -51,6 +51,14 @@ public class JdbcService {
     public boolean connectionTest(JdbcRequest jdbcRequest){
         boolean flag = false;
 
+        // 파라미터 체크
+        if(jdbcRequest.getUrl() == null
+                || jdbcRequest.getDriver() == null
+                || jdbcRequest.getPassword() == null
+                || jdbcRequest.getUser() == null){
+            return flag;
+        }
+
         try{
             String url = jdbcRequest.getUrl();
             Class.forName(jdbcRequest.getDriver());
@@ -59,13 +67,10 @@ public class JdbcService {
             connection.close();
             flag = true;
         }catch (SQLException sqlException){
-            System.out.println(sqlException.getMessage());
             logger.error("{}", sqlException);
         }catch (ClassNotFoundException classNotFoundException){
-            System.out.println(classNotFoundException.getMessage());
             logger.error("{}", classNotFoundException);
         } catch (Exception e){
-            System.out.println(e.getMessage());
             logger.error("{}", e);
         }
         return flag;

@@ -62,17 +62,6 @@ public class FakeCollectionService extends CollectionService {
         if(clusterId == null || id == null || id.equals("")) throw new NullArgumentException("");
     }
 
-    public void removeSchedule(UUID clusterId, String collectionId, String crons ) throws CronParseException {
-        if(clusterId == null || collectionId == null || collectionId.equals("") || crons == null) throw new NullArgumentException("");
-
-        String[] cronList = crons.split("\\|\\|");
-        if(cronList.length > 0){
-            String[] splitted = cronList[0].split(" ");
-            if(splitted.length != 5){
-                throw new CronParseException("");
-            }
-        }
-    }
     public String download(UUID clusterId, Map<String, Object> message){
         if(clusterId == null || message == null ) throw new NullArgumentException("");
         Map<String, Object> collection = new HashMap<>();

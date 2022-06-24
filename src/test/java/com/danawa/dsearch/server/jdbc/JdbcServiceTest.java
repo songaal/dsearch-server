@@ -6,6 +6,7 @@ import com.danawa.dsearch.server.jdbc.entity.JdbcRequest;
 import com.danawa.dsearch.server.jdbc.service.JdbcService;
 import org.apache.commons.lang.NullArgumentException;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.client.RestHighLevelClient;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,6 +24,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.*;
+
 @ExtendWith(MockitoExtension.class)
 public class JdbcServiceTest {
     private JdbcService jdbcService;
@@ -31,22 +35,34 @@ public class JdbcServiceTest {
     @Mock
     private IndicesService indicesService;
     private String jdbcIndex = ".dsearch_jdbc";
-
+    private String JDBC_JSON = "jdbc.json";
     @BeforeEach
     public void setup() {
         this.jdbcService = new FakeJdbcService(jdbcIndex, indicesService, elasticsearchFactory);
     }
 
     @Test
-    @DisplayName("시스템 인덱스 생성 테스트 안함. (여기서 진행하지 않음)")
-    public void fetchSystemIndex() {
+    @DisplayName("시스템 인덱스 생성 테스트 성공")
+    public void create_jdbc_system_index_success() throws IOException {
+        //given
+        UUID clusterId = UUID.randomUUID();
+        doNothing().when(indicesService).createSystemIndex(clusterId, jdbcIndex, JDBC_JSON);
+
+        //when
+        jdbcService.fetchSystemIndex(clusterId);
+
+        //then
+        verify(indicesService, times(1)).createSystemIndex(clusterId, jdbcIndex, JDBC_JSON);
     }
 
     @Test
     @DisplayName("JDBC 커넥션 테스트 성공")
     public void connection_test_success(){
         JdbcRequest request = new JdbcRequest();
-        request.setAddress("localhost");
+        request.setUrl("url");
+        request.setDriver("driver");
+        request.setUser("user");
+        request.setPassword("password");
 
         boolean result = jdbcService.connectionTest(request);
 
@@ -54,13 +70,22 @@ public class JdbcServiceTest {
     }
 
     @Test
-    @DisplayName("JDBC 커넥션 테스트 실패")
-    public void connection_test_fail(){
+    @DisplayName("JDBC 커넥션 테스트 실패, 필수 파라미터가 없을 경우")
+    public void connection_test_fail_when_required_params_not_found(){
         JdbcRequest request = new JdbcRequest();
-        request.setAddress("other");
-
         boolean result = jdbcService.connectionTest(request);
+        Assertions.assertFalse(result);
 
+        request.setUrl("url");
+        result = jdbcService.connectionTest(request);
+        Assertions.assertFalse(result);
+
+        request.setDriver("driver");
+        result = jdbcService.connectionTest(request);
+        Assertions.assertFalse(result);
+
+        request.setUser("user");
+        result = jdbcService.connectionTest(request);
         Assertions.assertFalse(result);
     }
 
@@ -68,6 +93,12 @@ public class JdbcServiceTest {
     @DisplayName("JDBC 리스트 가져오기 성공")
     public void get_jdbc_list_success() throws IOException {
         UUID clusterId = UUID.randomUUID();
+
+        RestHighLevelClient client = mock(RestHighLevelClient.class);
+        given(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId)).willReturn(clusterId);
+        given(elasticsearchFactory.getClient(clusterId)).willReturn(client);
+
+
         List<Map<String, Object>> result  = jdbcService.getJdbcList(clusterId);
         Assertions.assertEquals(0, result.size());
     }

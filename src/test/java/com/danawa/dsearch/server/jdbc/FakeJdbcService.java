@@ -23,18 +23,15 @@ public class FakeJdbcService extends JdbcService {
     }
 
     public boolean connectionTest(JdbcRequest jdbcRequest){
-        if(jdbcRequest.getAddress().equals("localhost")){
-            return true;
-        }else{
+        // 파라미터 체크
+        if(jdbcRequest.getUrl() == null
+                || jdbcRequest.getDriver() == null
+                || jdbcRequest.getPassword() == null
+                || jdbcRequest.getUser() == null){
             return false;
         }
-    }
-    public List<Map<String, Object>> getJdbcList(UUID clusterId) throws IOException {
-        if(clusterId == null){
-            throw new IOException("");
-        }else {
-            return new ArrayList<>();
-        }
+
+        return true;
     }
 
     public boolean addJdbcSource(UUID clusterId, JdbcRequest jdbcRequest) throws IOException {

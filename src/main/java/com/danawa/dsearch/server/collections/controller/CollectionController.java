@@ -50,6 +50,7 @@ public class CollectionController {
     @PostMapping
     public ResponseEntity<?> addCollection(@RequestHeader(value = "cluster-id") UUID clusterId,
                                            @RequestBody Collection collection) throws IOException, DuplicatedUserException {
+        System.out.println(collection);
         collectionService.add(clusterId, collection);
         return new ResponseEntity<>(HttpStatus.OK);
     }
@@ -90,8 +91,9 @@ public class CollectionController {
     public ResponseEntity<?> editCollection(@RequestHeader(value = "cluster-id") UUID clusterId,
                                             @RequestParam String action,
                                             @PathVariable String id,
-                                            @RequestBody Collection collection) throws IOException, CronParseException {
-        logger.info("action: {}, id: {}, baseId: {}", action, id, collection.getBaseId());
+                                            @RequestBody Collection collection) throws IOException {
+        logger.info("action: {}, collectionId: {}, baseId: {}", action, id, collection.getBaseId());
+
         if ("source".equalsIgnoreCase(action)) {
             collectionService.editSource(clusterId, id, collection);
         } else if ("schedule".equalsIgnoreCase(action)) {
