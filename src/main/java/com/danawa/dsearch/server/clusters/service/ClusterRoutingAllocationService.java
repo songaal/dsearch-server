@@ -21,6 +21,10 @@ public class ClusterRoutingAllocationService {
     }
 
     public boolean updateClusterAllocation(UUID clusterId, String allocate) {
+       if(isWrongOption(allocate)){
+           return false;
+       }
+
         RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
         ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest();
         request.transientSettings(Settings.builder().put("cluster.routing.allocation.enable", allocate));
@@ -28,6 +32,12 @@ public class ClusterRoutingAllocationService {
         try {
             client.cluster().putSettings(request, RequestOptions.DEFAULT);
         } catch (IOException e) {
+            return false;
+        }
+        return true;
+    }
+    private boolean isWrongOption(String allocate){
+        if(allocate.equals("none") || allocate.equals("all")){
             return false;
         }
         return true;

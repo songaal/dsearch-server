@@ -21,28 +21,30 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.*;
 
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
+
 @ExtendWith(MockitoExtension.class)
 public class ClusterServiceTest {
     @Mock
     private ClusterRepository clusterRepository ;
-    @InjectMocks
     private ClusterService clusterService;
     private ClusterService fakeClusterService;
 
-    private InMemoryDataRepository inMemoryDataRepository;
+    private RepositoryHelper repositoryHelper;
 
     @BeforeEach
     public void setup(){
         this.clusterService = new ClusterService(clusterRepository);
         this.fakeClusterService = new FakeClusterService(clusterRepository);
-        this.inMemoryDataRepository = new InMemoryDataRepository();
+        this.repositoryHelper = new RepositoryHelper();
     }
 
     @Test
     @DisplayName("등록된 클러스터 전체를 찾는다. 그러나 한개도 없었다")
     public void find_all_clusters_but_empty(){
         // given
-        BDDMockito.given(clusterRepository.findAll()).willReturn(inMemoryDataRepository.getAllClutersForEmpty());
+        given(clusterRepository.findAll()).willReturn(repositoryHelper.getAllClutersForEmpty());
         //when
         List<Cluster> clusterList =  this.clusterService.findAll();
         //then
@@ -53,7 +55,7 @@ public class ClusterServiceTest {
     @DisplayName("등록된 클러스터 전체를 찾는다. 그러나 한개만 있었다")
     public void find_all_clusters_just_one(){
         // given
-        BDDMockito.given(clusterRepository.findAll()).willReturn(inMemoryDataRepository.getAllClutersJustOne());
+        given(clusterRepository.findAll()).willReturn(repositoryHelper.getAllClutersJustOne());
         //when
         List<Cluster> clusterList =  this.clusterService.findAll();
         //then
@@ -64,13 +66,13 @@ public class ClusterServiceTest {
     @DisplayName("포트와 호스트명으로 클러스터를 찾는다. 그러나 해당 내용이 없었다.")
     public void find_by_host_and_port_cluster_empty(){
         // given
-        BDDMockito.given(
+        given(
                 clusterRepository.findByHostAndPort(
                         Mockito.anyString(),
                         MockitoHamcrest.intThat(Matchers.greaterThanOrEqualTo(1)
                         )
                 )
-        ).willReturn(inMemoryDataRepository.getAllClutersForEmpty());
+        ).willReturn(repositoryHelper.getAllClutersForEmpty());
 
         String host = "host";
         int port = 1;
@@ -86,13 +88,13 @@ public class ClusterServiceTest {
     @DisplayName("포트와 호스트명으로 클러스터를 찾는다. 그러나 한개만 찾았다.")
     public void find_by_host_and_port_cluster_just_one(){
         // given
-        BDDMockito.given(
+        given(
                 clusterRepository.findByHostAndPort(
                         Mockito.anyString(),
                         MockitoHamcrest.intThat(Matchers.greaterThanOrEqualTo(1)
                         )
                 )
-        ).willReturn(inMemoryDataRepository.getAllClutersJustOne());
+        ).willReturn(repositoryHelper.getAllClutersJustOne());
 
         String host = "host";
         int port = 1;
@@ -108,7 +110,7 @@ public class ClusterServiceTest {
     @DisplayName("포트와 호스트명으로 클러스터를 찾는다. 그러나 비었다.")
     public void find_by_uuid_cluster_empty(){
         // given
-        BDDMockito.given(
+        given(
                 clusterRepository.findById(Mockito.any(UUID.class)))
                 .willReturn(Optional.empty());
         UUID uuid = UUID.randomUUID();
@@ -124,9 +126,9 @@ public class ClusterServiceTest {
     @DisplayName("포트와 호스트명으로 클러스터를 찾는다. 1개 찾았다.")
     public void find_by_uuid_cluster_just_one(){
         // given
-        BDDMockito.given(
+        given(
                         clusterRepository.findById(Mockito.any(UUID.class)))
-                .willReturn(Optional.of(inMemoryDataRepository.getCluster()));
+                .willReturn(Optional.of(repositoryHelper.getCluster()));
         UUID uuid = UUID.randomUUID();
 
         //when
@@ -143,7 +145,7 @@ public class ClusterServiceTest {
         UUID uuid = UUID.randomUUID();
         Cluster cluster = new Cluster();
         cluster.setId(uuid);
-        BDDMockito.given(clusterRepository.save(cluster)).willReturn(cluster);
+        given(clusterRepository.save(cluster)).willReturn(cluster);
 
         //when
         Cluster addedCluster = this.clusterService.add(cluster);
@@ -168,7 +170,7 @@ public class ClusterServiceTest {
         UUID uuid = UUID.randomUUID();
         Cluster cluster = new Cluster();
         cluster.setId(uuid);
-        BDDMockito.given(clusterRepository.findById(uuid)).willReturn(Optional.of(cluster));
+        given(clusterRepository.findById(uuid)).willReturn(Optional.of(cluster));
 
         //when
         Cluster removedCluster = this.clusterService.remove(uuid);
@@ -182,7 +184,7 @@ public class ClusterServiceTest {
     public void remove_cluster_fail(){
         // given
         UUID uuid = UUID.randomUUID();
-        BDDMockito.given(clusterRepository.findById(uuid)).willReturn(Optional.empty());
+        given(clusterRepository.findById(uuid)).willReturn(Optional.empty());
 
         // then
         Assertions.assertThrows(NoSuchElementException.class, () -> {
@@ -202,9 +204,9 @@ public class ClusterServiceTest {
         cluster.setId(uuid);
         cluster.setName(name);
 
-        BDDMockito.given(clusterRepository.findById(uuid)).willReturn(Optional.of(cluster));
+        given(clusterRepository.findById(uuid)).willReturn(Optional.of(cluster));
         cluster.setName(newName);
-        BDDMockito.given(clusterRepository.save(cluster)).willReturn(cluster);
+        given(clusterRepository.save(cluster)).willReturn(cluster);
 
         //when
         Cluster edittedCluster = this.clusterService.edit(uuid, cluster);
@@ -221,6 +223,7 @@ public class ClusterServiceTest {
         clusterStatusRequest.setScheme("http");
 
         //when
+        // 내부에서 client를 연결하기 때문에 해당 메서드만 fake형태로 사용
         ClusterStatusResponse result = this.fakeClusterService.scanClusterStatus(clusterStatusRequest);
 
         // then
@@ -237,6 +240,7 @@ public class ClusterServiceTest {
         clusterStatusRequest.setScheme("http");
 
         //when
+        // 내부에서 client를 연결하기 때문에 해당 메서드만 fake형태로 사용
         ClusterStatusResponse result = this.fakeClusterService.scanClusterStatus(clusterStatusRequest);
 
         // then

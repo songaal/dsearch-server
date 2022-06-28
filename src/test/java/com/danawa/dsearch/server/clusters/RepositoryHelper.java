@@ -5,7 +5,7 @@ import com.danawa.dsearch.server.clusters.entity.Cluster;
 import java.util.ArrayList;
 import java.util.List;
 
-public class InMemoryDataRepository {
+public class RepositoryHelper {
     public List<Cluster> getAllClutersForEmpty(){
         return new ArrayList<Cluster>();
     }

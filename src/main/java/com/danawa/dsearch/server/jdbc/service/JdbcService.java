@@ -77,6 +77,8 @@ public class JdbcService {
     }
 
     public List<Map<String, Object>> getJdbcList(UUID clusterId) throws IOException {
+        if(clusterId == null) throw new NullArgumentException("clusterId 가 null 입니다.");
+
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             SearchRequest searchRequest = new SearchRequest();
             searchRequest.indices(jdbcIndex);
@@ -116,7 +118,6 @@ public class JdbcService {
         }
     }
     private boolean convertResponseToBoolean(DocWriteResponse response){
-        System.out.println(response.getResult().toString());
         switch (response.getResult()){
             case CREATED:
             case DELETED:

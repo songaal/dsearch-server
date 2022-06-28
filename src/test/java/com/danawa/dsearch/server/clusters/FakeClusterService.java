@@ -4,7 +4,6 @@ import com.danawa.dsearch.server.clusters.entity.ClusterStatusRequest;
 import com.danawa.dsearch.server.clusters.entity.ClusterStatusResponse;
 import com.danawa.dsearch.server.clusters.repository.ClusterRepository;
 import com.danawa.dsearch.server.clusters.service.ClusterService;
-import org.apache.http.HttpHost;
 
 import java.util.HashMap;
 

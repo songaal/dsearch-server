@@ -36,7 +36,7 @@ public class FakeJdbcService extends JdbcService {
 
     public boolean addJdbcSource(UUID clusterId, JdbcRequest jdbcRequest) throws IOException {
         if(clusterId == null || jdbcRequest == null){
-            throw new IOException("");
+            throw new NullArgumentException("");
         }else {
             return true;
         }

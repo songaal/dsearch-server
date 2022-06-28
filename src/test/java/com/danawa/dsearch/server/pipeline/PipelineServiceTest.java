@@ -1,9 +1,6 @@
 package com.danawa.dsearch.server.pipeline;
 
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
-import com.danawa.dsearch.server.indices.service.IndicesService;
-import com.danawa.dsearch.server.jdbc.FakeJdbcService;
-import com.danawa.dsearch.server.jdbc.service.JdbcService;
 import com.danawa.dsearch.server.pipeline.service.PipelineService;
 import org.apache.commons.lang.NullArgumentException;
 import org.hamcrest.Matchers;
@@ -31,6 +28,7 @@ public class PipelineServiceTest {
     }
 
     @Test
+    @DisplayName("파이프라인 리스트 가져오기 성공")
     public void get_pipeline_lists_success() throws IOException {
         UUID clusterId = UUID.randomUUID();
         String pipelines = pipelineService.getPipeLineLists(clusterId);
@@ -39,6 +37,7 @@ public class PipelineServiceTest {
     }
 
     @Test
+    @DisplayName("파이프라인 리스트 가져오기 실패, 클러스터 Id가 null로 셋팅되어 들어감")
     public void get_pipeline_lists_fail() throws IOException {
         Assertions.assertThrows(NullArgumentException.class, () -> {
             String pipelines = pipelineService.getPipeLineLists(null);
@@ -46,6 +45,7 @@ public class PipelineServiceTest {
     }
 
     @Test
+    @DisplayName("파이프라인 한개 가져오기 성공")
     public void get_pipeline_success() throws IOException {
         UUID clusterId = UUID.randomUUID();
         String name = "name";
@@ -55,7 +55,7 @@ public class PipelineServiceTest {
     }
 
     @Test
-    @DisplayName("파이프라인 내용을 가져올 때, clusterId가 Null 일 경우 실패 ")
+    @DisplayName("파이프라인 한 개 가져올 때, clusterId가 Null 일 경우 실패")
     public void get_pipeline_fail_when_clusterId_is_null() throws IOException {
         Assertions.assertThrows(NullArgumentException.class, () -> {
             UUID clusterId = UUID.randomUUID();
@@ -65,7 +65,7 @@ public class PipelineServiceTest {
     }
 
     @Test
-    @DisplayName("파이프라인 내용을 가져올 때, 파이프라인 name이 Null 일 경우 실패 ")
+    @DisplayName("파이프라인 하나를 가져올 때, 파이프라인 명칭이 Null 일 경우 실패 ")
     public void get_pipeline_fail_when_name_is_null() throws IOException {
         Assertions.assertThrows(NullArgumentException.class, () -> {
             UUID clusterId = UUID.randomUUID();
@@ -74,7 +74,7 @@ public class PipelineServiceTest {
     }
 
     @Test
-    @DisplayName("파이프라인 내용을 가져올 때, 파이프라인 name이 Null 일 경우 실패 ")
+    @DisplayName("파이프라인 내용을 가져올 때, 파이프라인 이름이 빈 문자열일 경우 실패")
     public void get_pipeline_fail_when_name_is_0_length() throws IOException {
         Assertions.assertThrows(NullArgumentException.class, () -> {
             UUID clusterId = UUID.randomUUID();
@@ -83,6 +83,7 @@ public class PipelineServiceTest {
     }
 
     @Test
+    @DisplayName("파이프라인 추가 성공")
     public void add_pipeline_success() throws IOException {
         UUID clusterId = UUID.randomUUID();
         String name = "name";
@@ -153,6 +154,7 @@ public class PipelineServiceTest {
     }
 
     @Test
+    @DisplayName("파이프라인 테스트 진행 성공")
     public void test_pipeline_success() throws IOException {
         UUID clusterId = UUID.randomUUID();
         String name = "name";
@@ -221,6 +223,7 @@ public class PipelineServiceTest {
     }
 
     @Test
+    @DisplayName("파이프라인 삭제 성공")
     public void delete_pipeline_success() throws IOException {
         UUID clusterId = UUID.randomUUID();
         String name = "name";

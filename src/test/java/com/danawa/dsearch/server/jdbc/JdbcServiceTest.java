@@ -5,8 +5,12 @@ import com.danawa.dsearch.server.indices.service.IndicesService;
 import com.danawa.dsearch.server.jdbc.entity.JdbcRequest;
 import com.danawa.dsearch.server.jdbc.service.JdbcService;
 import org.apache.commons.lang.NullArgumentException;
+import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchHits;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,8 +19,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -95,9 +97,13 @@ public class JdbcServiceTest {
         UUID clusterId = UUID.randomUUID();
 
         RestHighLevelClient client = mock(RestHighLevelClient.class);
-        given(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId)).willReturn(clusterId);
+        SearchResponse response = mock(SearchResponse.class);
+        SearchHits searchHits = mock(SearchHits.class);
+        SearchHit[] searchHit = new SearchHit[0];
         given(elasticsearchFactory.getClient(clusterId)).willReturn(client);
-
+        given(client.search(any(SearchRequest.class), eq(RequestOptions.DEFAULT))).willReturn(response);
+        given(response.getHits()).willReturn(searchHits);
+        given(response.getHits().getHits()).willReturn(searchHit);
 
         List<Map<String, Object>> result  = jdbcService.getJdbcList(clusterId);
         Assertions.assertEquals(0, result.size());
@@ -106,7 +112,7 @@ public class JdbcServiceTest {
     @Test
     @DisplayName("JDBC 리스트 가져오기 실패")
     public void get_jdbc_list_fail()  {
-        Assertions.assertThrows(IOException.class, () -> {
+        Assertions.assertThrows(NullArgumentException.class, () -> {
             List<Map<String, Object>> result  = jdbcService.getJdbcList(null);
         });
     }
@@ -114,11 +120,14 @@ public class JdbcServiceTest {
     @Test
     @DisplayName("JDBC 추가 하기 성공")
     public void add_jdbc_success() throws IOException {
+        //given
         UUID clusterId = UUID.randomUUID();
         JdbcRequest jdbcRequest = new JdbcRequest();
 
+        //when
         boolean result = jdbcService.addJdbcSource(clusterId, jdbcRequest);
 
+        //then
         Assertions.assertTrue(result);
     }
 

@@ -31,7 +31,6 @@ public class MigrationServiceTest {
         migrationService = new FakeMigrationService(elasticsearchFactory, pipelineService);
     }
 
-
     @Test
     @DisplayName("파일로 데이터 덮어쓰기 성공")
     public void upload_file_success(){

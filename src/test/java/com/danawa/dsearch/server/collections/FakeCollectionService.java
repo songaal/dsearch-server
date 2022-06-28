@@ -52,20 +52,20 @@ public class FakeCollectionService extends CollectionService {
         return new Collection();
     }
 
-    public Collection findByName(UUID clusterId, String name) throws IOException{
-        if(clusterId == null || name == null || name.equals("")) throw new NullArgumentException("");
-
-        return new Collection();
-    }
-
-    public void deleteById(UUID clusterId, String id) throws IOException{
-        if(clusterId == null || id == null || id.equals("")) throw new NullArgumentException("");
-    }
-
-    public String download(UUID clusterId, Map<String, Object> message){
-        if(clusterId == null || message == null ) throw new NullArgumentException("");
-        Map<String, Object> collection = new HashMap<>();
-        message.put("collection", collection);
-        return "download";
-    }
+//    public Collection findByName(UUID clusterId, String name) throws IOException{
+//        if(clusterId == null || name == null || name.equals("")) throw new NullArgumentException("");
+//
+//        return new Collection();
+//    }
+//
+//    public void deleteById(UUID clusterId, String id) throws IOException{
+//        if(clusterId == null || id == null || id.equals("")) throw new NullArgumentException("");
+//    }
+//
+//    public String download(UUID clusterId, Map<String, Object> message){
+//        if(clusterId == null || message == null ) throw new NullArgumentException("");
+//        Map<String, Object> collection = new HashMap<>();
+//        message.put("collection", collection);
+//        return "download";
+//    }
 }
