@@ -7,7 +7,7 @@ import com.auth0.jwt.exceptions.JWTCreationException;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import com.danawa.dsearch.server.entity.AuthUser;
+import com.danawa.dsearch.server.auth.entity.AuthUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

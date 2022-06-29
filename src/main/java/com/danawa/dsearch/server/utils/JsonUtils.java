@@ -1,6 +1,5 @@
 package com.danawa.dsearch.server.utils;
 
-import com.danawa.dsearch.server.services.MigrationService;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.TypeAdapter;
