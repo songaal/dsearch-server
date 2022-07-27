@@ -435,6 +435,7 @@ public class IndexingJobService {
 
     public Map<String, Object> convertRequestParams(String yamlStr) throws IndexingJobFailureException {
         Map<String, Object> convert = new HashMap<>(params);
+        logger.info("{} {}", convert, yamlStr);
 //        default param mixed
 //        convert.putAll(params);
         try {
@@ -443,8 +444,10 @@ public class IndexingJobService {
                 convert.putAll(tmp);
             }
         } catch (ClassCastException | NullPointerException e) {
+            logger.error("{}", e.getMessage());
             throw new IndexingJobFailureException("invalid yaml");
         }
+        logger.info("{}", convert);
         return convert;
     }
 
