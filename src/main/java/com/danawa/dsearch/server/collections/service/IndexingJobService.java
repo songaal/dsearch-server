@@ -139,10 +139,10 @@ public class IndexingJobService {
             Collection.Launcher launcher = collection.getLauncher();
             Map<String, Object> body = convertRequestParams(launcher.getYaml());
             logger.info("{} 런처 파라미터 변환 작업 완료, JDBC ID: {}, body: {}", index, collection.getJdbcId(), body);
-
-            if (collection.getJdbcId() != null) {
-                logger.info("JDBC ID: {}", collection.getJdbcId());
-                if(!"".equals(collection.getJdbcId())){
+            String jdbcId = collection.getJdbcId();
+            if (jdbcId != null) {
+                logger.info("JDBC ID: {}", jdbcId);
+                if(!"".equals(jdbcId)){
                     GetResponse getResponse = client.get(new GetRequest().index(jdbcSystemIndex).id(collection.getJdbcId()), RequestOptions.DEFAULT);
                     Map<String, Object> jdbcSource = getResponse.getSourceAsMap();
                     jdbcSource.put("driverClassName", jdbcSource.get("driver"));
