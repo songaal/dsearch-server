@@ -140,7 +140,7 @@ public class IndexingJobService {
             Map<String, Object> body = convertRequestParams(launcher.getYaml());
             logger.info("{} 런처 파라미터 변환 작업 완료, JDBC ID: {}, body: {}", index, collection.getJdbcId(), body);
             String jdbcId = collection.getJdbcId();
-            if (jdbcId != null) {
+            if (jdbcId != null && !jdbcId.equals("null")) {
                 logger.info("JDBC ID: {}", jdbcId);
                 if(!"".equals(jdbcId)){
                     GetResponse getResponse = client.get(new GetRequest().index(jdbcSystemIndex).id(collection.getJdbcId()), RequestOptions.DEFAULT);
