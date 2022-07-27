@@ -137,8 +137,8 @@ public class IndexingJobService {
 //            3. 런처 파라미터 변환작업
             logger.info("{} 런처 파라미터 변환 작업", index);
             Collection.Launcher launcher = collection.getLauncher();
-
             Map<String, Object> body = convertRequestParams(launcher.getYaml());
+            logger.info("{} 런처 파라미터 변환 작업 완료, JDBC ID: {} ", index, collection.getJdbcId());
             if (collection.getJdbcId() != null && !"".equals(collection.getJdbcId())) {
                 GetResponse getResponse = client.get(new GetRequest().index(jdbcSystemIndex).id(collection.getJdbcId()), RequestOptions.DEFAULT);
                 Map<String, Object> jdbcSource = getResponse.getSourceAsMap();
@@ -148,9 +148,10 @@ public class IndexingJobService {
                 jdbcSource.put("password", jdbcSource.get("password"));
                 body.put("_jdbc", jdbcSource);
             }
-
             body.put("index", index.getIndex());
             body.put("_indexingSettings", indexing);
+
+            logger.info("{} => es host: {}, port: {}", index, collection.getEsHost(), collection.getEsPort());
             // null 대비 에러처리
             if (collection.getEsHost() != null && !collection.getEsHost().equals("")) {
                 body.put("host", collection.getEsHost());
@@ -170,13 +171,14 @@ public class IndexingJobService {
             body.put("esUsername", collection.getEsUser());
             body.put("esPassword", collection.getEsPassword());
 
+            logger.info("{} 런처 스키마 셋팅", index, launcher);
             if (launcher.getScheme() == null || "".equals(launcher.getScheme())) {
                 launcher.setScheme("http");
             }
 
             String indexingJobId;
 //            4. indexer 색인 전송
-            logger.debug("외부 인덱서 사용 여부 : {}", collection.isExtIndexer());
+            logger.info("외부 인덱서 사용 여부 : {}", collection.isExtIndexer());
             if (collection.isExtIndexer()) {
                 // 외부 인덱서를 사용할 경우 전송.
                 ResponseEntity<Map> responseEntity = restTemplate.exchange(
@@ -186,7 +188,7 @@ public class IndexingJobService {
                         Map.class
                 );
                 if (responseEntity.getBody() == null) {
-                    logger.warn("{}", responseEntity);
+                    logger.info("{}", responseEntity);
                     throw new NullPointerException("Indexer Start Failed!");
                 }
                 indexingJobId = (String) responseEntity.getBody().get("id");
