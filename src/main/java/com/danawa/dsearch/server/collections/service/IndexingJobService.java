@@ -138,19 +138,24 @@ public class IndexingJobService {
             logger.info("{} 런처 파라미터 변환 작업", index);
             Collection.Launcher launcher = collection.getLauncher();
             Map<String, Object> body = convertRequestParams(launcher.getYaml());
-            logger.info("{} 런처 파라미터 변환 작업 완료, JDBC ID: {} ", index, collection.getJdbcId());
-            if (collection.getJdbcId() != null && !"".equals(collection.getJdbcId())) {
-                GetResponse getResponse = client.get(new GetRequest().index(jdbcSystemIndex).id(collection.getJdbcId()), RequestOptions.DEFAULT);
-                Map<String, Object> jdbcSource = getResponse.getSourceAsMap();
-                jdbcSource.put("driverClassName", jdbcSource.get("driver"));
-                jdbcSource.put("url", jdbcSource.get("url"));
-                jdbcSource.put("user", jdbcSource.get("user"));
-                jdbcSource.put("password", jdbcSource.get("password"));
-                body.put("_jdbc", jdbcSource);
-            }
-            body.put("index", index.getIndex());
-            body.put("_indexingSettings", indexing);
+            logger.info("{} 런처 파라미터 변환 작업 완료, JDBC ID: {}, body: {}", index, collection.getJdbcId(), body);
 
+            if (collection.getJdbcId() != null) {
+                logger.info("JDBC ID: {}", collection.getJdbcId());
+                if(!"".equals(collection.getJdbcId())){
+                    GetResponse getResponse = client.get(new GetRequest().index(jdbcSystemIndex).id(collection.getJdbcId()), RequestOptions.DEFAULT);
+                    Map<String, Object> jdbcSource = getResponse.getSourceAsMap();
+                    jdbcSource.put("driverClassName", jdbcSource.get("driver"));
+                    jdbcSource.put("url", jdbcSource.get("url"));
+                    jdbcSource.put("user", jdbcSource.get("user"));
+                    jdbcSource.put("password", jdbcSource.get("password"));
+                    body.put("_jdbc", jdbcSource);
+                }
+            }
+            logger.info("body: {}", body);
+            body.put("index", index.getIndex());
+            logger.info("body: {}", body);
+            body.put("_indexingSettings", indexing);
             logger.info("{} => es host: {}, port: {}", index, collection.getEsHost(), collection.getEsPort());
             // null 대비 에러처리
             if (collection.getEsHost() != null && !collection.getEsHost().equals("")) {
