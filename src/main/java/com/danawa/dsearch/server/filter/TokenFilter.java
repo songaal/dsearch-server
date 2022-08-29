@@ -1,5 +1,6 @@
 package com.danawa.dsearch.server.filter;
 
+import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.danawa.dsearch.server.utils.JWTUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
@@ -31,10 +32,14 @@ public class TokenFilter extends OncePerRequestFilter {
             return;
         }
 
-        String validToken = jwtUtils.refresh(httpServletRequest.getHeader("x-bearer-token"));
+        String token = httpServletRequest.getHeader("x-bearer-token");
+        if(token != null && !token.equals("")){
+            try{
+                String validToken = jwtUtils.refresh(token);
+                httpServletResponse.setHeader("x-bearer-token", validToken);
+            }catch (JWTVerificationException ignore){
 
-        if (validToken != null) {
-            httpServletResponse.setHeader("x-bearer-token", validToken);
+            }
         }
 
         filterChain.doFilter(httpServletRequest, httpServletResponse);

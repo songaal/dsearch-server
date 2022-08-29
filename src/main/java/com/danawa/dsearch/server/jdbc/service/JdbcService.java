@@ -61,11 +61,15 @@ public class JdbcService {
 
         try{
             String url = jdbcRequest.getUrl();
+            Properties properties = new Properties();
+            properties.put("user", jdbcRequest.getUser());
+            properties.put("password", jdbcRequest.getPassword());
+
             Class.forName(jdbcRequest.getDriver());
-            Connection connection = null;
-            connection = DriverManager.getConnection(url, jdbcRequest.getUser(), jdbcRequest.getPassword());
-            connection.close();
-            flag = true;
+
+            try(Connection connection = DriverManager.getConnection(url, properties)){
+                flag = true;
+            }
         }catch (SQLException sqlException){
             logger.error("{}", sqlException);
         }catch (ClassNotFoundException classNotFoundException){
@@ -73,6 +77,7 @@ public class JdbcService {
         } catch (Exception e){
             logger.error("{}", e);
         }
+
         return flag;
     }
 
@@ -135,8 +140,6 @@ public class JdbcService {
         } else if (id.equals("")) {
             return false;
         }
-
-        System.out.println(id);
 
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             DeleteRequest request = new DeleteRequest(jdbcIndex, id);

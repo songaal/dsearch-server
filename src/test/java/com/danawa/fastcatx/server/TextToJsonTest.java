@@ -17,7 +17,6 @@ public class TextToJsonTest {
     private static final char unicodeHangulBase = '\uAC00';
     private static final char unicodeHangulLast = '\uD7A3';
 
-
     public static String makeHangulPrefix(String keyword, char delimiter) {
         StringBuffer candidate = new StringBuffer();
         StringBuffer prefix = new StringBuffer();
@@ -93,14 +92,10 @@ public class TextToJsonTest {
         String outFilePath = "C:\\Users\\admin\\Desktop\\AutoCompleteKeyword.json";
 
         File file = new File(outFilePath);
-        FileWriter fw = new FileWriter(file, true);
-
+        FileWriter fw = null;
         Scanner scanner = null;
-        try {
-            scanner = new Scanner(new File(filePath));
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
+
+        long count = 0;
 
         boolean flag = false;
         boolean keywordFlag = false;
@@ -111,59 +106,74 @@ public class TextToJsonTest {
         String hit = null;
         String range = null;
 
-        long count = 0;
-        while (scanner.hasNext()) {
 
-            try {
-                String line = scanner.nextLine();
-                if("<doc>".equals(line)){
-                    flag = true;
-                }else if("</doc>".equals(line)){
-                    keyword = keyword.replace("\"", "").replace("\\", "");
-                    String search = makeSearchKeyword(keyword).replace("\"", "").replace("\\", "");
+
+
+
+        try{
+            fw = new FileWriter(file, true);
+            scanner = new Scanner(new File(filePath));
+            while (scanner.hasNext()) {
+
+                try {
+                    String line = scanner.nextLine();
+                    if("<doc>".equals(line)){
+                        flag = true;
+                    }else if("</doc>".equals(line)){
+                        keyword = keyword.replace("\"", "").replace("\\", "");
+                        String search = makeSearchKeyword(keyword).replace("\"", "").replace("\\", "");
 //                    fw.write("{\"index\": {}}\n");
-                    fw.write("{\"keyword\": \""+ keyword+ "\", \"hit\": "+ hit + ", \"range\": " + range + ", \"search\": \"" + search + "\"}\n");
-                    count++;
-                    if(count % 10000 == 0) System.out.println(count + "개 완료 되었습니다");
-                    flag = false;
-                }else if("<KEYWORD>".equals(line)){
-                    keywordFlag = true;
-                }else if("</KEYWORD>".equals(line)){
-                    keywordFlag = false;
-                }else if("<HIT>".equals(line)){
-                    hitFlag = true;
-                }else if("</HIT>".equals(line)){
-                    hitFlag = false;
-                }else if("<RANGE>".equals(line)){
-                    rangeFlag = true;
-                }else if("</RANGE>".equals(line)){
-                    rangeFlag = false;
-                } else {
-                    if(flag){
-                        if(keywordFlag){
-                            keyword = line;
-                        }else if(hitFlag){
-                            hit = line;
-                        }else if(rangeFlag){
-                            range = line;
+                        fw.write("{\"keyword\": \""+ keyword+ "\", \"hit\": "+ hit + ", \"range\": " + range + ", \"search\": \"" + search + "\"}\n");
+                        count++;
+                        if(count % 10000 == 0) System.out.println(count + "개 완료 되었습니다");
+                        flag = false;
+                    }else if("<KEYWORD>".equals(line)){
+                        keywordFlag = true;
+                    }else if("</KEYWORD>".equals(line)){
+                        keywordFlag = false;
+                    }else if("<HIT>".equals(line)){
+                        hitFlag = true;
+                    }else if("</HIT>".equals(line)){
+                        hitFlag = false;
+                    }else if("<RANGE>".equals(line)){
+                        rangeFlag = true;
+                    }else if("</RANGE>".equals(line)){
+                        rangeFlag = false;
+                    } else {
+                        if(flag){
+                            if(keywordFlag){
+                                keyword = line;
+                            }else if(hitFlag){
+                                hit = line;
+                            }else if(rangeFlag){
+                                range = line;
+                            }
+                        }else{
+                            // do nothing...
                         }
-                    }else{
-                        // do nothing...
                     }
-                }
 
-            } catch (Exception e) {
-                System.err.println("ERR : " + e.getMessage());
+                } catch (Exception e) {
+                    System.err.println("ERR : " + e.getMessage());
+                }
+            }
+
+            if(flag){
+                keyword = keyword.replace("\"", "").replace("\\", "");
+                String search = makeSearchKeyword(keyword).replace("\"", "").replace("\\", "");
+                fw.write("{\"keyword\": \""+ keyword+ "\", \"hit\": "+ hit + ", \"range\": " + range + ", \"search\": \"" + search + "\"}\n");
+            }
+
+        }catch (IOException e){
+            e.printStackTrace();
+        }finally {
+            if(scanner != null){
+                scanner.close();
+            }
+            if(fw != null){
+                fw.close();
             }
         }
-
-        if(flag){
-            keyword = keyword.replace("\"", "").replace("\\", "");
-            String search = makeSearchKeyword(keyword).replace("\"", "").replace("\\", "");
-            fw.write("{\"keyword\": \""+ keyword+ "\", \"hit\": "+ hit + ", \"range\": " + range + ", \"search\": \"" + search + "\"}\n");
-        }
-
         System.out.println(count + "개 완료 되었습니다");
-        fw.close();
     }
 }

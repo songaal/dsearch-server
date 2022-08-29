@@ -49,13 +49,10 @@ import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 @Service
 public class DictionaryService {
     private static Logger logger = LoggerFactory.getLogger(DictionaryService.class);
-
     private IndicesService indicesService;
     private final ClusterService clusterService;
-
     private String dictionaryIndex;
     private String dictionaryApplyIndex;
-
     private final String INDEX_JSON = "dictionary.json";
     private final String DICT_APPLY_JSON = "dictionary_apply.json";
     private final ElasticsearchFactory elasticsearchFactory;
@@ -421,20 +418,29 @@ public class DictionaryService {
     }
 
     public Map<String, Object> insertDictFileToIndex(UUID clusterId, String dictName, String dictType, MultipartFile file, List<String> fields){
-        Map<String, Object> result = new HashMap<>();
 
+        Map<String, Object> result = new HashMap<>();
         int count = 0;
         BulkRequest bulkRequest = new BulkRequest();
         String line = null;
+
+        InputStream in = null;
+        BufferedInputStream bis = null;
+        InputStreamReader isr = null;
+        BufferedReader br = null;
+
         try (RestHighLevelClient client = elasticsearchFactory.getClient(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId))) {
+            in = file.getInputStream();
+            bis = new BufferedInputStream(in);
+            isr = new InputStreamReader(bis);
+            br = new BufferedReader(isr);
+
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
             TimeZone utc = TimeZone.getTimeZone("UTC");
             sdf.setTimeZone(utc);
             Date now = new Date();
             String nowDate = sdf.format(now);
-            InputStream in = file.getInputStream();
-            BufferedInputStream bis = new BufferedInputStream(in);
-            BufferedReader br = new BufferedReader(new InputStreamReader(bis));
+
             while((line = br.readLine()) != null){
                 String[] split = line.split("\t");
                 if(dictType.equals("custom") && split.length == 3){
@@ -522,10 +528,6 @@ public class DictionaryService {
             }
 
             updateDocumentDictApplyIndex(dictionaryApplyIndex, clusterId, dictName);
-
-            br.close();
-            bis.close();
-            in.close();
         }catch (IOException e){
             result.put("result", false);
             result.put("message", "IOException");
@@ -536,6 +538,32 @@ public class DictionaryService {
             result.put("message", "형식에 맞지 않은 파일입니다. [line = " + line + "]");
             logger.error("{}", e);
             return result;
+        }finally {
+            if (in != null) {
+                try {
+                    in.close();
+                } catch (IOException ignore) {
+                }
+            }
+            if (bis != null) {
+                try {
+                    bis.close();
+                } catch (IOException ignore) {
+                }
+            }
+            if (isr != null) {
+                try {
+                    isr.close();
+                } catch (IOException ignore) {
+                }
+            }
+            if (br != null) {
+                try {
+                    br.close();
+                } catch (IOException ignore) {
+
+                }
+            }
         }
         result.put("result", true);
         result.put("message", "success");

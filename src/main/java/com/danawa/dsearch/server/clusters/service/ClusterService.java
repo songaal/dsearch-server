@@ -197,86 +197,108 @@ public class ClusterService {
         registerCluster.setAutocompleteUrl(url);
         return clusterRepository.save(registerCluster);
     }
-
-    public Map<String, Object> uploadFile(UUID clusterId, MultipartFile file) {
-        Cluster cluster = find(clusterId);
-
-        String scheme = cluster.getScheme();
-        String host = cluster.getHost();
-        int port = cluster.getPort();
-
-        String username = cluster.getUsername();
-        String password = cluster.getPassword();
-
-        HttpHost[] httpHost = new HttpHost[1];
-        httpHost[0] = new HttpHost(host, port, scheme);
-
-        RestClientBuilder builder = RestClient.builder(httpHost)
-                .setRequestConfigCallback(requestConfigBuilder -> requestConfigBuilder
-                        .setConnectTimeout(10000)
-                        .setSocketTimeout(10 * 60 * 1000))
-                .setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder.setDefaultIOReactorConfig(
-                        IOReactorConfig.custom()
-                                .setIoThreadCount(1)
-                                .build()
-                ));
-
-        final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-        if (username != null && !"".equals(username)
-                && password != null && !"".equals(password)) {
-            credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username, password));
-            builder.setHttpClientConfigCallback(httpClientBuilder ->
-                    httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
-        }
-
-        RestHighLevelClient client = new RestHighLevelClient(builder);
-        client.getLowLevelClient();
-
-        Map<String, Object> result = new HashMap<>();
-
-        String line = null;
-
-
-        try {
-            InputStream in = file.getInputStream();
-            BufferedInputStream bis = new BufferedInputStream(in);
-            BufferedReader br = new BufferedReader(new InputStreamReader(bis));
-            CustomGsonAdapter adapter = new CustomGsonAdapter();
-            Gson gson = new GsonBuilder().registerTypeAdapter(Map.class, adapter).create();
-
-            while ((line = br.readLine()) != null) {
-                Map<String, Object> body = gson.fromJson(line, Map.class);
-                String index = (String) body.get("_index");
-                String id = (String) body.get("_id");
-                IndexRequest request = new IndexRequest(index);
-                request.id(id);
-                request.type("_doc");
-                String source = gson.toJson(body.get("_source"));
-                logger.info("index: {}, id: {}, source: {}", index, id, source);
-                request.source(source, XContentType.JSON);
-                IndexResponse response = client.index(request, RequestOptions.DEFAULT);
-                logger.info("{}", response);
-            }
-
-            client.close();
-            br.close();
-            bis.close();
-            in.close();
-        } catch (IOException e) {
-            logger.info("{}", e);
-            result.put("result", false);
-            result.put("message", "failed IOException");
-            return result;
-        }
-        result.put("result", true);
-        result.put("message", "success");
-
-        return result;
-    }
+//
+//    public Map<String, Object> uploadFile(UUID clusterId, MultipartFile file) {
+//        Cluster cluster = find(clusterId);
+//
+//        String scheme = cluster.getScheme();
+//        String host = cluster.getHost();
+//        int port = cluster.getPort();
+//
+//        String username = cluster.getUsername();
+//        String password = cluster.getPassword();
+//
+//        HttpHost[] httpHost = new HttpHost[1];
+//        httpHost[0] = new HttpHost(host, port, scheme);
+//
+//        RestClientBuilder builder = RestClient.builder(httpHost)
+//                .setRequestConfigCallback(requestConfigBuilder -> requestConfigBuilder
+//                        .setConnectTimeout(10000)
+//                        .setSocketTimeout(10 * 60 * 1000))
+//                .setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder.setDefaultIOReactorConfig(
+//                        IOReactorConfig.custom()
+//                                .setIoThreadCount(1)
+//                                .build()
+//                ));
+//
+//        final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+//        if (username != null && !"".equals(username)
+//                && password != null && !"".equals(password)) {
+//            credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username, password));
+//            builder.setHttpClientConfigCallback(httpClientBuilder ->
+//                    httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
+//        }
+//
+//        Map<String, Object> result = new HashMap<>();
+//        String line = null;
+//        InputStream in = null;
+//        BufferedInputStream bis = null;
+//        InputStreamReader isr = null;
+//        BufferedReader br = null;
+//
+//        try (RestHighLevelClient client = new RestHighLevelClient(builder)){
+//            in = file.getInputStream();
+//            bis = new BufferedInputStream(in);
+//            isr = new InputStreamReader(bis);
+//            br = new BufferedReader(isr);
+//
+//            client.getLowLevelClient();
+//            CustomGsonAdapter adapter = new CustomGsonAdapter();
+//            Gson gson = new GsonBuilder().registerTypeAdapter(Map.class, adapter).create();
+//
+//            while ((line = br.readLine()) != null) {
+//                Map<String, Object> body = gson.fromJson(line, Map.class);
+//                String index = (String) body.get("_index");
+//                String id = (String) body.get("_id");
+//                IndexRequest request = new IndexRequest(index);
+//                request.id(id);
+//                request.type("_doc");
+//                String source = gson.toJson(body.get("_source"));
+//                logger.info("index: {}, id: {}, source: {}", index, id, source);
+//                request.source(source, XContentType.JSON);
+//                IndexResponse response = client.index(request, RequestOptions.DEFAULT);
+//                logger.info("{}", response);
+//            }
+//        } catch (IOException e) {
+//            logger.info("{}", e);
+//            result.put("result", false);
+//            result.put("message", "failed IOException");
+//            return result;
+//        }finally {
+//            if (br != null) {
+//                try {
+//                    br.close();
+//                } catch (IOException ignore) {
+//
+//                }
+//            }
+//            if (isr != null) {
+//                try {
+//                    isr.close();
+//                } catch (IOException ignore) {
+//                }
+//            }
+//            if (bis != null) {
+//                try {
+//                    bis.close();
+//                } catch (IOException ignore) {
+//                }
+//            }
+//            if (in != null) {
+//                try {
+//                    in.close();
+//                } catch (IOException ignore) {
+//                }
+//            }
+//        }
+//        result.put("result", true);
+//        result.put("message", "success");
+//
+//        return result;
+//    }
 
     private class CustomGsonAdapter extends TypeAdapter<Object> {
         private final TypeAdapter<Object> delegate = new Gson().getAdapter(Object.class);
-
         @Override
         public void write(JsonWriter out, Object value) throws IOException {
             delegate.write(out, value);

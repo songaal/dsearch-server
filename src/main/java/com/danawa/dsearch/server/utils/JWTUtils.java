@@ -31,8 +31,6 @@ public class JWTUtils {
         this.headerClaims.put("typ", "JWT");
         this.headerClaims.put("alg", "HS256");
     }
-
-
     public String sign(AuthUser authUser) {
         String token = null;
         Algorithm algorithm = Algorithm.HMAC256(secret);
@@ -66,28 +64,20 @@ public class JWTUtils {
     }
 
     public String refresh(String token) {
-        if (token == null) {
-            return null;
-        }
-        String validToken;
-        try {
-            Algorithm algorithm = Algorithm.HMAC256(secret);
-            DecodedJWT jwt = JWT.decode(token);
-            // 갱신
-            long refreshDate = jwt.getExpiresAt().getTime() - (expirationTimeMillis / 2);
-            if (System.currentTimeMillis() >= refreshDate) {
-                validToken = JWT.create()
-                        .withIssuer(ISSUER)
-                        .withClaim(USER_ID, jwt.getClaim(USER_ID).asLong())
-                        .withHeader(headerClaims)
-                        .withExpiresAt(new Date(System.currentTimeMillis() + expirationTimeMillis))
-                        .sign(algorithm);
-            } else {
-                validToken = token;
-            }
-        } catch (JWTVerificationException exception) {
-            logger.error("refresh fail", exception);
-            validToken = null;
+        String validToken = "";
+        Algorithm algorithm = Algorithm.HMAC256(secret);
+        DecodedJWT jwt = JWT.decode(token);
+        // 갱신
+        long refreshDate = jwt.getExpiresAt().getTime() - (expirationTimeMillis / 2);
+        if (System.currentTimeMillis() >= refreshDate) {
+            validToken = JWT.create()
+                    .withIssuer(ISSUER)
+                    .withClaim(USER_ID, jwt.getClaim(USER_ID).asLong())
+                    .withHeader(headerClaims)
+                    .withExpiresAt(new Date(System.currentTimeMillis() + expirationTimeMillis))
+                    .sign(algorithm);
+        } else {
+            validToken = token;
         }
         return validToken;
     }

@@ -8,10 +8,10 @@ import java.util.*;
 
 public class DictParsingTest {
 
-     private enum TYPE { USER, SYNONYM, STOP, SPACE, COMPOUND, UNIT, UNIT_SYNONYM, MAKER, BRAND, CATEGORY, ENGLISH }
+    private enum TYPE {USER, SYNONYM, STOP, SPACE, COMPOUND, UNIT, UNIT_SYNONYM, MAKER, BRAND, CATEGORY, ENGLISH}
 
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
 //        데이터 확인후..
 //        curl -s -H "Content-Type: application/x-ndjson" -XPOST http://es1.danawa.io/.dsearch_dict/_bulk --data-binary @user.json
 //        curl -s -H "Content-Type: application/x-ndjson" -XPOST http://es1.danawa.io/.dsearch_dict/_bulk --data-binary @synonym.json
@@ -43,14 +43,18 @@ public class DictParsingTest {
 
     }
 
-    public static void english(String input, String output) {
+    public static void english(String input, String output) throws IOException {
+        Map<String, Object> metaLine = new HashMap<>();
         Scanner scanner = null;
+        FileWriter fw = null;
         BufferedWriter writer = null;
+
         try {
-            Map<String, Object> metaLine = new HashMap<>();
-            metaLine.put("index", new HashMap<>());
             scanner = new Scanner(new File(input));
-            writer = new BufferedWriter(new FileWriter(output));
+            fw = new FileWriter(output);
+            writer = new BufferedWriter(fw);
+
+            metaLine.put("index", new HashMap<>());
             writer.write("");
 
             while (scanner.hasNext()) {
@@ -66,30 +70,25 @@ public class DictParsingTest {
             System.out.println("finished");
         } catch (FileNotFoundException e) {
             e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
         } finally {
-            if (scanner != null) {
-                scanner.close();
-            }
-            if (writer != null) {
-                try {
-                    writer.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+            if (scanner != null) scanner.close();
+            if (fw != null) fw.close();
+            if (writer != null) writer.close();
         }
     }
 
-    public static void category(String input, String output) {
+    public static void category(String input, String output) throws IOException {
+        Map<String, Object> metaLine = new HashMap<>();
         Scanner scanner = null;
+        FileWriter fw = null;
         BufferedWriter writer = null;
+
         try {
-            Map<String, Object> metaLine = new HashMap<>();
-            metaLine.put("index", new HashMap<>());
             scanner = new Scanner(new File(input));
-            writer = new BufferedWriter(new FileWriter(output));
+            fw = new FileWriter(output);
+            writer = new BufferedWriter(fw);
+
+            metaLine.put("index", new HashMap<>());
             writer.write("");
 
             while (scanner.hasNext()) {
@@ -105,31 +104,27 @@ public class DictParsingTest {
             }
             writer.flush();
             System.out.println("finished");
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-        } finally {
-            if (scanner != null) {
-                scanner.close();
-            }
-            if (writer != null) {
-                try {
-                    writer.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+        }finally {
+            if (scanner != null) scanner.close();
+            if (fw != null) fw.close();
+            if (writer != null) writer.close();
         }
     }
-    public static void brand(String input, String output) {
+
+    public static void brand(String input, String output) throws IOException {
+        Map<String, Object> metaLine = new HashMap<>();
         Scanner scanner = null;
+        FileWriter fw = null;
         BufferedWriter writer = null;
+
         try {
-            Map<String, Object> metaLine = new HashMap<>();
-            metaLine.put("index", new HashMap<>());
             scanner = new Scanner(new File(input));
-            writer = new BufferedWriter(new FileWriter(output));
+            fw = new FileWriter(output);
+            writer = new BufferedWriter(fw);
+
+            metaLine.put("index", new HashMap<>());
             writer.write("");
 
             while (scanner.hasNext()) {
@@ -145,32 +140,26 @@ public class DictParsingTest {
             }
             writer.flush();
             System.out.println("finished");
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-        } finally {
-            if (scanner != null) {
-                scanner.close();
-            }
-            if (writer != null) {
-                try {
-                    writer.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+        }finally {
+            if (scanner != null) scanner.close();
+            if (fw != null) fw.close();
+            if (writer != null) writer.close();
         }
     }
 
-    public static void maker(String input, String output) {
+    public static void maker(String input, String output) throws IOException {
+        Map<String, Object> metaLine = new HashMap<>();
         Scanner scanner = null;
+        FileWriter fw = null;
         BufferedWriter writer = null;
+
         try {
-            Map<String, Object> metaLine = new HashMap<>();
-            metaLine.put("index", new HashMap<>());
             scanner = new Scanner(new File(input));
-            writer = new BufferedWriter(new FileWriter(output));
+            fw = new FileWriter(output);
+            writer = new BufferedWriter(fw);
+            metaLine.put("index", new HashMap<>());
             writer.write("");
 
             while (scanner.hasNext()) {
@@ -186,32 +175,26 @@ public class DictParsingTest {
             }
             writer.flush();
             System.out.println("finished");
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-        } finally {
-            if (scanner != null) {
-                scanner.close();
-            }
-            if (writer != null) {
-                try {
-                    writer.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+        }finally {
+            if (scanner != null) scanner.close();
+            if (fw != null) fw.close();
+            if (writer != null) writer.close();
         }
     }
 
-    public static void unitSynonym(String input, String output) {
+    public static void unitSynonym(String input, String output) throws IOException {
+        Map<String, Object> metaLine = new HashMap<>();
         Scanner scanner = null;
+        FileWriter fw = null;
         BufferedWriter writer = null;
+
         try {
-            Map<String, Object> metaLine = new HashMap<>();
-            metaLine.put("index", new HashMap<>());
             scanner = new Scanner(new File(input));
-            writer = new BufferedWriter(new FileWriter(output));
+            fw = new FileWriter(output);
+            writer = new BufferedWriter(fw);
+            metaLine.put("index", new HashMap<>());
             writer.write("");
 
             while (scanner.hasNext()) {
@@ -225,32 +208,26 @@ public class DictParsingTest {
             }
             writer.flush();
             System.out.println("finished");
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-        } finally {
-            if (scanner != null) {
-                scanner.close();
-            }
-            if (writer != null) {
-                try {
-                    writer.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+        }finally {
+            if (scanner != null) scanner.close();
+            if (fw != null) fw.close();
+            if (writer != null) writer.close();
         }
     }
 
-    public static void unit(String input, String output) {
+    public static void unit(String input, String output) throws IOException {
+        Map<String, Object> metaLine = new HashMap<>();
         Scanner scanner = null;
+        FileWriter fw = null;
         BufferedWriter writer = null;
+
         try {
-            Map<String, Object> metaLine = new HashMap<>();
-            metaLine.put("index", new HashMap<>());
             scanner = new Scanner(new File(input));
-            writer = new BufferedWriter(new FileWriter(output));
+            fw = new FileWriter(output);
+            writer = new BufferedWriter(fw);
+            metaLine.put("index", new HashMap<>());
             writer.write("");
 
             while (scanner.hasNext()) {
@@ -264,32 +241,26 @@ public class DictParsingTest {
             }
             writer.flush();
             System.out.println("finished");
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-        } finally {
-            if (scanner != null) {
-                scanner.close();
-            }
-            if (writer != null) {
-                try {
-                    writer.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+        }finally {
+            if (scanner != null) scanner.close();
+            if (fw != null) fw.close();
+            if (writer != null) writer.close();
         }
     }
 
-    public static void compound(String input, String output) {
+    public static void compound(String input, String output) throws IOException {
+        Map<String, Object> metaLine = new HashMap<>();
         Scanner scanner = null;
+        FileWriter fw = null;
         BufferedWriter writer = null;
+
         try {
-            Map<String, Object> metaLine = new HashMap<>();
-            metaLine.put("index", new HashMap<>());
             scanner = new Scanner(new File(input));
-            writer = new BufferedWriter(new FileWriter(output));
+            fw = new FileWriter(output);
+            writer = new BufferedWriter(fw);
+            metaLine.put("index", new HashMap<>());
             writer.write("");
 
             while (scanner.hasNext()) {
@@ -308,28 +279,24 @@ public class DictParsingTest {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-        } finally {
-            if (scanner != null) {
-                scanner.close();
-            }
-            if (writer != null) {
-                try {
-                    writer.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+        }finally {
+            if (scanner != null) scanner.close();
+            if (fw != null) fw.close();
+            if (writer != null) writer.close();
         }
     }
 
-    public static void space(String input, String output) {
+    public static void space(String input, String output) throws IOException {
+        Map<String, Object> metaLine = new HashMap<>();
         Scanner scanner = null;
+        FileWriter fw = null;
         BufferedWriter writer = null;
+
         try {
-            Map<String, Object> metaLine = new HashMap<>();
-            metaLine.put("index", new HashMap<>());
             scanner = new Scanner(new File(input));
-            writer = new BufferedWriter(new FileWriter(output));
+            fw = new FileWriter(output);
+            writer = new BufferedWriter(fw);
+            metaLine.put("index", new HashMap<>());
             writer.write("");
 
             while (scanner.hasNext()) {
@@ -347,28 +314,24 @@ public class DictParsingTest {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-        } finally {
-            if (scanner != null) {
-                scanner.close();
-            }
-            if (writer != null) {
-                try {
-                    writer.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+        }finally {
+            if (scanner != null) scanner.close();
+            if (fw != null) fw.close();
+            if (writer != null) writer.close();
         }
     }
 
-    public static void stop(String input, String output) {
+    public static void stop(String input, String output) throws IOException {
+        Map<String, Object> metaLine = new HashMap<>();
         Scanner scanner = null;
+        FileWriter fw = null;
         BufferedWriter writer = null;
+
         try {
-            Map<String, Object> metaLine = new HashMap<>();
-            metaLine.put("index", new HashMap<>());
             scanner = new Scanner(new File(input));
-            writer = new BufferedWriter(new FileWriter(output));
+            fw = new FileWriter(output);
+            writer = new BufferedWriter(fw);
+            metaLine.put("index", new HashMap<>());
             writer.write("");
 
             while (scanner.hasNext()) {
@@ -386,28 +349,24 @@ public class DictParsingTest {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-        } finally {
-            if (scanner != null) {
-                scanner.close();
-            }
-            if (writer != null) {
-                try {
-                    writer.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+        }finally {
+            if (scanner != null) scanner.close();
+            if (fw != null) fw.close();
+            if (writer != null) writer.close();
         }
     }
 
-    public static void synonym(String input, String output) {
+    public static void synonym(String input, String output) throws IOException {
+        Map<String, Object> metaLine = new HashMap<>();
         Scanner scanner = null;
+        FileWriter fw = null;
         BufferedWriter writer = null;
+
         try {
-            Map<String, Object> metaLine = new HashMap<>();
-            metaLine.put("index", new HashMap<>());
             scanner = new Scanner(new File(input));
-            writer = new BufferedWriter(new FileWriter(output));
+            fw = new FileWriter(output);
+            writer = new BufferedWriter(fw);
+            metaLine.put("index", new HashMap<>());
             writer.write("");
 
             while (scanner.hasNext()) {
@@ -426,33 +385,24 @@ public class DictParsingTest {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-        } finally {
-            if (scanner != null) {
-                scanner.close();
-            }
-            if (writer != null) {
-                try {
-                    writer.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+        }finally {
+            if (scanner != null) scanner.close();
+            if (fw != null) fw.close();
+            if (writer != null) writer.close();
         }
     }
 
-    public static void UserDict(String input, String output) {
+    public static void UserDict(String input, String output) throws IOException {
+        Map<String, Object> metaLine = new HashMap<>();
         Scanner scanner = null;
+        FileWriter fw = null;
         BufferedWriter writer = null;
 
         try {
-
-
-            Map<String, Object> metaLine = new HashMap<>();
-            metaLine.put("index", new HashMap<>());
-
             scanner = new Scanner(new File(input));
-            writer = new BufferedWriter(new FileWriter(output));
-
+            fw = new FileWriter(output);
+            writer = new BufferedWriter(fw);
+            metaLine.put("index", new HashMap<>());
             writer.write("");
 
 
@@ -471,17 +421,10 @@ public class DictParsingTest {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-        } finally {
-            if (scanner != null) {
-                scanner.close();
-            }
-            if (writer != null) {
-                try {
-                    writer.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+        }finally {
+            if (scanner != null) scanner.close();
+            if (fw != null) fw.close();
+            if (writer != null) writer.close();
         }
     }
 

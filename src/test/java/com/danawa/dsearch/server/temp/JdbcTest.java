@@ -10,50 +10,58 @@ import org.springframework.boot.test.context.SpringBootTest;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Properties;
 
-@SpringBootTest
+
 public class JdbcTest {
-
-
-    Logger logger = LoggerFactory.getLogger(JdbcTest.class);
-
     @Test
     public void connection() {
         try{
             /* MySql */
-//            JdbcRequest jdbcRequest = new JdbcRequest();
-//            jdbcRequest.setUrl("jdbc:mysql://");
-//            jdbcRequest.setAddress("127.0.0.1");
-//            jdbcRequest.setPort("3306");
-//            jdbcRequest.setDB_name("test");
-//            jdbcRequest.setUser("root");
-//            jdbcRequest.setPassword("qwe123");
-//            /* Deprecated */
-//            jdbcRequest.setDriver("com.mysql.jdbc.Driver");
-//            /* Newer */
-//            jdbcRequest.setDriver("com.mysql.cj.jdbc.Driver");
-//            String url1 = jdbcRequest.getUrl() + jdbcRequest.getAddress() + ":" + jdbcRequest.getPort() + "/" + jdbcRequest.getDB_name();
-//            Class.forName(jdbcRequest.getDriver());
-//            Connection connection = null;
-//            connection = DriverManager.getConnection(url1, jdbcRequest.getUser(), jdbcRequest.getPassword());
-//            connection.close();
+            JdbcRequest jdbcRequest = new JdbcRequest();
+            jdbcRequest.setUrl("jdbc:mysql://");
+            jdbcRequest.setAddress("dev.danawa.com");
+            jdbcRequest.setPort("3306");
+            jdbcRequest.setDB_name("dbBoard");
+            jdbcRequest.setUser("DEdevelop1_R");
+            jdbcRequest.setPassword("vpflehxm#*^^");
+            /* Deprecated */
+            jdbcRequest.setDriver("com.mysql.jdbc.Driver");
+            /* Newer */
+            jdbcRequest.setDriver("com.mysql.cj.jdbc.Driver");
+
+            Properties prop = new Properties();
+            prop.put("serverTimezone", "Asia/Seoul");
+            prop.put("user", jdbcRequest.getUser());
+            prop.put("password", jdbcRequest.getPassword());
+
+            String url1 = jdbcRequest.getUrl() + jdbcRequest.getAddress() + ":" + jdbcRequest.getPort() + "/" + jdbcRequest.getDB_name();
+            Class.forName(jdbcRequest.getDriver());
+
+            try(Connection connection2 = DriverManager.getConnection(url1, prop)){
+                System.out.println("connection 성공");
+            }
 
 
             /* AltiBase */
-            JdbcRequest jdbcRequest2 = new JdbcRequest();
-            jdbcRequest2.setUrl("jdbc:Altibase://");
-            jdbcRequest2.setAddress("112.175.252.198");
-            jdbcRequest2.setPort("20200");
-            jdbcRequest2.setDB_name("DNWALTI");
-            jdbcRequest2.setUser("danawa"); // ?
-            jdbcRequest2.setPassword("qwe123"); // ?
-            jdbcRequest2.setDriver("Altibase.jdbc.driver.AltibaseDriver");
-            String url2 = jdbcRequest2.getUrl() + jdbcRequest2.getAddress() + ":" + jdbcRequest2.getPort() + "/" + jdbcRequest2.getDB_name();
-            Class.forName(jdbcRequest2.getDriver());
-            Connection connection2 = null;
-            connection2 = DriverManager.getConnection(url2, jdbcRequest2.getUser(), jdbcRequest2.getPassword());
-            connection2.close();
-
+//            JdbcRequest jdbcRequest2 = new JdbcRequest();
+//            jdbcRequest2.setUrl("jdbc:Altibase://");
+//            jdbcRequest2.setAddress("112.175.252.198");
+//            jdbcRequest2.setPort("20200");
+//            jdbcRequest2.setDB_name("DNWALTI");
+//            jdbcRequest2.setUser("DELINKDATA_R"); // ?
+//            jdbcRequest2.setPassword("tpdlwl#*^^"); // ?
+//            jdbcRequest2.setDriver("Altibase.jdbc.driver.AltibaseDriver");
+//            String url2 = jdbcRequest2.getUrl() + jdbcRequest2.getAddress() + ":" + jdbcRequest2.getPort() + "/" + jdbcRequest2.getDB_name();
+//            Class.forName(jdbcRequest2.getDriver());
+//
+//            Properties prop = new Properties();
+//            prop.put("user", jdbcRequest2.getUser());
+//            prop.put("password", jdbcRequest2.getPassword());
+//
+//            try(Connection connection2 = DriverManager.getConnection(url2, prop)){
+//                System.out.println("connection 성공");
+//            }
 
             /* Oracle */
 //            JdbcRequest jdbcRequest3 = new JdbcRequest();
@@ -71,10 +79,8 @@ public class JdbcTest {
 //            connection3.close();
 
         }catch (SQLException sqlException){
-            logger.error("", sqlException);
             System.out.println(sqlException);
         }catch (ClassNotFoundException classNotFoundException){
-            logger.error("", classNotFoundException);
             System.out.println(classNotFoundException);
         } catch (Exception e){
             System.out.println(e);

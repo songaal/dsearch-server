@@ -31,11 +31,17 @@ public class MigrationService {
 
     public Map<String, Object> uploadFile(UUID clusterId, MultipartFile file) {
         Map<String, Object> result = new HashMap<>();
+        InputStream in = null;
+        BufferedInputStream bis = null;
+        InputStreamReader isr = null;
+        BufferedReader br = null;
 
         try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)){
-            InputStream in = file.getInputStream();
-            BufferedInputStream bis = new BufferedInputStream(in);
-            BufferedReader br = new BufferedReader(new InputStreamReader(bis));
+            in = file.getInputStream();
+            bis = new BufferedInputStream(in);
+            isr = new InputStreamReader(bis);
+            br = new BufferedReader(isr);
+
             Gson gson = JsonUtils.createCustomGson();
 
             String line = null;
@@ -131,17 +137,38 @@ public class MigrationService {
                 result.put("comments", new ArrayList<>());
             }
 
-            client.close();
-            br.close();
-            bis.close();
-            in.close();
-
             result.put("result", true);
             result.put("message", "success");
         }catch (IOException e){
             logger.info("{}", e.getMessage());
             result.put("result", false);
             result.put("message", e.getMessage());
+        }finally {
+            if (in != null) {
+                try {
+                    in.close();
+                } catch (IOException ignore) {
+                }
+            }
+            if (bis != null) {
+                try {
+                    bis.close();
+                } catch (IOException ignore) {
+                }
+            }
+            if (isr != null) {
+                try {
+                    isr.close();
+                } catch (IOException ignore) {
+                }
+            }
+            if (br != null) {
+                try {
+                    br.close();
+                } catch (IOException ignore) {
+
+                }
+            }
         }
 
         return result;

@@ -8,7 +8,6 @@ import com.danawa.dsearch.server.clusters.entity.Cluster;
 import com.danawa.dsearch.server.collections.entity.Collection;
 import com.danawa.dsearch.server.collections.entity.IndexStep;
 import com.danawa.dsearch.server.collections.entity.IndexingStatus;
-import com.danawa.dsearch.server.excpetions.CronParseException;
 import com.danawa.dsearch.server.excpetions.DuplicatedUserException;
 import com.danawa.dsearch.server.excpetions.IndexingJobFailureException;
 import org.slf4j.Logger;
@@ -121,7 +120,6 @@ public class CollectionController {
                                       @RequestParam(required = false) String groupSeq,
                                       @RequestParam String action) throws IndexingJobFailureException, IOException {
         Map<String, Object> response = new HashMap<>();
-
         handleError(host, port, collectionName, action, response);
 
         int parsePort = Integer.parseInt(port);
@@ -154,8 +152,6 @@ public class CollectionController {
 
 //        IDXP에서 groupSeq가 넘어오면서 전체 색인을 시작한다.
 //        일반적으로 관리도구 설정과 동일할거같지만... IDXP 파라미터가 있을 경우 groupSeq 를 변경한다.
-//        TODO IDXP 개선때 변경예정
-
         if ((actionType == IndexingActionType.ALL || actionType == IndexingActionType.INDEXING) && groupSeq != null && !"".equals(groupSeq)) {
             try {
                 Map<String ,Object> yamlToMap = indexingJobService.convertRequestParams(collection.getLauncher().getYaml());
