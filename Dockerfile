@@ -6,12 +6,12 @@ ENV TZ=Asia/Seoul
 ENV LOG4J_FORMAT_MSG_NO_LOOKUPS=true
 
 # 필수 패키지 설치
-#RUN apt update -y
-#RUN apt install sudo vim curl net-tools rsync -y
+RUN apt update -y
+RUN apt install sudo vim curl net-tools rsync -y
 
 # 유저 추가 후 변경 (root 권한 포함)
-#RUN useradd -r -u 1000 -g users danawa
-#RUN echo 'danawa ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+RUN useradd -r -u 1000 -g users danawa
+RUN echo 'danawa ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 WORKDIR /logs
 WORKDIR /data
@@ -25,13 +25,13 @@ COPY branch-desc.txt/ .
 
 COPY target/dsearch-server-${VERSION}.jar dsearch-server.jar
 
-#USER danawa
+USER danawa
 
-#RUN sudo chown -R danawa:users /logs
-#RUN sudo chown -R danawa:users /app
-#RUN sudo chown -R danawa:users /root
-#RUN sudo chown -R danawa:users /data
-#RUN sudo chown -R danawa:users /home/danawa
+RUN sudo chown -R danawa:users /logs
+RUN sudo chown -R danawa:users /app
+RUN sudo chown -R danawa:users /root
+RUN sudo chown -R danawa:users /data
+RUN sudo chown -R danawa:users /home/danawa
 
 CMD ["java", "-jar", "dsearch-server.jar"]
 
