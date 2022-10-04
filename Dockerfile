@@ -5,7 +5,6 @@ ARG VERSION
 ENV TZ=Asia/Seoul
 ENV LOG4J_FORMAT_MSG_NO_LOOKUPS=true
 
-
 # 필수 패키지 설치
 RUN apt update -y
 RUN apt install sudo vim curl net-tools rsync -y
@@ -27,10 +26,10 @@ COPY target/dsearch-server-${VERSION}.jar dsearch-server.jar
 
 USER danawa
 
-RUN sudo chown -R danawa:danawa /app
-RUN sudo chown -R danawa:danawa /root
-RUN sudo chown -R danawa:danawa /data
-RUN sudo chown -R danawa:danawa /home/danawa
+RUN sudo chown -R danawa:users /app
+RUN sudo chown -R danawa:users /root
+RUN sudo chown -R danawa:users /data
+RUN sudo chown -R danawa:users /home/danawa
 
 CMD ["java", "-jar", "dsearch-server.jar"]
 
