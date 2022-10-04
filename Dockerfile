@@ -13,6 +13,7 @@ RUN apt install sudo vim curl net-tools rsync -y
 RUN useradd -r -u 1000 -g users danawa
 RUN echo 'danawa ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
+WORKDIR /logs
 WORKDIR /data
 WORKDIR /data/indexFile
 WORKDIR /home/danawa
@@ -26,6 +27,7 @@ COPY target/dsearch-server-${VERSION}.jar dsearch-server.jar
 
 USER danawa
 
+RUN sudo chown -R danawa:users /logs
 RUN sudo chown -R danawa:users /app
 RUN sudo chown -R danawa:users /root
 RUN sudo chown -R danawa:users /data
