@@ -1,26 +1,42 @@
 FROM openjdk:8
 
+ARG VERSION
+
 ENV TZ=Asia/Seoul
 ENV LOG4J_FORMAT_MSG_NO_LOOKUPS=true
 
-RUN apt-get update -y
-RUN apt-get install rsync -y
+
+# 필수 패키지 설치
+RUN apt update -y
+RUN apt install sudo vim curl net-tools rsync -y
+
+# 유저 추가 후 변경 (root 권한 포함)
+RUN useradd -r -u 1000 -g users danawa
+RUN echo 'danawa ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
 WORKDIR /data
 WORKDIR /data/indexFile
+WORKDIR /home/danawa
+WORKDIR /root
 
 WORKDIR /app
 
-#COPY target/dsearch-server-1.2.0.jar dsearch-server.jar
-#COPY lib/elastic-apm-agent.jar elastic-apm-agent.jar
+COPY branch-desc.txt/ .
 
-# 클라우드
-#CMD ["/bin/bash", "-c", "java -javaagent:elastic-apm-agent.jar -Delastic.apm.service_name=dsearch-server-local-docker -Delastic.apm.server_urls=https://358e572549c745de9727eec8ca7d309d.apm.eastus2.azure.elastic-cloud.com:443 -Delastic.apm.verify_server_cert=false -Delastic.apm.secret_token=WBuuvwbepWaB0sfgqs -Delastic.apm.environment=production -jar dsearch-server.jar"]
+COPY target/dsearch-server-${VERSION}.jar dsearch-server.jar
 
-# 로컬
-#CMD ["/bin/bash", "-c", "java -javaagent:elastic-apm-agent.jar -Delastic.apm.service_name=dsearch-server-local -Delastic.apm.application_packages=com.danawa -Delastic.apm.secret_token=WBuuvwbepWaB0sfgqs -Delastic.apm.server_url=https://proto-type.apm.eastus2.azure.elastic-cloud.com -jar dsearch-server.jar"]
+USER danawa
+
+RUN sudo chown -R danawa:danawa /app
+RUN sudo chown -R danawa:danawa /root
+RUN sudo chown -R danawa:danawa /data
+RUN sudo chown -R danawa:danawa /home/danawa
+
+CMD ["java", "-jar", "dsearch-server.jar"]
 
 # 도커 실행 커맨드
 # docker build -t server .
 # docker run -d -p 8080:8080 --name server server
 # docker stop server ; docker rm server
 # docker logs -f server
+
