@@ -17,7 +17,7 @@ spring:
       settings:
         web-allow-others: true
   datasource:
-    url: jdbc:h2:file:~/fileDB
+    url: jdbc:h2:file:/home/danawa/fileDB
     driver-class-name: org.h2.Driver
     username: admin
     password: admin
