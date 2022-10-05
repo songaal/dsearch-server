@@ -13,7 +13,7 @@ spring:
     active: prod
   h2:
     console:
-      enabled: true
+      enabled: none
       settings:
         web-allow-others: true
   datasource:
