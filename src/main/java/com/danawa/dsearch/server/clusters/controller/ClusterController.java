@@ -114,9 +114,10 @@ public class ClusterController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> remove(@PathVariable String id,
+                                    @RequestHeader(value = "client-ip", required = false) String clientIP,
                                     @RequestParam(required = false, defaultValue = "false") String isRemoveData) {
         if ("true".equalsIgnoreCase(isRemoveData)) {
-            logger.info("클러스터의 시스템인덱스를 삭제합니다., {}", id);
+            logger.info("클러스터의 시스템인덱스를 삭제합니다. ==> {}, {}", id, clientIP);
             try {
                 UUID clusterId = UUID.fromString(id);
 

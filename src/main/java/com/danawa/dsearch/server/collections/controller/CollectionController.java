@@ -104,12 +104,13 @@ public class CollectionController {
 
     @PutMapping("/{id}/action")
     public ResponseEntity<?> indexing(@RequestHeader(value = "cluster-id") UUID clusterId,
+                                      @RequestHeader(value = "client-ip", required = false) String clientIP,
                                       @PathVariable String id,
                                       @RequestParam String action) throws IndexingJobFailureException, IOException {
         Map<String, Object> response = new HashMap<>();
         IndexingActionType actionType = getActionType(action);
         Collection collection = collectionService.findById(clusterId, id);
-        registerIndexingJob(clusterId, id, collection, actionType, "", response);
+        registerIndexingJob(clusterId, clientIP, id, collection, actionType, "", response);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
@@ -168,7 +169,7 @@ public class CollectionController {
         }
 
         // 인덱싱 도우미 메서드
-        registerIndexingJob(clusterId, id, collection, actionType, groupSeq, response);
+        registerIndexingJob(clusterId, "from-remote-indexer", id, collection, actionType, groupSeq, response);
 
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
@@ -326,12 +327,15 @@ public class CollectionController {
 
     private void registerIndexingJob(
             UUID clusterId,
+            String clientIP,
             String id,
             Collection collection,
             IndexingActionType actionType,
             String groupSeq,
             Map<String, Object> response) throws IndexingJobFailureException, IOException {
-        logger.info("clusterId={}, id={}, collection={}, actionType={}, groupSeq={}, response={}", clusterId,
+        logger.info("clusterId={}, clientIP={}, id={}, collection={}, actionType={}, groupSeq={}, response={}",
+                clusterId,
+                clientIP,
                 id,
                 collection,
                 actionType,

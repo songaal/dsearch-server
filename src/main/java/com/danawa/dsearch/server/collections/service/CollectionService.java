@@ -454,6 +454,7 @@ public class CollectionService {
             }
             if (indexA.getUuid() != null) {
                 try {
+                    logger.info("clusterId={}, id={}, delete index={}", clusterId, id, indexA.getIndex());
                     client.delete(new DeleteRequest().index(indexA.getIndex()), RequestOptions.DEFAULT);
                 } catch (Exception e) {
                     logger.error("", e);
@@ -461,6 +462,7 @@ public class CollectionService {
             }
             if (indexB.getUuid() != null) {
                 try {
+                    logger.info("clusterId={}, id={}, delete index={}", clusterId, id, indexB.getIndex());
                     client.delete(new DeleteRequest().index(indexB.getIndex()), RequestOptions.DEFAULT);
                 } catch (Exception e) {
                     logger.error("", e);
@@ -468,25 +470,32 @@ public class CollectionService {
             }
 
             try {
+                logger.info("clusterId={}, id={}, delete index={}", clusterId, id, indexA.getIndex());
                 client.indices().delete(new DeleteIndexRequest(indexA.getIndex()), RequestOptions.DEFAULT);
             } catch (Exception e) {
                 logger.warn("", e);
             }
             try {
+                logger.info("clusterId={}, id={}, delete index={}", clusterId, id, indexB.getIndex());
                 client.indices().delete(new DeleteIndexRequest(indexB.getIndex()), RequestOptions.DEFAULT);
             } catch (Exception e) {
                 logger.warn("", e);
             }
+
             try {
+                logger.info("clusterId={}, id={}, delete index={}", clusterId, id, indexA.getIndex());
                 client.indices().deleteTemplate(new DeleteIndexTemplateRequest(indexA.getIndex()), RequestOptions.DEFAULT);
             } catch (Exception e) {
                 logger.warn("", e);
             }
+
             try {
+                logger.info("clusterId={}, id={}, delete index={}", clusterId, id, indexB.getIndex());
                 client.indices().deleteTemplate(new DeleteIndexTemplateRequest(indexB.getIndex()), RequestOptions.DEFAULT);
             } catch (Exception e) {
                 logger.warn("", e);
             }
+
             try {
                 client.delete(new DeleteRequest().index(collectionIndex).id(id), RequestOptions.DEFAULT);
             } catch (Exception e) {
