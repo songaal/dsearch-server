@@ -109,6 +109,7 @@ public class ClusterController {
         indicesService.fetchSystemIndex(registerCluster.getId());
         jdbcService.fetchSystemIndex(registerCluster.getId()); /* JDBC 인덱스 추가 */
         indexTemplateService.fetchSystemIndex(registerCluster.getId()); /* 인덱스 템플릿 추가 */
+        collectionService.init(); /* 이전에 등록되어 있던 클러스터라면 스케쥴 재 등록 */
         return new ResponseEntity<>(registerCluster, HttpStatus.OK);
     }
 
