@@ -431,7 +431,7 @@ public class IndexingJobService {
 
     public Map<String, Object> convertRequestParams(String yamlStr) throws IndexingJobFailureException {
         Map<String, Object> convert = new HashMap<>(params);
-        logger.info("{} {}", convert, yamlStr);
+        logger.debug("{} {}", convert, yamlStr);
 //        default param mixed
 //        convert.putAll(params);
         try {
