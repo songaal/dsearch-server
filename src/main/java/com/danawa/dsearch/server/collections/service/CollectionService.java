@@ -50,7 +50,7 @@ import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 @Service
 public class CollectionService {
     private static Logger logger = LoggerFactory.getLogger(CollectionService.class);
-    private ConcurrentHashMap<String, ScheduledFuture<?>> scheduled = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<String, ScheduledFuture<?>> scheduleMgmtMap = new ConcurrentHashMap<>();
     private final String lastIndexStatusIndex = ".dsearch_last_index_status";
 
     private final ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
@@ -667,7 +667,7 @@ public class CollectionService {
      * @return
      */
     public boolean isAliveSchedule(String key){
-        if(scheduled.get(key) == null){
+        if(scheduleMgmtMap.get(key) == null){
             return false;
         }
 
@@ -678,10 +678,10 @@ public class CollectionService {
      * 모든 스케줄을 읽는다.
      * @return
      */
-    public List<String> getAllSchedules(){
+    public List<String> getScheduledJobs(){
         List<String> result = new ArrayList<>();
 
-        for (String key : scheduled.keySet() ){
+        for (String key : scheduleMgmtMap.keySet() ){
             result.add(key);
         }
 
@@ -729,11 +729,10 @@ public class CollectionService {
             String scheduledKey = makeScheduleKey(clusterId, collectionId, cron);
             logger.info("Schedule Register  ClusterId: {}, CollectionId: {}, Cron: {}", clusterId, collectionId, cron);
 
-            scheduled.put(scheduledKey, Objects.requireNonNull(scheduler.schedule(() -> {
+            scheduleMgmtMap.put(scheduledKey, Objects.requireNonNull(scheduler.schedule(() -> {
                 try {
                     // 변경사항이 있을수 있으므로, 컬렉션 정보를 새로 가져온다.
                     Collection registerCollection = findById(clusterId, collectionId);
-                    logger.info("{}", registerCollection.getIndexingType());
                     IndexingStatus indexingStatus = indexingJobManager.findById(registerCollection.getId());
                     if (indexingStatus != null) {
                         return;
@@ -761,7 +760,7 @@ public class CollectionService {
     public void removeAllSchedule(UUID clusterId){
         if(clusterId == null) throw new NullArgumentException("");
 
-        for(String key : scheduled.keySet()){
+        for(String key : scheduleMgmtMap.keySet()){
             if(isRemovableKey(key, clusterId)){
                 logger.info("스케줄 제거, clusterId: {}, scheduled key: {}", clusterId, key);
                 removeCronJob(key);
@@ -775,7 +774,7 @@ public class CollectionService {
      * @param collectionId
      */
     private void removeCollectionSchedule(UUID clusterId, String collectionId){
-        Iterator<String> keys = scheduled.keySet().iterator();
+        Iterator<String> keys = scheduleMgmtMap.keySet().iterator();
         while (keys.hasNext()){
             String key = keys.next();
             if(isRemovableKey(key, clusterId, collectionId)){
@@ -791,9 +790,9 @@ public class CollectionService {
      * @param key
      */
     private void removeCronJob(String key){
-        ScheduledFuture<?> future = scheduled.get(key);
+        ScheduledFuture<?> future = scheduleMgmtMap.get(key);
         future.cancel(true);
-        scheduled.remove(key);
+        scheduleMgmtMap.remove(key);
     }
 
     /**

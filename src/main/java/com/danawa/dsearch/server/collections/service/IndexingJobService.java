@@ -106,7 +106,7 @@ public class IndexingJobService {
             }
 //            deleteLastIndexStatus(client, index, startTime);
         } catch (IOException e) {
-            logger.error("{}", e);
+            logger.error("", e);
         }
     }
 
@@ -132,7 +132,7 @@ public class IndexingJobService {
 
 //            2. 인덱스 설정 변경.
             logger.info("{} 인덱스 설정 변경", index);
-            editPreparations(client, collection, index);
+            editPreparations(client, index);
 
 //            3. 런처 파라미터 변환작업
             logger.info("{} 런처 파라미터 변환 작업", index);
@@ -167,7 +167,7 @@ public class IndexingJobService {
                 try {
                     esPort = Integer.parseInt(collection.getEsPort());
                 } catch (NumberFormatException e) {
-                    logger.info("{}", e);
+                    logger.info("", e);
                 }
                 body.put("port", esPort);
             }
@@ -176,7 +176,7 @@ public class IndexingJobService {
             body.put("esUsername", collection.getEsUser());
             body.put("esPassword", collection.getEsPassword());
 
-            logger.info("{} 런처 스키마 셋팅", index, launcher);
+            logger.info("{} 런처 스키마 셋팅", index);
             if (launcher.getScheme() == null || "".equals(launcher.getScheme())) {
                 launcher.setScheme("http");
             }
@@ -414,13 +414,13 @@ public class IndexingJobService {
             }
 
         } catch (IOException e) {
-            logger.error("{}", e);
+            logger.error("", e);
         }
 
         return index;
     }
 
-    private void editPreparations(RestHighLevelClient client, Collection collection, Collection.Index index) throws IOException {
+    private void editPreparations(RestHighLevelClient client, Collection.Index index) throws IOException {
         // 인덱스 존재하지 않기 때문에 생성해주기.
         // 인덱스 템플릿이 존재하기 때문에 맵핑 설정 패쓰
         if (index.getUuid() == null) {
