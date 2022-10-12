@@ -127,21 +127,16 @@ public class IndexingJobService {
             Collection.Index indexB = collection.getIndexB();
 
 //            1. 대상 인덱스 찾기.
-            logger.info("clusterId: {}, baseId: {}, 대상 인덱스 찾기", clusterId, collection.getBaseId());
             Collection.Index index = getTargetIndex(client, collection.getBaseId(), indexA, indexB);
 
 //            2. 인덱스 설정 변경.
-            logger.info("{} 인덱스 설정 변경", index);
             editPreparations(client, index);
 
 //            3. 런처 파라미터 변환작업
-            logger.info("{} 런처 파라미터 변환 작업", index);
             Collection.Launcher launcher = collection.getLauncher();
             Map<String, Object> body = convertRequestParams(launcher.getYaml());
-            logger.info("{} 런처 파라미터 변환 작업 완료, JDBC ID: {}, body: {}", index, collection.getJdbcId(), body);
             String jdbcId = collection.getJdbcId();
             if (jdbcId != null && !jdbcId.equals("null")) {
-                logger.info("JDBC ID: {}", jdbcId);
                 if(!"".equals(jdbcId)){
                     GetResponse getResponse = client.get(new GetRequest().index(jdbcSystemIndex).id(collection.getJdbcId()), RequestOptions.DEFAULT);
                     Map<String, Object> jdbcSource = getResponse.getSourceAsMap();
@@ -152,11 +147,8 @@ public class IndexingJobService {
                     body.put("_jdbc", jdbcSource);
                 }
             }
-            logger.info("body: {}", body);
             body.put("index", index.getIndex());
-            logger.info("body: {}", body);
             body.put("_indexingSettings", indexing);
-            logger.info("{} => es host: {}, port: {}", index, collection.getEsHost(), collection.getEsPort());
             // null 대비 에러처리
             if (collection.getEsHost() != null && !collection.getEsHost().equals("")) {
                 body.put("host", collection.getEsHost());
@@ -176,14 +168,12 @@ public class IndexingJobService {
             body.put("esUsername", collection.getEsUser());
             body.put("esPassword", collection.getEsPassword());
 
-            logger.info("{} 런처 스키마 셋팅", index);
             if (launcher.getScheme() == null || "".equals(launcher.getScheme())) {
                 launcher.setScheme("http");
             }
 
             String indexingJobId;
 //            4. indexer 색인 전송
-            logger.info("외부 인덱서 사용 여부 : {}", collection.isExtIndexer());
             if (collection.isExtIndexer()) {
                 // 외부 인덱서를 사용할 경우 전송.
                 ResponseEntity<Map> responseEntity = restTemplate.exchange(
@@ -193,7 +183,6 @@ public class IndexingJobService {
                         Map.class
                 );
                 if (responseEntity.getBody() == null) {
-                    logger.info("{}", responseEntity);
                     throw new NullPointerException("Indexer Start Failed!");
                 }
                 indexingJobId = (String) responseEntity.getBody().get("id");
@@ -206,7 +195,6 @@ public class IndexingJobService {
                 indexingJobId = job.getId().toString();
             }
 
-            logger.info("Job ID: {}", indexingJobId);
             indexingStatus.setClusterId(clusterId);
             indexingStatus.setIndex(index.getIndex());
             indexingStatus.setStartTime(System.currentTimeMillis());
@@ -216,12 +204,15 @@ public class IndexingJobService {
             indexingStatus.setNextStep(nextStep);
             indexingStatus.setRetry(50);
             indexingStatus.setCollection(collection);
+
+            logger.info("인덱싱 시작, clusterId={}, collection={}, index={}", clusterId, collection.getBaseId(), index);
         } catch (Exception e) {
             logger.error("", e);
             // Connection Timeout 히스토리 남기기
             addIndexHistoryException(clusterId, collection, e.getMessage());
             throw new IndexingJobFailureException(e);
         }
+
         return indexingStatus;
     }
 

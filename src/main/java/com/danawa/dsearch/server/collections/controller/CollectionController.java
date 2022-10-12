@@ -97,8 +97,11 @@ public class CollectionController {
             collectionService.editSource(clusterId, id, collection);
         } else if ("schedule".equalsIgnoreCase(action)) {
             collectionService.editSchedule(clusterId, id, collection);
+
             logger.info("등록된 스케쥴 리스트");
-            for (String job : collectionService.getScheduledJobs()){
+            List<String> jobs = collectionService.getScheduledJobs();
+            Collections.sort(jobs);
+            for (String job: jobs){
                 logger.info("{}", job);
             }
         }
