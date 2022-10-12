@@ -280,7 +280,6 @@ public class IndexingJobManager {
             }
         } else {
             // RUNNING
-            logger.info("clusterId: {}, index: {}, collectionId: {}, status: {}, retryCount: {}", clusterId, index, collectionId, status, retryCount);
             indexingStatus.setStatus(status);
             scheduleProcessQueue.put(collectionId, indexingStatus);
         }
