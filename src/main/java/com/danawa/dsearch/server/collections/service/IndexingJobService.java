@@ -440,7 +440,7 @@ public class IndexingJobService {
                 convert.putAll(tmp);
             }
         } catch (ClassCastException | NullPointerException e) {
-            logger.error("{}", e.getMessage());
+            logger.error("{} {}", e.getMessage(), yamlStr);
             throw new IndexingJobFailureException("invalid yaml");
         }
         logger.info("{}", convert);
