@@ -74,7 +74,6 @@ public class IndexingJobManager {
         if (scheduleProcessQueue.size() == 0) return;
 
 
-
         Iterator<Map.Entry<String, IndexingStatus>> entryIterator = scheduleProcessQueue.entrySet().iterator();
         entryIterator.forEachRemaining(entry -> {
             // key == collectionId
@@ -435,6 +434,17 @@ public class IndexingJobManager {
             indexingStatus.setStatus("STOP");
             statusLookupQueue.replace(collectionId, indexingStatus);
         }
+    }
+
+    public List<IndexingStatus> getAllIndexingStatus(){
+        List<IndexingStatus> result = new ArrayList<>();
+        for (String key : statusLookupQueue.keySet()) {
+            // key 는 collectionId(UUID) 이다
+            IndexingStatus indexingStatus = statusLookupQueue.get(key);
+            result.add(indexingStatus);
+        }
+
+        return result;
     }
 
     public IndexingStatus getIndexingStatus(String collectionId){

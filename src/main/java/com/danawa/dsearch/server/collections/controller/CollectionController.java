@@ -229,6 +229,16 @@ public class CollectionController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
+    @GetMapping("/idxp/statusAll")
+    public ResponseEntity<?> getAllStatus(){
+        Map<String, Object> response = new HashMap<>();
+        List<IndexingStatus> statusList = indexingJobManager.getAllIndexingStatus();
+        response.put("message", "");
+        response.put("data",  statusList);
+        response.put("result", "success");
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
     @GetMapping("/setTimeout")
     public ResponseEntity<?> setRefreshInterval(@RequestParam String timeout) {
         indexingJobManager.setTimeout(Long.parseLong(timeout));
