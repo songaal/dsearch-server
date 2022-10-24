@@ -4,6 +4,7 @@ import com.danawa.dsearch.server.clusters.service.ClusterRoutingAllocationServic
 import com.danawa.dsearch.server.clusters.service.ClusterService;
 import com.danawa.dsearch.server.clusters.entity.Cluster;
 import com.danawa.dsearch.server.clusters.entity.ClusterStatusResponse;
+import com.danawa.dsearch.server.collections.service.CollectionScheduleManager;
 import com.danawa.dsearch.server.collections.service.CollectionService;
 import com.danawa.dsearch.server.dictionary.service.DictionaryService;
 import com.danawa.dsearch.server.collections.entity.Collection;
@@ -35,6 +36,7 @@ public class ClusterController {
     private final IndicesService indicesService;
     private final IndexTemplateService indexTemplateService;
     private final ClusterRoutingAllocationService clusterRoutingAllocationService;
+    private final CollectionScheduleManager collectionScheduleManager;
 
     public ClusterController(@Value("${dsearch.delete}") String deletePrefix,
                              ClusterService clusterService,
@@ -43,7 +45,8 @@ public class ClusterController {
                              CollectionService collectionService,
                              IndicesService indicesService, JdbcService jdbcService,
                              IndexTemplateService indexTemplateService,
-                             ClusterRoutingAllocationService clusterRoutingAllocationService) {
+                             ClusterRoutingAllocationService clusterRoutingAllocationService,
+                             CollectionScheduleManager collectionScheduleManager) {
         this.deletePrefix = deletePrefix;
         this.clusterService = clusterService;
         this.dictionaryService = dictionaryService;
@@ -53,6 +56,7 @@ public class ClusterController {
         this.jdbcService = jdbcService;
         this.indexTemplateService = indexTemplateService;
         this.clusterRoutingAllocationService = clusterRoutingAllocationService;
+        this.collectionScheduleManager = collectionScheduleManager;
     }
 
     @GetMapping
@@ -109,7 +113,7 @@ public class ClusterController {
         indicesService.fetchSystemIndex(registerCluster.getId());
         jdbcService.fetchSystemIndex(registerCluster.getId()); /* JDBC 인덱스 추가 */
         indexTemplateService.fetchSystemIndex(registerCluster.getId()); /* 인덱스 템플릿 추가 */
-        collectionService.init(); /* 이전에 등록되어 있던 클러스터라면 스케쥴 재 등록 */
+        collectionScheduleManager.init(); /* 이전에 등록되어 있던 클러스터라면 스케쥴 재 등록 */
         return new ResponseEntity<>(registerCluster, HttpStatus.OK);
     }
 
@@ -159,11 +163,11 @@ public class ClusterController {
         if(flag){
             // 해당 클러스터의 스케줄 제거
             logger.info("클러스터 점검 시작, clusterId: {}", clusterId);
-            collectionService.removeAllSchedule(clusterId);
+            collectionScheduleManager.removeAllSchedule(clusterId);
         }else{
             // 해당 클러스터의 스케줄 재 등록
             logger.info("클러스터 점검 완료, clusterId: {}", clusterId);
-            collectionService.registerAllSchedule(clusterId);
+            collectionScheduleManager.registerAllSchedule(clusterId);
         }
         return new ResponseEntity<>(HttpStatus.OK);
     }

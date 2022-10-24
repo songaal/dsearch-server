@@ -3,7 +3,7 @@ package com.danawa.dsearch.server.collections.service;
 import com.danawa.dsearch.server.config.IndexerConfig;
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
 import com.danawa.dsearch.server.collections.entity.Collection;
-import com.danawa.dsearch.server.collections.entity.IndexStep;
+import com.danawa.dsearch.server.collections.entity.IndexActionStep;
 import com.danawa.dsearch.server.collections.entity.IndexingStatus;
 import com.danawa.dsearch.server.excpetions.IndexingJobFailureException;
 import com.danawa.dsearch.server.notice.NoticeHandler;
@@ -87,15 +87,15 @@ public class IndexingJobService {
             BoolQueryBuilder countQuery = QueryBuilders.boolQuery();
             countQuery.filter().add(QueryBuilders.termQuery("index", index));
             countQuery.filter().add(QueryBuilders.termQuery("startTime", currentTime));
-            countQuery.filter().add(QueryBuilders.termQuery("jobType", IndexStep.FULL_INDEX));
+            countQuery.filter().add(QueryBuilders.termQuery("jobType", IndexActionStep.FULL_INDEX));
 
             CountResponse countResponse = client.count(new CountRequest(indexHistory).query(countQuery), RequestOptions.DEFAULT);
-            logger.debug("index: {}, startTime: {}, jobType: {}, result Count: {}", index, currentTime, IndexStep.FULL_INDEX, countResponse.getCount());
+            logger.debug("index: {}, startTime: {}, jobType: {}, result Count: {}", index, currentTime, IndexActionStep.FULL_INDEX, countResponse.getCount());
 
             if (countResponse.getCount() == 0) {
                 Map<String, Object> source = new HashMap<>();
                 source.put("index", index);
-                source.put("jobType", IndexStep.FULL_INDEX);
+                source.put("jobType", IndexActionStep.FULL_INDEX);
                 source.put("startTime", currentTime);
                 source.put("endTime", currentTime);
                 source.put("autoRun", collection.isAutoRun());
@@ -104,7 +104,6 @@ public class IndexingJobService {
                 source.put("store", "0");
                 client.index(new IndexRequest().index(indexHistory).source(source), RequestOptions.DEFAULT);
             }
-//            deleteLastIndexStatus(client, index, startTime);
         } catch (IOException e) {
             logger.error("", e);
         }
@@ -116,11 +115,11 @@ public class IndexingJobService {
      *
      * @return IndexingStatus
      */
-    public IndexingStatus indexing(UUID clusterId, Collection collection, boolean autoRun, IndexStep step) throws IndexingJobFailureException {
+    public IndexingStatus indexing(UUID clusterId, Collection collection, boolean autoRun, IndexActionStep step) throws IndexingJobFailureException {
         return indexing(clusterId, collection, autoRun, step, new ArrayDeque<>());
     }
 
-    public IndexingStatus indexing(UUID clusterId, Collection collection, boolean autoRun, IndexStep step, Queue<IndexStep> nextStep) throws IndexingJobFailureException {
+    public IndexingStatus indexing(UUID clusterId, Collection collection, boolean autoRun, IndexActionStep step, Queue<IndexActionStep> nextStep) throws IndexingJobFailureException {
         IndexingStatus indexingStatus = new IndexingStatus();
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Collection.Index indexA = collection.getIndexA();
@@ -218,7 +217,6 @@ public class IndexingJobService {
 
     public void changeRefreshInterval(UUID clusterId, Collection collection, String target) throws IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-
             // refresh_interval 을 따로 컬렉션 인덱스에서 가지고 있어서, 복사해서 사용.
             Map<String, Object> settings = new HashMap<>();
 
@@ -356,23 +354,6 @@ public class IndexingJobService {
         }
     }
 
-    private Collection.Index getTargetIndex(String baseId, Collection.Index indexA, Collection.Index indexB) {
-        Collection.Index index;
-        // 인덱스에 대한 alias를 확인
-        if (indexA.getAliases().size() == 0 && indexB.getAliases().size() == 0) {
-            index = indexA;
-        } else if (indexA.getAliases().get(baseId) != null) {
-            index = indexB;
-        } else if (indexB.getAliases().get(baseId) != null) {
-            index = indexA;
-        } else {
-            index = indexA;
-        }
-        logger.debug("choice Index: {}", index.getIndex());
-        return index;
-    }
-
-
     private Collection.Index getTargetIndex(RestHighLevelClient client, String baseId, Collection.Index indexA, Collection.Index indexB) {
         Collection.Index index = indexA;
         // 인덱스에 대한 alias를 확인
@@ -432,8 +413,6 @@ public class IndexingJobService {
     public Map<String, Object> convertRequestParams(String yamlStr) throws IndexingJobFailureException {
         Map<String, Object> convert = new HashMap<>(params);
         logger.debug("{} {}", convert, yamlStr);
-//        default param mixed
-//        convert.putAll(params);
         try {
             Map<String, Object> tmp = new Yaml().load(yamlStr);
             if (tmp != null) {

@@ -267,80 +267,80 @@ public class CollectionServiceTest {
         });
     }
 
-    @Test
-    @DisplayName("한 클러스터 내의 등록된 컬렉션 크론잡 스케줄 전체 삭제 시 clusterId 가 null 일 경우 실패")
-    public void remove_all_schedule_fail_when_clusterId_null() throws IOException {
-        Assertions.assertThrows(NullArgumentException.class, () -> {
-            UUID clusterId = UUID.randomUUID();
-            collectionService.removeAllSchedule(null);
-        });
-    }
-
-    @Test
-    @DisplayName("한 클러스터 내의 등록된 컬렉션 크론잡 스케줄 전체 삭제 시 clusterId 가 null 일 경우 실패")
-    public void register_all_schedule_fail_when_clusterId_null() throws IOException {
-        Assertions.assertThrows(NullArgumentException.class, () -> {
-            UUID clusterId = UUID.randomUUID();
-            collectionService.registerAllSchedule(null);
-        });
-    }
-
-    @Test
-    @DisplayName("컬렉션의 등록된 크론잡 스케줄 삭제 시 clusterId 가 null 일 경우 실패")
-    public void remove_schedule_fail_when_clusterId_null() throws IOException {
-        Assertions.assertThrows(NullArgumentException.class, () -> {
-            UUID clusterId = UUID.randomUUID();
-            String collectionId = "";
-            String crons = "* * * * *";
-            collectionService.removeSchedule(null, collectionId, crons);
-        });
-    }
-
-    @Test
-    @DisplayName("컬렉션의 등록된 크론잡 스케줄 삭제 시 collectionId 가 null 일 경우 실패")
-    public void remove_schedule_fail_when_collectionId_is_null() throws IOException {
-        Assertions.assertThrows(NullArgumentException.class, () -> {
-            UUID clusterId = UUID.randomUUID();
-            String collectionId = "";
-            String crons = "* * * * *";
-            collectionService.removeSchedule(clusterId, null, crons);
-        });
-    }
-
-    @Test
-    @DisplayName("컬렉션의 등록된 크론잡 스케줄 삭제 시 collectionId 가 빈 문자열 일 경우 실패")
-    public void remove_schedule_fail_when_collectionId_is_0_length() throws IOException {
-        Assertions.assertThrows(NullArgumentException.class, () -> {
-            UUID clusterId = UUID.randomUUID();
-            String collectionId = "";
-            String crons = "* * * * *";
-            collectionService.removeSchedule(clusterId, collectionId, crons);
-        });
-    }
-
-    @Test
-    @DisplayName("컬렉션의 등록된 크론잡 스케줄 삭제 시 clusterId 가 null 일 경우 실패")
-    public void remove_schedule_fail_when_crons_param_is_invaild() throws IOException {
-        Assertions.assertThrows(CronParseException.class, () -> {
-            UUID clusterId = UUID.randomUUID();
-            String collectionId = "id";
-            String crons = "* * * *";
-            collectionService.removeSchedule(clusterId, collectionId, crons);
-        });
-    }
-
-    @Test
-    @DisplayName("한 클러스터 내의 전체 컬렉션 크론잡 스케줄 삭제 확인")
-    public void remove_schedule_success() throws CronParseException {
-        UUID clusterId = UUID.randomUUID();
-        String collectionId = "id";
-        String crons = "30 18 * * *";
-        String key = String.format("%s-%s-%s", clusterId, collectionId, crons);
-        collectionService.registerCronJob(clusterId, collectionId, crons);
-        System.out.println(key + " : " + collectionService.isAliveSchedule(key));
-        collectionService.removeSchedule(clusterId, collectionId, crons);
-        System.out.println(key + " : " + collectionService.isAliveSchedule(key));
-    }
+//    @Test
+//    @DisplayName("한 클러스터 내의 등록된 컬렉션 크론잡 스케줄 전체 삭제 시 clusterId 가 null 일 경우 실패")
+//    public void remove_all_schedule_fail_when_clusterId_null() throws IOException {
+//        Assertions.assertThrows(NullArgumentException.class, () -> {
+//            UUID clusterId = UUID.randomUUID();
+//            collectionService.removeAllSchedule(null);
+//        });
+//    }
+//
+//    @Test
+//    @DisplayName("한 클러스터 내의 등록된 컬렉션 크론잡 스케줄 전체 삭제 시 clusterId 가 null 일 경우 실패")
+//    public void register_all_schedule_fail_when_clusterId_null() throws IOException {
+//        Assertions.assertThrows(NullArgumentException.class, () -> {
+//            UUID clusterId = UUID.randomUUID();
+//            collectionService.registerAllSchedule(null);
+//        });
+//    }
+//
+//    @Test
+//    @DisplayName("컬렉션의 등록된 크론잡 스케줄 삭제 시 clusterId 가 null 일 경우 실패")
+//    public void remove_schedule_fail_when_clusterId_null() throws IOException {
+//        Assertions.assertThrows(NullArgumentException.class, () -> {
+//            UUID clusterId = UUID.randomUUID();
+//            String collectionId = "";
+//            String crons = "* * * * *";
+//            collectionService.removeSchedule(null, collectionId, crons);
+//        });
+//    }
+//
+//    @Test
+//    @DisplayName("컬렉션의 등록된 크론잡 스케줄 삭제 시 collectionId 가 null 일 경우 실패")
+//    public void remove_schedule_fail_when_collectionId_is_null() throws IOException {
+//        Assertions.assertThrows(NullArgumentException.class, () -> {
+//            UUID clusterId = UUID.randomUUID();
+//            String collectionId = "";
+//            String crons = "* * * * *";
+//            collectionService.removeSchedule(clusterId, null, crons);
+//        });
+//    }
+//
+//    @Test
+//    @DisplayName("컬렉션의 등록된 크론잡 스케줄 삭제 시 collectionId 가 빈 문자열 일 경우 실패")
+//    public void remove_schedule_fail_when_collectionId_is_0_length() throws IOException {
+//        Assertions.assertThrows(NullArgumentException.class, () -> {
+//            UUID clusterId = UUID.randomUUID();
+//            String collectionId = "";
+//            String crons = "* * * * *";
+//            collectionService.removeSchedule(clusterId, collectionId, crons);
+//        });
+//    }
+//
+//    @Test
+//    @DisplayName("컬렉션의 등록된 크론잡 스케줄 삭제 시 clusterId 가 null 일 경우 실패")
+//    public void remove_schedule_fail_when_crons_param_is_invaild() throws IOException {
+//        Assertions.assertThrows(CronParseException.class, () -> {
+//            UUID clusterId = UUID.randomUUID();
+//            String collectionId = "id";
+//            String crons = "* * * *";
+//            collectionService.removeSchedule(clusterId, collectionId, crons);
+//        });
+//    }
+//
+//    @Test
+//    @DisplayName("한 클러스터 내의 전체 컬렉션 크론잡 스케줄 삭제 확인")
+//    public void remove_schedule_success() throws CronParseException {
+//        UUID clusterId = UUID.randomUUID();
+//        String collectionId = "id";
+//        String crons = "30 18 * * *";
+//        String key = String.format("%s-%s-%s", clusterId, collectionId, crons);
+//        collectionService.registerCronJob(clusterId, collectionId, crons);
+//        System.out.println(key + " : " + collectionService.isAliveSchedule(key));
+//        collectionService.removeSchedule(clusterId, collectionId, crons);
+//        System.out.println(key + " : " + collectionService.isAliveSchedule(key));
+//    }
 
     @Test
     @DisplayName("컬렉션 데이터 다운로드 성공")

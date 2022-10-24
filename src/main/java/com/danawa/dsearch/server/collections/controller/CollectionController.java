@@ -1,12 +1,13 @@
 package com.danawa.dsearch.server.collections.controller;
 
 import com.danawa.dsearch.server.clusters.service.ClusterService;
+import com.danawa.dsearch.server.collections.entity.IndexingActionType;
+import com.danawa.dsearch.server.collections.service.CollectionScheduleManager;
 import com.danawa.dsearch.server.collections.service.IndexingJobManager;
 import com.danawa.dsearch.server.collections.service.IndexingJobService;
 import com.danawa.dsearch.server.collections.service.CollectionService;
 import com.danawa.dsearch.server.clusters.entity.Cluster;
 import com.danawa.dsearch.server.collections.entity.Collection;
-import com.danawa.dsearch.server.collections.entity.IndexStep;
 import com.danawa.dsearch.server.collections.entity.IndexingStatus;
 import com.danawa.dsearch.server.excpetions.DuplicatedUserException;
 import com.danawa.dsearch.server.excpetions.IndexingJobFailureException;
@@ -26,24 +27,29 @@ import java.util.*;
 @RequestMapping("/collections")
 public class CollectionController {
     private static Logger logger = LoggerFactory.getLogger(CollectionController.class);
-    private static Object obj = new Object();
+
     private final String indexSuffixA;
     private final String indexSuffixB;
     private final ClusterService clusterService;
     private final CollectionService collectionService;
     private final IndexingJobService indexingJobService;
     private final IndexingJobManager indexingJobManager;
+    private final CollectionScheduleManager scheduleManager;
 
     public CollectionController(@Value("${dsearch.collection.index-suffix-a}") String indexSuffixA,
                                 @Value("${dsearch.collection.index-suffix-b}") String indexSuffixB,
-                                CollectionService collectionService, ClusterService clusterService,
-                                IndexingJobService indexingJobService, IndexingJobManager indexingJobManager) {
+                                CollectionService collectionService,
+                                ClusterService clusterService,
+                                IndexingJobService indexingJobService,
+                                IndexingJobManager indexingJobManager,
+                                CollectionScheduleManager scheduleManager) {
         this.indexSuffixA = indexSuffixA;
         this.indexSuffixB = indexSuffixB;
         this.collectionService = collectionService;
         this.indexingJobService = indexingJobService;
         this.indexingJobManager = indexingJobManager;
         this.clusterService = clusterService;
+        this.scheduleManager = scheduleManager;
     }
 
     @PostMapping
@@ -76,7 +82,7 @@ public class CollectionController {
     @GetMapping("/{id}/job")
     public ResponseEntity<?> getJob(@RequestHeader(value = "cluster-id") UUID clusterId,
                                     @PathVariable String id) {
-        return new ResponseEntity<>(indexingJobManager.findById(id), HttpStatus.OK);
+        return new ResponseEntity<>(indexingJobManager.getScheduleQueue(id), HttpStatus.OK);
     }
 
     @DeleteMapping("/{id}")
@@ -94,12 +100,20 @@ public class CollectionController {
         logger.info("action: {}, collectionId: {}, baseId: {}", action, id, collection.getBaseId());
 
         if ("source".equalsIgnoreCase(action)) {
-            collectionService.editSource(clusterId, id, collection);
+            Map<String, Object> source = collectionService.editSource(clusterId, id, collection);
+
+            boolean isScheduled = (boolean) source.get("scheduled");
+            if(isScheduled){
+                // collection에는 따로 셋팅해서 넘겨준다. -> sourceAsMap에는 있지만 Collection에는 false로 등록되어 있을 수 있기 때문에.
+//                collection.setScheduled(true);
+                scheduleManager.resetCollectionSchedule(clusterId, collection.getId()); // 스케줄 리셋
+            }
         } else if ("schedule".equalsIgnoreCase(action)) {
             collectionService.editSchedule(clusterId, id, collection);
+            scheduleManager.resetCollectionSchedule(clusterId, collection.getId()); // 스케줄이 업데이트 되었으므로 기존 데이터 삭제 후 재등록 필요
 
             logger.info("등록된 스케쥴 리스트");
-            List<String> jobs = collectionService.getScheduledJobs();
+            List<String> jobs = scheduleManager.getScheduledJobs();
             Collections.sort(jobs);
             for (String job: jobs){
                 logger.info("{}", job);
@@ -117,37 +131,29 @@ public class CollectionController {
         Map<String, Object> response = new HashMap<>();
         IndexingActionType actionType = getActionType(action);
         Collection collection = collectionService.findById(clusterId, id);
-        registerIndexingJob(clusterId, clientIP, id, collection, actionType, "", response);
+        collectionService.registerIndexingJob(clusterId, clientIP, id, collection, actionType, "", response);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @GetMapping("/idxp")
-    public ResponseEntity<?> idxp(@RequestParam String host,
-                                      @RequestParam String port,
-                                      @RequestParam String collectionName,
+    public ResponseEntity<?> idxp(@RequestParam(name = "host") String host,
+                                      @RequestParam(name = "port") int port,
+                                      @RequestParam(name = "collectionName") String collectionName,
                                       @RequestParam(required = false) String groupSeq,
-                                      @RequestParam String action) throws IndexingJobFailureException, IOException {
+                                      @RequestParam(name = "action") String action) throws IndexingJobFailureException, IOException {
         Map<String, Object> response = new HashMap<>();
         handleError(host, port, collectionName, action, response);
 
-        int parsePort = Integer.parseInt(port);
-
-        List<Cluster> clusterList = clusterService.findByHostAndPort(host, parsePort);
-
-        if(clusterList == null || clusterList.size() == 0){
-            // 클러스터가 없을때
+        List<Cluster> clusterList = clusterService.findByHostAndPort(host, port);
+        if(clusterList.size() == 0){
             response.put("message", "Not Found Cluster");
             response.put("result", "fail");
             return new ResponseEntity<>(response, HttpStatus.OK);
         }
 
-        // 호스트명과 포트가 같으니 같은 ES이다
-        // 즉, 아무거나 가져와도 됨
         Cluster cluster = clusterList.get(0);
         Collection collection = collectionService.findByName(cluster.getId(), collectionName);
-
         if(collection == null){
-            //컬렉션이 없을때
             response.put("message", "Not Found Collection Name");
             response.put("result", "fail");
             return new ResponseEntity<>(response, HttpStatus.OK);
@@ -155,7 +161,6 @@ public class CollectionController {
 
         UUID clusterId = cluster.getId();
         String id = collection.getId();
-
         IndexingActionType actionType = getActionType(action);
 
 //        IDXP에서 groupSeq가 넘어오면서 전체 색인을 시작한다.
@@ -175,24 +180,20 @@ public class CollectionController {
             }
         }
 
-        // 인덱싱 도우미 메서드
-        registerIndexingJob(clusterId, "from-remote-indexer", id, collection, actionType, groupSeq, response);
-
+        collectionService.registerIndexingJob(clusterId, "from-remote-indexer", id, collection, actionType, groupSeq, response);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
 
     @GetMapping("/idxp/status")
-    public ResponseEntity<?> getIdxpStatus(@RequestParam String host,
-                                  @RequestParam String port,
-                                  @RequestParam String collectionName) throws IOException {
+    public ResponseEntity<?> getIdxpStatus(@RequestParam(name = "host") String host,
+                                  @RequestParam(name = "port") int port,
+                                  @RequestParam(name = "collectionName") String collectionName) throws IOException {
         Map<String, Object> response = new HashMap<>();
-
         handleError(host, port, collectionName, "empty", response);
-        int parsePort = Integer.parseInt(port);
 
-        List<Cluster> clusterList = clusterService.findByHostAndPort(host, parsePort);
-        if(clusterList == null || clusterList.size() == 0){
+        List<Cluster> clusterList = clusterService.findByHostAndPort(host, port);
+        if(clusterList.size() == 0){
             response.put("message", "Not Found Cluster");
             response.put("result", "fail");
             return new ResponseEntity<>(response, HttpStatus.OK);
@@ -206,9 +207,9 @@ public class CollectionController {
             return new ResponseEntity<>(response, HttpStatus.OK);
         }
 
+        String collectionId = collection.getId();
+        IndexingStatus indexingStatus = indexingJobManager.getIndexingStatus(collectionId);
 
-        String id = collection.getId();
-        IndexingStatus indexingStatus = indexingJobManager.getIndexingStatus(id);
         if(indexingStatus == null){
             Map<String, String> map = new HashMap<>();
             map.put("status", "NOT_STARTED");
@@ -218,21 +219,27 @@ public class CollectionController {
             return new ResponseEntity<>(response, HttpStatus.OK);
         }
 
-        // KEY: collection id, value: Indexing status
-//        Map<String, Object> server = (Map<String, Object>) indexingStatus.get(id);
-//        response.put("info", server.get("server"));
         response.put("message", "");
         response.put("info",  indexingStatus);
         response.put("step",  indexingStatus.getCurrentStep());
         response.put("result", "success");
-
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
-    @GetMapping("/idxp/statusAll")
-    public ResponseEntity<?> getAllStatus(){
+    @GetMapping("/schedule")
+    public ResponseEntity<?> getScheduleQueue(){
         Map<String, Object> response = new HashMap<>();
-        List<IndexingStatus> statusList = indexingJobManager.getAllIndexingStatus();
+        List<IndexingStatus> statusList = indexingJobManager.getScheduleQueueList();
+        response.put("message", "");
+        response.put("data",  statusList);
+        response.put("result", "success");
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @GetMapping("/lookup")
+    public ResponseEntity<?> getLookupQueue(){
+        Map<String, Object> response = new HashMap<>();
+        List<IndexingStatus> statusList = indexingJobManager.getLookupQueueList();
         response.put("message", "");
         response.put("data",  statusList);
         response.put("result", "success");
@@ -248,29 +255,8 @@ public class CollectionController {
     /**
      * 도우미 메서드 영역
      * */
-
-    enum IndexingActionType{
-        ALL("all"),
-        INDEXING("indexing"),
-//        PROPAGATE("propagate"),
-        EXPOSE("expose"),
-        STOP_PROPAGATION("stop_propagation"),
-        STOP_INDEXING("stop_indexing"),
-        SUB_START("sub_start"),
-        UNKNOWN(""), STOP_REINDEXING("stop_reindexing");
-
-        private String action;
-
-        IndexingActionType(String action){
-            this.action = action;
-        }
-
-        public String getAction() {
-            return action;
-        }
-    }
-
     private IndexingActionType getActionType(String action) throws IndexingJobFailureException{
+        action = action.toLowerCase();
         switch (action) {
             case "all":
                 return IndexingActionType.ALL;
@@ -291,24 +277,7 @@ public class CollectionController {
         }
     }
 
-    enum IndexType {
-        // outer : 외부색인 ( index )
-        // inner : 내부색인 ( reindex )
-        OUTER("outer"), INNER("inner");
-
-        private String type;
-
-        IndexType(String type){
-            this.type = type;
-        }
-
-        public String getType() {
-            return type;
-        }
-
-    }
-
-    private void handleError(String host, String port, String collectionName, String action, Map<String, Object> response){
+    private void handleError(String host, int port, String collectionName, String action, Map<String, Object> response){
         // Host 에러 처리
         if(host == null || host.equals("")){
             response.put("message", "host is not correct");
@@ -316,7 +285,7 @@ public class CollectionController {
         }
 
         // Port 에러 처리
-        if (port == null || port.equals("")) {
+        if (port <= 0) {
             response.put("message", "port is not correct");
             response.put("result", "fail");
         }
@@ -331,111 +300,6 @@ public class CollectionController {
         if (action == null || action.equals("")) {
             response.put("message", "action is not correct");
             response.put("result", "fail");
-        }
-
-        // port가 Integer 범위를 넘어가면 에러
-        try {
-            Integer.parseInt(port);
-        } catch (NumberFormatException e) {
-            response.put("message", e.getMessage());
-            response.put("result", "fail");
-        }
-    }
-
-    private void registerIndexingJob(
-            UUID clusterId,
-            String clientIP,
-            String id,
-            Collection collection,
-            IndexingActionType actionType,
-            String groupSeq,
-            Map<String, Object> response) throws IndexingJobFailureException, IOException {
-        logger.info("clusterId={}, clientIP={}, id={}, collection={}, actionType={}, groupSeq={}, response={}",
-                clusterId,
-                clientIP,
-                id,
-                collection,
-                actionType,
-                groupSeq,
-                response);
-        switch (actionType){
-            case ALL:
-                synchronized (obj) {
-                    IndexingStatus registerStatus = indexingJobManager.findById(id);
-                    if (registerStatus == null) {
-                        Queue<IndexStep> nextStep = new ArrayDeque<>();
-                        nextStep.add(IndexStep.EXPOSE);
-                        IndexingStatus indexingStatus = indexingJobService.indexing(clusterId, collection, true, IndexStep.FULL_INDEX, nextStep);
-                        indexingStatus.setAction(actionType.getAction());
-                        indexingStatus.setStatus("RUNNING");
-                        indexingJobManager.add(collection.getId(), indexingStatus);
-                        response.put("indexingStatus", indexingStatus);
-                        response.put("result", "success");
-                    } else {
-                        response.put("result", "fail");
-                    }
-                }
-                break;
-            case INDEXING:
-                synchronized (obj) {
-                    IndexingStatus registerStatus = indexingJobManager.findById(id);
-                    if (registerStatus == null) {
-                        IndexingStatus indexingStatus = indexingJobService.indexing(clusterId, collection, false, IndexStep.FULL_INDEX);
-                        indexingStatus.setAction(actionType.getAction());
-                        indexingStatus.setStatus("RUNNING");
-                        indexingJobManager.add(collection.getId(), indexingStatus);
-                        response.put("indexingStatus", indexingStatus);
-                        response.put("result", "success");
-                    } else {
-                        response.put("result", "fail");
-                    }
-                }
-                break;
-            case EXPOSE:
-                synchronized (obj) {
-                    IndexingStatus registerStatus = indexingJobManager.findById(id);
-                    if (registerStatus == null) {
-                        indexingJobService.expose(clusterId, collection);
-                        response.put("result", "success");
-                    } else {
-                        response.put("result", "fail");
-                    }
-                }
-                break;
-            case STOP_INDEXING:
-                synchronized (obj) {
-                    IndexingStatus indexingStatus = indexingJobManager.findById(id);
-                    if (indexingStatus != null
-                            &&
-                            (indexingStatus.getCurrentStep() == IndexStep.FULL_INDEX
-                                    || indexingStatus.getCurrentStep() == IndexStep.DYNAMIC_INDEX )) {
-                        Collection.Launcher launcher = collection.getLauncher();
-                        indexingJobService.stopIndexing(indexingStatus.getScheme(), launcher.getHost(), launcher.getPort(), indexingStatus.getIndexingJobId());
-                        response.put("indexingStatus", indexingStatus);
-                        response.put("result", "success");
-                        indexingJobManager.setStopStatus(id, "STOP"); // 추가
-                    } else {
-                        response.put("result", "fail");
-                    }
-                }
-                break;
-            case SUB_START:
-                synchronized (obj) {
-                    IndexingStatus indexingStatus = indexingJobManager.findById(id);
-                    if (indexingStatus != null && (indexingStatus.getCurrentStep() == IndexStep.FULL_INDEX || indexingStatus.getCurrentStep() == IndexStep.DYNAMIC_INDEX) && groupSeq != null && !"".equalsIgnoreCase(groupSeq) ) {
-                        logger.info("sub_start >>>> {}, groupSeq: {}", collection.getName(), groupSeq);
-                        Collection.Launcher launcher = collection.getLauncher();
-                        indexingJobService.subStart(indexingStatus.getScheme(), launcher.getHost(), launcher.getPort(), indexingStatus.getIndexingJobId(), groupSeq, collection.isExtIndexer());
-                        response.put("indexingStatus", indexingStatus);
-                        response.put("result", "success");
-                    } else {
-                        response.put("result", "fail");
-                    }
-                }
-                break;
-            default:
-                response.put("message", "Not Found Action. Please Select Action in this list (all / indexing / propagate / expose / stop_indexing / stop_propagation)");
-                response.put("result", "success");
         }
     }
 }

@@ -1,31 +1,14 @@
 package com.danawa.dsearch.server.collections;
 
-import com.danawa.dsearch.server.clusters.entity.Cluster;
 import com.danawa.dsearch.server.clusters.service.ClusterService;
 import com.danawa.dsearch.server.collections.entity.Collection;
-import com.danawa.dsearch.server.collections.entity.IndexStep;
-import com.danawa.dsearch.server.collections.entity.IndexingStatus;
 import com.danawa.dsearch.server.collections.service.CollectionService;
 import com.danawa.dsearch.server.collections.service.IndexingJobManager;
 import com.danawa.dsearch.server.collections.service.IndexingJobService;
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
-import com.danawa.dsearch.server.excpetions.CronParseException;
 import com.danawa.dsearch.server.indices.service.IndicesService;
-import com.google.gson.Gson;
 import org.apache.commons.lang.NullArgumentException;
-import org.apache.http.util.EntityUtils;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.Request;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.Response;
-import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.index.query.MatchAllQueryBuilder;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.builder.SearchSourceBuilder;
-import org.elasticsearch.search.sort.SortOrder;
 
-import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.util.*;
 

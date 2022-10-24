@@ -25,8 +25,8 @@ public class IndexingStatus implements Serializable {
     private String action;
 
     private int retry;
-    private IndexStep currentStep;
-    private Queue<IndexStep> nextStep;
+    private IndexActionStep currentStep;
+    private Queue<IndexActionStep> nextStep;
 
     public void setCollection(Collection collection) {
         this.collection = collection;
@@ -124,19 +124,19 @@ public class IndexingStatus implements Serializable {
         this.retry = retry;
     }
 
-    public IndexStep getCurrentStep() {
+    public IndexActionStep getCurrentStep() {
         return currentStep;
     }
 
-    public void setCurrentStep(IndexStep currentStep) {
+    public void setCurrentStep(IndexActionStep currentStep) {
         this.currentStep = currentStep;
     }
 
-    public Queue<IndexStep> getNextStep() {
+    public Queue<IndexActionStep> getNextStep() {
         return nextStep;
     }
 
-    public void setNextStep(Queue<IndexStep> nextStep) {
+    public void setNextStep(Queue<IndexActionStep> nextStep) {
         this.nextStep = nextStep;
     }
 

@@ -1,8 +1,9 @@
 package com.danawa.dsearch.server.collections.service;
 
+import com.danawa.dsearch.server.collections.entity.IndexerStatus;
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
 import com.danawa.dsearch.server.collections.entity.Collection;
-import com.danawa.dsearch.server.collections.entity.IndexStep;
+import com.danawa.dsearch.server.collections.entity.IndexActionStep;
 import com.danawa.dsearch.server.collections.entity.IndexingStatus;
 import com.danawa.dsearch.server.excpetions.IndexingJobFailureException;
 import com.danawa.dsearch.server.notice.NoticeHandler;
@@ -50,9 +51,8 @@ public class IndexingJobManager {
     private final String indexHistory = ".dsearch_index_history";
 
     // KEY: collection id, value: Indexing status
-    private ConcurrentHashMap<String, IndexingStatus> scheduleProcessQueue = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<String, IndexingStatus> scheduleQueue = new ConcurrentHashMap<>();
     private ConcurrentHashMap<String, IndexingStatus> statusLookupQueue = new ConcurrentHashMap<>();
-//    private long timeout = 8 * 60 * 60 * 1000;
     private long timeout;
 
     public IndexingJobManager(IndexingJobService indexingJobService,
@@ -71,53 +71,57 @@ public class IndexingJobManager {
 
     @Scheduled(fixedDelay = 1000)
     private void fetchIndexingStatus() {
-        if (scheduleProcessQueue.size() == 0) return;
+        if (scheduleQueue.size() == 0) return;
 
+        Iterator<Map.Entry<String, IndexingStatus>> entryIterator = scheduleQueue.entrySet().iterator();
 
-        Iterator<Map.Entry<String, IndexingStatus>> entryIterator = scheduleProcessQueue.entrySet().iterator();
-        entryIterator.forEachRemaining(entry -> {
-            // key == collectionId
+        entryIterator.forEachRemaining(entry -> { // key == collectionId
             String collectionId = entry.getKey();
             IndexingStatus indexingStatus = entry.getValue();
-            IndexStep currentStep = indexingStatus.getCurrentStep();
-            logger.info("cluster={}, index={}, step={}", indexingStatus.getClusterId().toString(), indexingStatus.getIndex(), currentStep.name());
+            IndexActionStep currentStep = indexingStatus.getCurrentStep();
+            String status = indexingStatus.getStatus();
+            String index = indexingStatus.getIndex();
+            UUID clusterId = indexingStatus.getClusterId();
+            logger.info("cluster={}, index={}, step={}", clusterId, index, currentStep.name());
 
             try {
                 if (currentStep == null) {
-                    // 스케쥴 안에서 삭제만 진행
-                    scheduleProcessQueue.remove(collectionId);
-                    logger.error("index: {}, NOT Matched Step..", indexingStatus.getIndex());
+                    scheduleQueue.remove(collectionId); // 스케쥴 안에서 삭제만 진행
+                    logger.error("index: {}, NOT Matched Step..", index);
                     throw new IndexingJobFailureException("다음 진행 내용이 없습니다.");
-                } else if (currentStep == IndexStep.FULL_INDEX || currentStep == IndexStep.DYNAMIC_INDEX) {
-                    updateIndexingStatusWithIndexer(collectionId, indexingStatus); // 인덱서에서 상태를 조회한다.
-                } else if (currentStep == IndexStep.EXPOSE) {
-                    changeAliasToNewIndex(indexingStatus); // 인덱스 교체
-                    changeValueInLookupQueue(collectionId, "SUCCESS"); // 인덱싱 결과 조회용 큐에 적재
-                    removeTempDocAndStopIndexing(collectionId); // 색인 진행 내용을 임시 저장하는 인덱스에서 데이터 삭제 및 혹시나 있을 인덱싱 중지
-                    scheduleProcessQueue.remove(collectionId); // 정상적으로 실행되었다면 스케쥴 큐에서 삭제
+                } else if (currentStep == IndexActionStep.FULL_INDEX || currentStep == IndexActionStep.DYNAMIC_INDEX) {
+                    processIndexStep(indexingStatus, collectionId);
+                } else if (currentStep == IndexActionStep.EXPOSE) {
+                    processExposeStep(indexingStatus, collectionId);
                 }
-
                 saveErrorHistoryIfTimeout(collectionId, indexingStatus);
             } catch (IndexingJobFailureException|IOException e) {
                 // 재시도
                 if (indexingStatus.getRetry() > 0) {
                     indexingStatus.setRetry(indexingStatus.getRetry() - 1);
+                    logger.error("현재 재시도 중 입니다.. index:{}, count: {}", indexingStatus.getIndex(), indexingStatus.getRetry());
                 } else {
-                    UUID clusterId = indexingStatus.getClusterId();
-                    if("STOP".equalsIgnoreCase(indexingStatus.getStatus())){
+                    if("STOP".equalsIgnoreCase(status)){
                         saveErrorHistory(clusterId, indexingStatus);
-                    }else if (currentStep == IndexStep.FULL_INDEX || currentStep == IndexStep.DYNAMIC_INDEX) {
+                    }else if (currentStep == IndexActionStep.FULL_INDEX || currentStep == IndexActionStep.DYNAMIC_INDEX) {
                         saveErrorHistory(clusterId, indexingStatus);
                         sendDeleteJobRequest(indexingStatus);
                         logger.error("[remove job] retry.. {}", indexingStatus.getRetry());
                     } else {
                         logger.error("[remove job] retry.. {}", indexingStatus.getRetry());
                     }
-                    scheduleProcessQueue.remove(collectionId);
+                    scheduleQueue.remove(collectionId);
                 }
                 logger.error("{}", e);
             }
         });
+    }
+
+    private void processExposeStep(IndexingStatus indexingStatus, String collectionId) throws IOException {
+        changeAliasToNewIndex(indexingStatus); // 인덱스 교체
+        changeLookupQueueStatus(collectionId, "SUCCESS"); // 인덱싱 결과 조회용 큐에 적재
+        removeTempDocAndStopIndexing(collectionId); // 색인 진행 내용을 임시 저장하는 인덱스에서 데이터 삭제 및 혹시나 있을 인덱싱 중지
+        scheduleQueue.remove(collectionId); // 정상적으로 실행되었다면 스케쥴 큐에서 삭제
     }
 
     private void changeAliasToNewIndex(IndexingStatus indexingStatus) throws IOException {
@@ -126,8 +130,8 @@ public class IndexingJobManager {
         indexingJobService.expose(clusterId, collection, indexingStatus.getIndex());
     }
 
-    private void changeValueInLookupQueue(String collectionId, String status){
-        IndexingStatus indexingStatus = scheduleProcessQueue.get(collectionId);
+    private void changeLookupQueueStatus(String collectionId, String status){
+        IndexingStatus indexingStatus = scheduleQueue.get(collectionId);
         indexingStatus.setStatus(status);
         indexingStatus.setEndTime(System.currentTimeMillis());
         statusLookupQueue.put(collectionId, indexingStatus);
@@ -135,7 +139,7 @@ public class IndexingJobManager {
     }
 
     private void removeTempDocAndStopIndexing(String collectionId){
-        IndexingStatus indexingStatus = scheduleProcessQueue.get(collectionId);
+        IndexingStatus indexingStatus = scheduleQueue.get(collectionId);
         UUID clusterId = indexingStatus.getClusterId();
 
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
@@ -154,7 +158,7 @@ public class IndexingJobManager {
             logger.error("index: {}, Timeout {} hours..", indexingStatus.getIndex(), (timeout / (1000 * 60 * 60)));
 
             saveErrorHistory(clusterId, indexingStatus);
-            scheduleProcessQueue.remove(collectionId);
+            scheduleQueue.remove(collectionId);
         }
     }
 
@@ -185,7 +189,7 @@ public class IndexingJobManager {
         add(collectionId, indexingStatus, true);
     }
     public void add(String collectionId, IndexingStatus indexingStatus, boolean register) throws IndexingJobFailureException {
-        IndexingStatus registerIndexingStatus = findById(collectionId);
+        IndexingStatus registerIndexingStatus = getScheduleQueue(collectionId);
         if (indexingStatus.getClusterId() == null) {
             throw new IndexingJobFailureException("Cluster Id Required Field.");
         }
@@ -200,7 +204,7 @@ public class IndexingJobManager {
             if (register) {
                 addLastIndexStatus(client, collectionId, indexingStatus.getIndex(), indexingStatus.getStartTime(), "READY", indexingStatus.getCurrentStep().name(), indexingStatus.getIndexingJobId());
             }
-            scheduleProcessQueue.put(collectionId, indexingStatus);
+            scheduleQueue.put(collectionId, indexingStatus);
         } catch (IOException e) {
             logger.error("", e);
             throw new IndexingJobFailureException(e);
@@ -208,109 +212,107 @@ public class IndexingJobManager {
     }
 
     public IndexingStatus remove(String collectionId) {
-        return scheduleProcessQueue.remove(collectionId);
+        return scheduleQueue.remove(collectionId);
     }
 
-    public IndexingStatus findById(String collectionId) {
-        return scheduleProcessQueue.get(collectionId);
+    public IndexingStatus getScheduleQueue(String collectionId) {
+        return scheduleQueue.get(collectionId);
     }
 
-
-    /**
-     * indexer 조회 후 상태 업데이트.
-     * */
-    private void updateIndexingStatusWithIndexer(String collectionId, IndexingStatus indexingStatus) throws IOException{
+    private void processIndexStep(IndexingStatus indexingStatus, String collectionId) throws IOException{
         UUID clusterId = indexingStatus.getClusterId();
         String index = indexingStatus.getIndex();
         int retryCount = indexingStatus.getRetry();
+        String currentStep = indexingStatus.getCurrentStep().name();
+        long startTime = indexingStatus.getStartTime();
+        String jobId = indexingStatus.getIndexingJobId();
+        Collection collection = indexingStatus.getCollection();
 
-        // check
-        String status = getIndexerStatus(indexingStatus);
+        IndexerStatus status = getIndexerStatus(indexingStatus);
 
-        if (status.length() <= 0) {
-            scheduleProcessQueue.remove(collectionId);
-            return;
-        }
+        if (status == IndexerStatus.SUCCESS){
+            sendDeleteJobToIndexer(indexingStatus);
+            changeLatestIndexHistory(clusterId, index, indexingStatus, status);
 
-        if ("SUCCESS".equalsIgnoreCase(status) || "ERROR".equalsIgnoreCase(status) || "STOP".equalsIgnoreCase(status)) {
-            // indexer job id 삭제.
-            sendDeleteStatusRequestToIndexer(indexingStatus);
-
-            try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-                client.getLowLevelClient().performRequest(new Request("POST", String.format("/%s/_flush", index)));
-                Map<String, Object> catIndex = catIndex(client, index);
-                String docSize = (String) catIndex.get("docs.count");
-                String store = (String) catIndex.get("store.size");
-                IndexStep step = indexingStatus.getCurrentStep();
-                long startTime = indexingStatus.getStartTime();
-                long endTime = System.currentTimeMillis();
-                deleteLastIndexStatus(client, index, startTime);
-                addIndexHistory(client, index, step.name(), startTime, endTime, indexingStatus.isAutoRun(), docSize, status.toUpperCase(), store);
-            }
-
-            IndexStep nextStep = indexingStatus.getNextStep().poll();
-            if ("SUCCESS".equalsIgnoreCase(status) && nextStep != null) {
-                logger.info("clusterId: {}, index: {}, collectionId: {}, status: {}", clusterId, index, collectionId, status, retryCount);
-                indexingJobService.changeRefreshInterval(clusterId, indexingStatus.getCollection(), indexingStatus.getIndex()); // 색인 끝나면 refresh_interval 변경
-
-                // 성공 로그 남기기
-                addLastIndexStatus(clusterId,
-                        indexingStatus.getCollection().getId(),
-                        index,
-                        indexingStatus.getStartTime(),
-                        "RUNNING",
-                        indexingStatus.getCurrentStep().name(),
-                        collectionId);
-
+            IndexActionStep nextStep = indexingStatus.getNextStep().poll();
+            if (nextStep != null) {
+                logger.info("clusterId: {}, index: {}, collectionId: {}, indexerStatus: {}, retryCount: {}", clusterId, index, collectionId, status, retryCount);
+                indexingJobService.changeRefreshInterval(clusterId, collection, index); // 색인 끝나면 refresh_interval 변경
+                addLastIndexStatus(clusterId, collectionId, index, startTime,"RUNNING", currentStep, jobId ); // 성공 로그 남기기
                 indexingStatus.setCurrentStep(nextStep); // 다음 단계 셋팅 (안하면 Null Pointer Exception)
-
-                // 다음단계가 있으므로 다시 스케줄에 넣는다.
-                scheduleProcessQueue.put(collectionId, indexingStatus);
-                changeValueInLookupQueue(collectionId, status);
+                scheduleQueue.put(collectionId, indexingStatus); // 다음단계가 있으므로 다시 스케줄에 넣는다.
                 logger.debug("next Step >> {}", nextStep);
-            } else if ("ERROR".equalsIgnoreCase(status) || "STOP".equalsIgnoreCase(status)) {
-                logger.info("Indexing {}, id: {}, indexingStatus: {}", status, collectionId, indexingStatus);
-                scheduleProcessQueue.remove(collectionId);
-            } else {
-                // 다음 작업이 없으면 제거.
-                changeValueInLookupQueue(collectionId, "SUCCESS");
-                scheduleProcessQueue.remove(collectionId);
+            }else{
+                scheduleQueue.remove(collectionId);
                 logger.debug("empty next status : {} Step >> {}", status, collectionId);
             }
-        } else {
-            // RUNNING
-            indexingStatus.setStatus(status);
-            scheduleProcessQueue.put(collectionId, indexingStatus);
+
+            changeLookupQueueStatus(collectionId, status.toString());
+        }else if (status == IndexerStatus.ERROR || status == IndexerStatus.STOP){
+            sendDeleteJobToIndexer(indexingStatus);
+            changeLatestIndexHistory(clusterId, index, indexingStatus, status);
+            logger.info("Indexing {}, id: {}, indexingStatus: {}", status, collectionId, indexingStatus);
+            scheduleQueue.remove(collectionId);
+        } else if(status == IndexerStatus.RUNNING){
+            indexingStatus.setStatus(IndexerStatus.RUNNING.toString());
+            scheduleQueue.put(collectionId, indexingStatus);
+        } else { // UNKNOWN
+            scheduleQueue.remove(collectionId);
         }
     }
 
-    private String getIndexerStatus(IndexingStatus indexingStatus){
+
+    private IndexerStatus getIndexerStatus(IndexingStatus indexingStatus){
         boolean isExtIndexer = indexingStatus.getCollection().isExtIndexer();
+        String scheme = indexingStatus.getScheme();
+        String host = indexingStatus.getHost();
+        int port = indexingStatus.getPort();
+        String jobId = indexingStatus.getIndexingJobId();
+
         if (isExtIndexer) {
-            URI url = URI.create(String.format("%s://%s:%d/async/status?id=%s", indexingStatus.getScheme(), indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId()));
+            URI url = URI.create(String.format("%s://%s:%d/async/status?id=%s", scheme, host, port, jobId));
             ResponseEntity<Map> responseEntity = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(new HashMap<>()), Map.class);
             Map<String, Object> body = responseEntity.getBody();
+            logger.info("external indexer status response: {}", body);
 
             // Null pointer Exception
-            if(body.get("status") != null)
-                return (String) body.get("status");
+            if(body.get("status") != null) return IndexerStatus.changeToStatus((String) body.get("status"));
         } else {
-            Job job = indexerJobManager.status(UUID.fromString(indexingStatus.getIndexingJobId()));
-
-            if (job != null)
-                return job.getStatus();
+            Job job = indexerJobManager.status(UUID.fromString(jobId));
+            logger.info("internal indexer status response: {}", job.getStatus());
+            if (job != null) return IndexerStatus.changeToStatus(job.getStatus());
         }
 
-        return "";
+        return IndexerStatus.UNKNOWN;
     }
 
-    private void sendDeleteStatusRequestToIndexer(IndexingStatus indexingStatus){
+    private void changeLatestIndexHistory(UUID clusterId, String index, IndexingStatus indexingStatus, IndexerStatus status) throws IOException {
+        try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            client.getLowLevelClient().performRequest(new Request("POST", String.format("/%s/_flush", index)));
+
+            Map<String, Object> catIndex = catIndex(client, index);
+            String docSize = (String) catIndex.get("docs.count");
+            String store = (String) catIndex.get("store.size");
+            IndexActionStep step = indexingStatus.getCurrentStep();
+            long startTime = indexingStatus.getStartTime();
+            long endTime = System.currentTimeMillis();
+            deleteLastIndexStatus(client, index, startTime);
+            addIndexHistory(client, index, step.name(), startTime, endTime, indexingStatus.isAutoRun(), docSize, status.toString(), store);
+        }
+    }
+
+    private void sendDeleteJobToIndexer(IndexingStatus indexingStatus){
         boolean isExtIndexer = indexingStatus.getCollection().isExtIndexer();
+        String jobId = indexingStatus.getIndexingJobId();
+        String scheme = indexingStatus.getScheme();
+        String host = indexingStatus.getHost();
+        int port = indexingStatus.getPort();
+
         if (isExtIndexer) {
-            URI deleteUrl = URI.create(String.format("%s://%s:%d/async/%s", indexingStatus.getScheme(), indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId()));
+            URI deleteUrl = URI.create(String.format("%s://%s:%d/async/%s", scheme, host, port, jobId));
             restTemplate.exchange(deleteUrl, HttpMethod.DELETE, new HttpEntity<>(new HashMap<>()), String.class);
         } else {
-            indexerJobManager.remove(UUID.fromString(indexingStatus.getIndexingJobId()));
+            indexerJobManager.remove(UUID.fromString(jobId));
         }
     }
 
@@ -412,31 +414,37 @@ public class IndexingJobManager {
 
     public Map<String, Object> getIndexingStatusList(UUID clusterId){
         Map<String, Object> map = new HashMap<>();
-        for(String key : scheduleProcessQueue.keySet()) {
-            if (clusterId.equals(scheduleProcessQueue.get(key).getClusterId())) {
+        for(String key : scheduleQueue.keySet()) {
+            if (clusterId.equals(scheduleQueue.get(key).getClusterId())) {
                 Map<String, Object> template = new HashMap<>();
-                template.put("server", scheduleProcessQueue.get(key));
+                template.put("server", scheduleQueue.get(key));
                 map.put(key, template);
             }
         }
         return map;
     }
 
-    public void setStopStatus(String collectionId, String status){
-        if(scheduleProcessQueue.get(collectionId) != null){
-            IndexingStatus currentStatus = scheduleProcessQueue.get(collectionId);
-            currentStatus.setStatus("STOP");
-            statusLookupQueue.put(collectionId, currentStatus);
-        }
+    public void setQueueStatus(String collectionId, String status){
+        setScheduleQueueStatus(collectionId, status);
+        setLookupQueueStatus(collectionId, status);
+    }
 
+    public void setLookupQueueStatus(String collectionId, String status){
         if(statusLookupQueue.get(collectionId) != null){
             IndexingStatus indexingStatus = statusLookupQueue.get(collectionId);
-            indexingStatus.setStatus("STOP");
+            indexingStatus.setStatus(status);
             statusLookupQueue.replace(collectionId, indexingStatus);
         }
     }
+    public void setScheduleQueueStatus(String collectionId, String status){
+        if(scheduleQueue.get(collectionId) != null){
+            IndexingStatus currentStatus = scheduleQueue.get(collectionId);
+            currentStatus.setStatus(status);
+            scheduleQueue.replace(collectionId, currentStatus);
+        }
+    }
 
-    public List<IndexingStatus> getAllIndexingStatus(){
+    public List<IndexingStatus> getLookupQueueList(){
         List<IndexingStatus> result = new ArrayList<>();
         for (String key : statusLookupQueue.keySet()) {
             // key 는 collectionId(UUID) 이다
@@ -447,11 +455,24 @@ public class IndexingJobManager {
         return result;
     }
 
+    public List<IndexingStatus> getScheduleQueueList(){
+        List<IndexingStatus> result = new ArrayList<>();
+        for (String key : scheduleQueue.keySet()) {
+            // key 는 collectionId(UUID) 이다
+            IndexingStatus indexingStatus = scheduleQueue.get(key);
+            result.add(indexingStatus);
+        }
+
+        return result;
+    }
+
     public IndexingStatus getIndexingStatus(String collectionId){
 
-        if(scheduleProcessQueue.get(collectionId) != null){
+        if(scheduleQueue.get(collectionId) != null){
+            return scheduleQueue.get(collectionId);
+
 //            IndexingStatus currentStatus = jobs.get(collectionId);
-            IndexingStatus idxStatus = new IndexingStatus();
+
 //            idxStatus.setAction(currentStatus.getAction());
 //            idxStatus.setClusterId(currentStatus.getClusterId());
 //            idxStatus.setCurrentStep(currentStatus.getCurrentStep());
@@ -463,13 +484,14 @@ public class IndexingJobManager {
 //            idxStatus.setNextStep(currentStatus.getNextStep());
 //            idxStatus.setPort(currentStatus.getPort());
 //            idxStatus.setStartTime(currentStatus.getStartTime());
-            idxStatus.setStatus("RUNNING");
-            return idxStatus;
+
+//            IndexingStatus idxStatus = new IndexingStatus();
+//            idxStatus.setStatus("RUNNING");
+//            return idxStatus;
         }
 
         if(statusLookupQueue.get(collectionId) != null){
-            IndexingStatus indexingStatus = statusLookupQueue.get(collectionId);
-            return indexingStatus;
+            return statusLookupQueue.get(collectionId);
         }
 
         return null;
