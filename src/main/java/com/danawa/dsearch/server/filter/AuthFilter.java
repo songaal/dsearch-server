@@ -24,7 +24,8 @@ public class AuthFilter implements Filter {
     public static final List<String> bypassUri = Arrays.asList(
             "/", "/info",
             "/collections/idxp", "/collections/idxp/status", "/collections/setTimeout",
-            "/collections/schedule", "/collections/lookup",
+            "/collections/scheduleQueue", "/collections/lookupQueue",
+            "/collections/manageQueue",
             "/collections/getSettings", "/collections/setSettings", // IndexProcess용
             "/auth/sign-in", "/auth/sign-out", "/dictionaries/remote", "/clusters/check"
     );

@@ -208,13 +208,13 @@ public class CollectionController {
         }
 
         String collectionId = collection.getId();
-        IndexingStatus indexingStatus = indexingJobManager.getIndexingStatus(collectionId);
+        IndexingStatus indexingStatus = indexingJobManager.getCurrentIndexingStatus(collectionId);
+        response.put("result", "success");
 
         if(indexingStatus == null){
             Map<String, String> map = new HashMap<>();
             map.put("status", "NOT_STARTED");
             response.put("message", "Not Found Status (색인을 시작하지 않았습니다)");
-            response.put("result", "success");
             response.put("info", map);
             return new ResponseEntity<>(response, HttpStatus.OK);
         }
@@ -222,24 +222,33 @@ public class CollectionController {
         response.put("message", "");
         response.put("info",  indexingStatus);
         response.put("step",  indexingStatus.getCurrentStep());
-        response.put("result", "success");
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
-    @GetMapping("/schedule")
-    public ResponseEntity<?> getScheduleQueue(){
+    @GetMapping("/manageQueue")
+    public ResponseEntity<?> getManageQueue(){
         Map<String, Object> response = new HashMap<>();
-        List<IndexingStatus> statusList = indexingJobManager.getScheduleQueueList();
+        List<IndexingStatus> statusList = indexingJobManager.getManageQueueList();
         response.put("message", "");
         response.put("data",  statusList);
         response.put("result", "success");
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
-    @GetMapping("/lookup")
+    @GetMapping("/lookupQueue")
     public ResponseEntity<?> getLookupQueue(){
         Map<String, Object> response = new HashMap<>();
         List<IndexingStatus> statusList = indexingJobManager.getLookupQueueList();
+        response.put("message", "");
+        response.put("data",  statusList);
+        response.put("result", "success");
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @GetMapping("/scheduleQueue")
+    public ResponseEntity<?> getScheduleQueue(){
+        Map<String, Object> response = new HashMap<>();
+        List<String> statusList = scheduleManager.getScheduledJobs();
         response.put("message", "");
         response.put("data",  statusList);
         response.put("result", "success");

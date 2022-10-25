@@ -43,6 +43,7 @@ import org.yaml.snakeyaml.Yaml;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.*;
 
 @Service
@@ -50,10 +51,9 @@ import java.util.*;
 public class IndexingJobService {
     private static final Logger logger = LoggerFactory.getLogger(IndexingJobService.class);
     private final ElasticsearchFactory elasticsearchFactory;
-    private final RestTemplate restTemplate;
 
     private final String indexHistory = ".dsearch_index_history";
-
+    private final IndexerClient indexerClient;
     private final String jdbcSystemIndex;
     private final com.danawa.fastcatx.indexer.IndexJobManager indexerJobManager;
 
@@ -62,15 +62,12 @@ public class IndexingJobService {
 
     public IndexingJobService(ElasticsearchFactory elasticsearchFactory,
                               @Value("${dsearch.jdbc.setting}") String jdbcSystemIndex,
+                              IndexerClient indexerClient,
                               IndexJobManager indexerJobManager) {
         this.elasticsearchFactory = elasticsearchFactory;
         this.jdbcSystemIndex = jdbcSystemIndex;
+        this.indexerClient = indexerClient;
         this.indexerJobManager = indexerJobManager;
-
-        HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory();
-        factory.setConnectTimeout(10 * 1000);
-        factory.setReadTimeout(10 * 1000);
-        restTemplate = new RestTemplate(factory);
     }
 
     public com.danawa.fastcatx.indexer.IndexJobManager getIndexerJobManager() {
@@ -171,27 +168,14 @@ public class IndexingJobService {
                 launcher.setScheme("http");
             }
 
-            String indexingJobId;
-//            4. indexer 색인 전송
+            // 4. indexer 색인 전송
+            String indexingJobId = indexerClient.startJob(body, collection);
+
+            // 외부 인덱서를 사용할 경우 추가 셋팅
             if (collection.isExtIndexer()) {
-                // 외부 인덱서를 사용할 경우 전송.
-                ResponseEntity<Map> responseEntity = restTemplate.exchange(
-                        new URI(String.format("%s://%s:%d/async/start", launcher.getScheme(), launcher.getHost(), launcher.getPort())),
-                        HttpMethod.POST,
-                        new HttpEntity(body),
-                        Map.class
-                );
-                if (responseEntity.getBody() == null) {
-                    throw new NullPointerException("Indexer Start Failed!");
-                }
-                indexingJobId = (String) responseEntity.getBody().get("id");
                 indexingStatus.setScheme(launcher.getScheme());
                 indexingStatus.setHost(launcher.getHost());
                 indexingStatus.setPort(launcher.getPort());
-            } else {
-                // 서버 쓰래드 기반으로 색인 실행.
-                Job job = indexerJobManager.start(IndexerConfig.ACTION.FULL_INDEX.name(), body);
-                indexingJobId = job.getId().toString();
             }
 
             indexingStatus.setClusterId(clusterId);
@@ -426,41 +410,18 @@ public class IndexingJobService {
         return convert;
     }
 
-    public void stopIndexing(String scheme, String host, int port, String jobId) {
+    public void stopIndexing(IndexingStatus status) {
         try {
-            indexerJobManager.stop(UUID.fromString(jobId));
-        } catch (Exception ignore) {
-        }
-        try {
-            restTemplate.exchange(new URI(String.format("%s://%s:%d/async/stop?id=%s", scheme, host, port, jobId)),
-                    HttpMethod.PUT,
-                    new HttpEntity(new HashMap<>()),
-                    String.class
-            );
+            indexerClient.stopJob(status);
         } catch (Exception ignore) {
         }
     }
 
-    public void subStart(String scheme, String host, int port, String jobId, String groupSeq, boolean isExtIndexer) {
-        if (isExtIndexer) {
-            logger.info(">>>>> Ext call sub_start: id: {}, groupSeq: {}", jobId, groupSeq);
-            try {
-                restTemplate.exchange(new URI(String.format("%s://%s:%d/async/%s/sub_start?groupSeq=%s", scheme, host, port, jobId, groupSeq)),
-                        HttpMethod.PUT,
-                        new HttpEntity(new HashMap<>()),
-                        String.class
-                );
-            } catch (Exception e) {
-                logger.error("", e);
-            }
-        } else {
-            try {
-                logger.info(">>>>> Local call sub_start: id: {}, groupSeq: {}", jobId, groupSeq);
-                Job job = indexerJobManager.status(UUID.fromString(jobId));
-                job.getGroupSeq().add(Integer.parseInt(groupSeq));
-            } catch (Exception e) {
-                logger.error("", e);
-            }
+    public void subStart(IndexingStatus status, Collection collection, String groupSeq) {
+        try {
+            indexerClient.subStart(status, collection, groupSeq);
+        } catch (URISyntaxException ignore) {
+
         }
     }
 

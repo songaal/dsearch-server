@@ -42,31 +42,31 @@ public class IndexingJobManagerTest {
 //- startTime: 시작시간
 //- status: 상태 ( RUNNING 뿐... )
 
-    @Test
-    public void addHistoryTest() {
-        UUID clusterId = UUID.fromString("fd6ac513-27d5-455e-9af0-ed8f8ac0389e");
-        String index = "example1";
-        String jobType = "FULL_INDEX";
-        long startTime = System.currentTimeMillis() - 3600 * 1000;
-        long endTime = System.currentTimeMillis();
-        boolean autoRun = true;
-        String status = "SUCCESS";
-
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            Request request = new Request("GET", String.format("/_cat/indices/%s", index));
-            request.addParameter("format", "json");
-            request.addParameter("h", "store.size,docs.count");
-            Response response = client.getLowLevelClient().performRequest(request);
-            String responseBodyString = EntityUtils.toString(response.getEntity());
-            List<Map<String, Object>> catIndices = new Gson().fromJson(responseBodyString, List.class);
-            Map<String, Object> catIndex = catIndices.get(0);
-            String store = (String) catIndex.get("store.size");
-            String docSize = (String) catIndex.get("docs.count");
-            indexingJobManager.addIndexHistory(client, index, jobType, startTime, endTime, autoRun, docSize, status, store);
-        } catch(Exception e) {
-            logger.error("addIndexHistory >> clusterId: {}, index: {}", clusterId, index, e);
-        }
-    }
+//    @Test
+//    public void addHistoryTest() {
+//        UUID clusterId = UUID.fromString("fd6ac513-27d5-455e-9af0-ed8f8ac0389e");
+//        String index = "example1";
+//        String jobType = "FULL_INDEX";
+//        long startTime = System.currentTimeMillis() - 3600 * 1000;
+//        long endTime = System.currentTimeMillis();
+//        boolean autoRun = true;
+//        String status = "SUCCESS";
+//
+//        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+//            Request request = new Request("GET", String.format("/_cat/indices/%s", index));
+//            request.addParameter("format", "json");
+//            request.addParameter("h", "store.size,docs.count");
+//            Response response = client.getLowLevelClient().performRequest(request);
+//            String responseBodyString = EntityUtils.toString(response.getEntity());
+//            List<Map<String, Object>> catIndices = new Gson().fromJson(responseBodyString, List.class);
+//            Map<String, Object> catIndex = catIndices.get(0);
+//            String store = (String) catIndex.get("store.size");
+//            String docSize = (String) catIndex.get("docs.count");
+//            indexingJobManager.addIndexHistory(client, index, jobType, startTime, endTime, autoRun, docSize, status, store);
+//        } catch(Exception e) {
+//            logger.error("addIndexHistory >> clusterId: {}, index: {}", clusterId, index, e);
+//        }
+//    }
 
     @Test
     public void addLastIndexStatusTest() {
@@ -82,18 +82,18 @@ public class IndexingJobManagerTest {
 //        }
     }
 
-    @Test
-    public void deleteLastIndexStatusTest() {
-        UUID clusterId = UUID.fromString("fd6ac513-27d5-455e-9af0-ed8f8ac0389e");
-        String index = "example1";
-        long startTime = 1595305624824L;
-        String status = "RUNNING";
-
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            indexingJobManager.deleteLastIndexStatus(client, index, startTime);
-        } catch(Exception e) {
-            logger.error("addIndexHistory >> clusterId: {}, index: {}", clusterId, index, e);
-        }
-    }
+//    @Test
+//    public void deleteLastIndexStatusTest() {
+//        UUID clusterId = UUID.fromString("fd6ac513-27d5-455e-9af0-ed8f8ac0389e");
+//        String index = "example1";
+//        long startTime = 1595305624824L;
+//        String status = "RUNNING";
+//
+//        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+//            indexingJobManager.deleteLastIndexStatus(client, index, startTime);
+//        } catch(Exception e) {
+//            logger.error("addIndexHistory >> clusterId: {}, index: {}", clusterId, index, e);
+//        }
+//    }
 
 }

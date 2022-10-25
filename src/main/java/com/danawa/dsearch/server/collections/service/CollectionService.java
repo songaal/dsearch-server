@@ -703,8 +703,7 @@ public class CollectionService {
         IndexingStatus status = indexingJobManager.getScheduleQueue(collectionId);
 
         if (isRightStatusForStopIndexing(status)) {
-            Collection.Launcher launcher = collection.getLauncher();
-            indexingJobService.stopIndexing(status.getScheme(), launcher.getHost(), launcher.getPort(), status.getIndexingJobId());
+            indexingJobService.stopIndexing(status);
             indexingJobManager.setQueueStatus(collectionId, "STOP");
         }
 
@@ -718,12 +717,11 @@ public class CollectionService {
 
     public IndexingStatus startIndexingForSubStart(Collection collection, String groupSeq){
         String collectionId = collection.getId();
-        
         IndexingStatus status = indexingJobManager.getScheduleQueue(collectionId);
+
         if (isRightStatusForSubStart(status, groupSeq)) {
             logger.info("sub_start >>>> {}, groupSeq: {}", collection.getName(), groupSeq);
-            Collection.Launcher launcher = collection.getLauncher();
-            indexingJobService.subStart(status.getScheme(), launcher.getHost(), launcher.getPort(), status.getIndexingJobId(), groupSeq, collection.isExtIndexer());
+            indexingJobService.subStart(status, collection, groupSeq);
             return status;
         }else{
             return null;
