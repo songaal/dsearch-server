@@ -81,8 +81,9 @@ public class IndexerClient {
     }
     private void deleteJobForExternal(IndexingStatus indexingStatus){
         URI deleteUrl = URI.create(String.format("http://%s:%d/async/%s", indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId()));
-        ResponseEntity<String> responseEntity = restTemplate.exchange(deleteUrl, HttpMethod.DELETE, new HttpEntity<>(new HashMap<>()), String.class);
-        logger.info("external indexer status response: {}", responseEntity.getBody());
+        ResponseEntity<Map> responseEntity = restTemplate.exchange(deleteUrl, HttpMethod.DELETE, new HttpEntity<>(new HashMap<>()), Map.class);
+        Map<String, Object> body = responseEntity.getBody();
+        logger.debug("deleteJob response ==> index={}, status={}", indexingStatus.getIndex(), body.get("status"));
     }
 
     private void deleteJobForInternal(IndexingStatus indexingStatus){

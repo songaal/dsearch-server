@@ -1,31 +1,24 @@
 package com.danawa.dsearch.server.collections.service;
 
-import com.danawa.dsearch.server.config.IndexerConfig;
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
 import com.danawa.dsearch.server.collections.entity.Collection;
 import com.danawa.dsearch.server.collections.entity.IndexActionStep;
 import com.danawa.dsearch.server.collections.entity.IndexingStatus;
 import com.danawa.dsearch.server.excpetions.IndexingJobFailureException;
-import com.danawa.dsearch.server.notice.NoticeHandler;
 import com.danawa.fastcatx.indexer.IndexJobManager;
-import com.danawa.fastcatx.indexer.entity.Job;
 import com.google.gson.Gson;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.*;
-import org.elasticsearch.client.core.CountRequest;
-import org.elasticsearch.client.core.CountResponse;
 import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.MatchQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
@@ -33,16 +26,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.IOException;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
 
@@ -54,6 +41,8 @@ public class IndexingJobService {
 
     private final String indexHistory = ".dsearch_index_history";
     private final IndexerClient indexerClient;
+
+    private final CollectionHistoryAndStatusMonitor collectionHistoryAndStatusMonitor;
     private final String jdbcSystemIndex;
     private final com.danawa.fastcatx.indexer.IndexJobManager indexerJobManager;
 
@@ -63,47 +52,17 @@ public class IndexingJobService {
     public IndexingJobService(ElasticsearchFactory elasticsearchFactory,
                               @Value("${dsearch.jdbc.setting}") String jdbcSystemIndex,
                               IndexerClient indexerClient,
-                              IndexJobManager indexerJobManager) {
+                              IndexJobManager indexerJobManager,
+                              CollectionHistoryAndStatusMonitor collectionHistoryAndStatusMonitor) {
         this.elasticsearchFactory = elasticsearchFactory;
         this.jdbcSystemIndex = jdbcSystemIndex;
         this.indexerClient = indexerClient;
         this.indexerJobManager = indexerJobManager;
+        this.collectionHistoryAndStatusMonitor = collectionHistoryAndStatusMonitor;
     }
 
     public com.danawa.fastcatx.indexer.IndexJobManager getIndexerJobManager() {
         return this.indexerJobManager;
-    }
-
-    private void addIndexHistoryException(UUID clusterId, Collection collection, String errorMessage) {
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            NoticeHandler.send(String.format("%s 컬렉션의 색인이 실패하였습니다.\n%s", collection.getBaseId(), errorMessage));
-            Collection.Index index = getTargetIndex(client, collection.getBaseId(), collection.getIndexA(), collection.getIndexB());
-
-            long currentTime = System.currentTimeMillis();
-
-            BoolQueryBuilder countQuery = QueryBuilders.boolQuery();
-            countQuery.filter().add(QueryBuilders.termQuery("index", index));
-            countQuery.filter().add(QueryBuilders.termQuery("startTime", currentTime));
-            countQuery.filter().add(QueryBuilders.termQuery("jobType", IndexActionStep.FULL_INDEX));
-
-            CountResponse countResponse = client.count(new CountRequest(indexHistory).query(countQuery), RequestOptions.DEFAULT);
-            logger.debug("index: {}, startTime: {}, jobType: {}, result Count: {}", index, currentTime, IndexActionStep.FULL_INDEX, countResponse.getCount());
-
-            if (countResponse.getCount() == 0) {
-                Map<String, Object> source = new HashMap<>();
-                source.put("index", index);
-                source.put("jobType", IndexActionStep.FULL_INDEX);
-                source.put("startTime", currentTime);
-                source.put("endTime", currentTime);
-                source.put("autoRun", collection.isAutoRun());
-                source.put("status", "ERROR");
-                source.put("docSize", "0");
-                source.put("store", "0");
-                client.index(new IndexRequest().index(indexHistory).source(source), RequestOptions.DEFAULT);
-            }
-        } catch (IOException e) {
-            logger.error("", e);
-        }
     }
 
     /**
@@ -116,19 +75,23 @@ public class IndexingJobService {
         return indexing(clusterId, collection, autoRun, step, new ArrayDeque<>());
     }
 
-    public IndexingStatus indexing(UUID clusterId, Collection collection, boolean autoRun, IndexActionStep step, Queue<IndexActionStep> nextStep) throws IndexingJobFailureException {
+    public IndexingStatus indexing(UUID clusterId, Collection collection, boolean autoRun, IndexActionStep step, Queue<IndexActionStep> nextStep)
+            throws IndexingJobFailureException {
+
         IndexingStatus indexingStatus = new IndexingStatus();
+        Collection.Index index = null;
+
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Collection.Index indexA = collection.getIndexA();
             Collection.Index indexB = collection.getIndexB();
 
-//            1. 대상 인덱스 찾기.
-            Collection.Index index = getTargetIndex(client, collection.getBaseId(), indexA, indexB);
+            // 1. 대상 인덱스 찾기.
+            index = getTargetIndex(client, collection.getBaseId(), indexA, indexB);
 
-//            2. 인덱스 설정 변경.
+            // 2. 인덱스 설정 변경.
             editPreparations(client, index);
 
-//            3. 런처 파라미터 변환작업
+            // 3. 런처 파라미터 변환작업
             Collection.Launcher launcher = collection.getLauncher();
             Map<String, Object> body = convertRequestParams(launcher.getYaml());
             String jdbcId = collection.getJdbcId();
@@ -190,9 +153,18 @@ public class IndexingJobService {
 
             logger.info("인덱싱 시작, clusterId={}, collection={}, index={}", clusterId, collection.getBaseId(), index);
         } catch (Exception e) {
-            logger.error("", e);
-            // Connection Timeout 히스토리 남기기
-            addIndexHistoryException(clusterId, collection, e.getMessage());
+            logger.error("{} 컬렉션 색인 실패 ==> {}", collection.getBaseId(), e);
+            long errTime = System.currentTimeMillis();
+            indexingStatus.setStatus("ERROR");
+            indexingStatus.setAutoRun(collection.isAutoRun());
+            indexingStatus.setStartTime(errTime);
+            indexingStatus.setEndTime(errTime);
+            indexingStatus.setCurrentStep(IndexActionStep.FULL_INDEX);
+            indexingStatus.setIndex(index.getIndex());
+            collectionHistoryAndStatusMonitor.alertWhenStarted(collection.getBaseId(), e.getMessage());
+            collectionHistoryAndStatusMonitor.createIndexHistory(indexingStatus, "0", "ERROR", "0");
+
+//            indexHistoryService.addIndexingFailHistory(clusterId, collection, index, e.getMessage());
             throw new IndexingJobFailureException(e);
         }
 
@@ -201,9 +173,7 @@ public class IndexingJobService {
 
     public void changeRefreshInterval(UUID clusterId, Collection collection, String target) throws IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            // refresh_interval 을 따로 컬렉션 인덱스에서 가지고 있어서, 복사해서 사용.
             Map<String, Object> settings = new HashMap<>();
-
             // refresh_interval : -1, 1s, 2s, ...
             if (collection.getRefresh_interval() != null) {
                 // 0일때는 1로 셋팅.

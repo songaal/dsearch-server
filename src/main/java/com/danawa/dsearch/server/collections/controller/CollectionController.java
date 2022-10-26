@@ -55,8 +55,7 @@ public class CollectionController {
     @PostMapping
     public ResponseEntity<?> addCollection(@RequestHeader(value = "cluster-id") UUID clusterId,
                                            @RequestBody Collection collection) throws IOException, DuplicatedUserException {
-        System.out.println(collection);
-        collectionService.add(clusterId, collection);
+        collectionService.create(clusterId, collection);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
@@ -82,7 +81,7 @@ public class CollectionController {
     @GetMapping("/{id}/job")
     public ResponseEntity<?> getJob(@RequestHeader(value = "cluster-id") UUID clusterId,
                                     @PathVariable String id) {
-        return new ResponseEntity<>(indexingJobManager.getScheduleQueue(id), HttpStatus.OK);
+        return new ResponseEntity<>(indexingJobManager.getManageQueue(id), HttpStatus.OK);
     }
 
     @DeleteMapping("/{id}")
@@ -92,28 +91,29 @@ public class CollectionController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/{collectionId}")
     public ResponseEntity<?> editCollection(@RequestHeader(value = "cluster-id") UUID clusterId,
                                             @RequestParam String action,
-                                            @PathVariable String id,
+                                            @PathVariable String collectionId,
                                             @RequestBody Collection collection) throws IOException {
-        logger.info("action: {}, collectionId: {}, baseId: {}", action, id, collection.getBaseId());
+        collection.setId(collectionId);
+        logger.info("action: {}, collectionId: {}, baseId: {}", action, collectionId, collection.getBaseId());
 
         if ("source".equalsIgnoreCase(action)) {
-            Map<String, Object> source = collectionService.editSource(clusterId, id, collection);
+            Map<String, Object> source = collectionService.updateSource(clusterId, collectionId, collection);
 
             boolean isScheduled = (boolean) source.get("scheduled");
+            logger.info("isScheduled={} collection={}", isScheduled, collection);
             if(isScheduled){
                 // collection에는 따로 셋팅해서 넘겨준다. -> sourceAsMap에는 있지만 Collection에는 false로 등록되어 있을 수 있기 때문에.
-//                collection.setScheduled(true);
-                scheduleManager.resetCollectionSchedule(clusterId, collection.getId()); // 스케줄 리셋
+                scheduleManager.reload(clusterId, collection.getId()); // 스케줄 리셋
             }
         } else if ("schedule".equalsIgnoreCase(action)) {
-            collectionService.editSchedule(clusterId, id, collection);
-            scheduleManager.resetCollectionSchedule(clusterId, collection.getId()); // 스케줄이 업데이트 되었으므로 기존 데이터 삭제 후 재등록 필요
+            collectionService.updateSchedule(clusterId, collectionId, collection);
+            scheduleManager.reload(clusterId, collection.getId()); // 스케줄이 업데이트 되었으므로 기존 데이터 삭제 후 재등록 필요
 
             logger.info("등록된 스케쥴 리스트");
-            List<String> jobs = scheduleManager.getScheduledJobs();
+            List<String> jobs = scheduleManager.getScheduleList();
             Collections.sort(jobs);
             for (String job: jobs){
                 logger.info("{}", job);
@@ -131,7 +131,7 @@ public class CollectionController {
         Map<String, Object> response = new HashMap<>();
         IndexingActionType actionType = getActionType(action);
         Collection collection = collectionService.findById(clusterId, id);
-        collectionService.registerIndexingJob(clusterId, clientIP, id, collection, actionType, "", response);
+        collectionService.processIndexingJob(clusterId, clientIP, id, collection, actionType, "", response);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
@@ -180,7 +180,7 @@ public class CollectionController {
             }
         }
 
-        collectionService.registerIndexingJob(clusterId, "from-remote-indexer", id, collection, actionType, groupSeq, response);
+        collectionService.processIndexingJob(clusterId, "from-remote-indexer", id, collection, actionType, groupSeq, response);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
@@ -248,7 +248,7 @@ public class CollectionController {
     @GetMapping("/scheduleQueue")
     public ResponseEntity<?> getScheduleQueue(){
         Map<String, Object> response = new HashMap<>();
-        List<String> statusList = scheduleManager.getScheduledJobs();
+        List<String> statusList = scheduleManager.getScheduleList();
         response.put("message", "");
         response.put("data",  statusList);
         response.put("result", "success");

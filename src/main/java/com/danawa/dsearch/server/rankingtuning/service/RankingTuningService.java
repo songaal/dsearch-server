@@ -213,9 +213,6 @@ public class RankingTuningService {
             GetMappingsRequest getMappingsRequest = new GetMappingsRequest().indices(index);
             GetMappingsResponse response = client.indices().getMapping(getMappingsRequest, RequestOptions.DEFAULT);
             Map<String, MappingMetadata> mappings = response.mappings();
-            for(String key: mappings.keySet()){
-                System.out.println(key);
-            }
             Map<String, Object> properties = (Map<String, Object>) mappings.get(index).getSourceAsMap().get("properties");
             Map<String, Object> result = mappings.get(index).getSourceAsMap().get("properties") == null ? new HashMap<>() : properties;
             return result;

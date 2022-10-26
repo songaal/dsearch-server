@@ -84,14 +84,13 @@ public class CollectionService {
         indicesService.createSystemIndex(clusterId, collectionIndex, COLLECTION_INDEX_JSON);
     }
 
-    public void add(UUID clusterId, Collection collection) throws IOException, DuplicatedUserException {
+    public void create(UUID clusterId, Collection collection) throws IOException, DuplicatedUserException {
         try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             SearchRequest searchRequest = new SearchRequest().indices(collectionIndex);
 
             BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
             boolQueryBuilder = boolQueryBuilder.minimumShouldMatch(1);
             List<QueryBuilder> list = boolQueryBuilder.should();
-//            list.add(QueryBuilders.termQuery("baseId", collection.getBaseId()));
             list.add(QueryBuilders.termQuery("baseId.keyword", collection.getBaseId()));
 
             searchRequest.source(new SearchSourceBuilder().query(boolQueryBuilder));
@@ -119,7 +118,9 @@ public class CollectionService {
 
             AcknowledgedResponse response = client.indices()
                     .putTemplate(new PutIndexTemplateRequest(collection.getBaseId()).patterns(Arrays.asList(indexNameA, indexNameB)), RequestOptions.DEFAULT);
-            System.out.println(response.isAcknowledged());
+            if(response.isAcknowledged()){
+                logger.info("collection [{}] is created", collection.getBaseId());
+            }
         }
     }
 
@@ -369,7 +370,7 @@ public class CollectionService {
             if (collection.isScheduled()) {
                 try {
                     collection.setScheduled(false);
-                    editSchedule(clusterId, id, collection);
+                    updateSchedule(clusterId, id, collection);
                 } catch (Exception e){
                     logger.error("", e);
                 }
@@ -426,7 +427,7 @@ public class CollectionService {
         }
     }
 
-    public Map<String, Object> editSource(UUID clusterId, String collectionId, Collection collection) throws IOException {
+    public Map<String, Object> updateSource(UUID clusterId, String collectionId, Collection collection) throws IOException {
         if(clusterId == null || collectionId == null || collectionId.equals("") || collection == null) throw new NullArgumentException("");
 
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
@@ -479,7 +480,7 @@ public class CollectionService {
         }
     }
 
-    public void editSchedule(UUID clusterId, String collectionId, Collection collection) throws IOException {
+    public void updateSchedule(UUID clusterId, String collectionId, Collection collection) throws IOException {
         if(clusterId == null || collectionId == null || collectionId.equals("") || collection == null) throw new NullArgumentException("");
 
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
@@ -528,7 +529,6 @@ public class CollectionService {
                 }
             }
         }
-
         return cronList;
     }
 
@@ -578,7 +578,7 @@ public class CollectionService {
         return sb.toString();
     }
 
-    public void registerIndexingJob(
+    public void processIndexingJob(
             UUID clusterId,
             String clientIP,
             String id,
@@ -635,7 +635,13 @@ public class CollectionService {
             case STOP_INDEXING:
                 synchronized (obj) {
                     IndexingStatus indexingStatus = stopIndexing(collection);
-                    response.put("indexingStatus", indexingStatus);
+                    if(indexingStatus == null){
+                        response.put("message", "try to stop indexing but not found indexing...");
+                    }else{
+                        response.put("message", "stopped");
+                        response.put("indexingStatus", indexingStatus);
+                    }
+
                     response.put("result", "success");
                 }
                 break;
@@ -659,7 +665,7 @@ public class CollectionService {
     public IndexingStatus startIndexingAll(UUID clusterId, Collection collection, IndexingActionType actionType) throws IndexingJobFailureException {
         String collectionId = collection.getId();
 
-        IndexingStatus status = indexingJobManager.getScheduleQueue(collectionId);
+        IndexingStatus status = indexingJobManager.getManageQueue(collectionId);
         if(status != null){
             throw new IndexingJobFailureException("기존 데이터가 있음");
         }
@@ -676,7 +682,7 @@ public class CollectionService {
     public IndexingStatus startIndexing(UUID clusterId, Collection collection, IndexingActionType actionType) throws IndexingJobFailureException {
         String collectionId = collection.getId();
 
-        IndexingStatus status = indexingJobManager.getScheduleQueue(collectionId);
+        IndexingStatus status = indexingJobManager.getManageQueue(collectionId);
         if(status != null){
             throw new IndexingJobFailureException("기존 데이터가 있음");
         }
@@ -691,7 +697,7 @@ public class CollectionService {
     public void startExpose(UUID clusterId, Collection collection) throws IndexingJobFailureException, IOException {
         String collectionId = collection.getId();
 
-        IndexingStatus status = indexingJobManager.getScheduleQueue(collectionId);
+        IndexingStatus status = indexingJobManager.getManageQueue(collectionId);
         if(status != null){
             throw new IndexingJobFailureException("기존 데이터가 있음");
         }
@@ -700,14 +706,14 @@ public class CollectionService {
 
     public IndexingStatus stopIndexing(Collection collection){
         String collectionId = collection.getId();
-        IndexingStatus status = indexingJobManager.getScheduleQueue(collectionId);
+        IndexingStatus status = indexingJobManager.getManageQueue(collectionId);
 
         if (isRightStatusForStopIndexing(status)) {
             indexingJobService.stopIndexing(status);
             indexingJobManager.setQueueStatus(collectionId, "STOP");
         }
 
-        return indexingJobManager.getScheduleQueue(collectionId);
+        return indexingJobManager.getManageQueue(collectionId);
     }
     private boolean isRightStatusForStopIndexing(IndexingStatus status){
         return status != null
@@ -717,7 +723,7 @@ public class CollectionService {
 
     public IndexingStatus startIndexingForSubStart(Collection collection, String groupSeq){
         String collectionId = collection.getId();
-        IndexingStatus status = indexingJobManager.getScheduleQueue(collectionId);
+        IndexingStatus status = indexingJobManager.getManageQueue(collectionId);
 
         if (isRightStatusForSubStart(status, groupSeq)) {
             logger.info("sub_start >>>> {}, groupSeq: {}", collection.getName(), groupSeq);

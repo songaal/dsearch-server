@@ -32,13 +32,12 @@ public class CollectionScheduleManager {
     private ConcurrentHashMap<String, ScheduledFuture<?>> schedulerMap = new ConcurrentHashMap<>();
     private final ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
 
-    private ClusterService clusterService ;
+    private ClusterService clusterService;
     private ElasticsearchFactory elasticsearchFactory;
     private final CollectionService collectionService;
     private final IndexingJobService indexingJobService;
     private final IndexingJobManager indexingJobManager;
     private final String lastIndexStatusIndex = ".dsearch_last_index_status";
-
     public CollectionScheduleManager(ClusterService clusterService,
                                      CollectionService collectionService,
                                      ElasticsearchFactory elasticsearchFactory,
@@ -104,7 +103,7 @@ public class CollectionScheduleManager {
                                 indexingStatus.setRetry(50);
                                 indexingStatus.setCollection(collection);
 
-                                if(indexingJobManager.getScheduleQueue(collectionId) == null) {
+                                if(indexingJobManager.getManageQueue(collectionId) == null) {
                                     indexingJobManager.add(collectionId, indexingStatus, false);
                                     logger.debug("collection register cluster: {}, job: {}, step: {}", cluster.getName(), collectionId, step);
                                 }
@@ -119,32 +118,22 @@ public class CollectionScheduleManager {
             }
 
             // 컬렉션의 스케쥴이 enabled 이면 다시 스케쥴을 등록한다.
-            registerAllSchedule(cluster.getId());
+            registerAll(cluster.getId());
             logger.debug("init finished");
         }
-    }
-
-    /**
-     * 키로 등록된 크론잡을 제거한다
-     * @param key
-     */
-    private void removeCronJob(String key){
-        ScheduledFuture<?> future = schedulerMap.get(key);
-        future.cancel(true);
-        schedulerMap.remove(key);
     }
 
     /**
      * 모든 스케줄 삭제
      * @param clusterId
      */
-    public void removeAllSchedule(UUID clusterId){
+    public void unregisterAll(UUID clusterId){
         if(clusterId == null) throw new NullArgumentException("");
 
         for(String key : schedulerMap.keySet()){
-            if(isRemovableKey(key, clusterId)){
+            if(isRegistered(key, clusterId)){
                 logger.info("스케줄 제거, clusterId: {}, scheduled key: {}", clusterId, key);
-                removeCronJob(key);
+                unregister(key);
             }
         }
     }
@@ -154,16 +143,26 @@ public class CollectionScheduleManager {
      * @param clusterId
      * @param collectionId
      */
-    private void removeCollectionSchedule(UUID clusterId, String collectionId){
+    private void unregister(UUID clusterId, String collectionId){
         Iterator<String> keys = schedulerMap.keySet().iterator();
+
         while (keys.hasNext()){
             String key = keys.next();
-            if(isRemovableKey(key, clusterId, collectionId)){
-                logger.info("Schedule Removed key : {}", key);
-                removeCronJob(key);
-                logger.info("{} is deleted status: {}", key, isAliveSchedule(key));
+
+            if(isRegistered(key, clusterId, collectionId)){
+                unregister(key);
             }
         }
+    }
+
+    /**
+     * 키로 등록된 크론잡을 제거한다
+     * @param key
+     */
+    private void unregister(String key){
+        ScheduledFuture<?> future = schedulerMap.get(key);
+        future.cancel(true);
+        schedulerMap.remove(key);
     }
 
 
@@ -173,7 +172,7 @@ public class CollectionScheduleManager {
      * @param clusterId
      * @return
      */
-    private boolean isRemovableKey(String key, UUID clusterId){
+    private boolean isRegistered(String key, UUID clusterId){
         String prefix = clusterId.toString();
         if(key.startsWith(prefix)){
             return true;
@@ -188,8 +187,9 @@ public class CollectionScheduleManager {
      * @param collectionId
      * @return
      */
-    private boolean isRemovableKey(String key, UUID clusterId, String collectionId){
+    private boolean isRegistered(String key, UUID clusterId, String collectionId){
         String prefix = String.format("%s-%s", clusterId, collectionId);
+
         if(key.startsWith(prefix)){
             return true;
         }
@@ -201,16 +201,16 @@ public class CollectionScheduleManager {
      * @param clusterId
      * @param collectionId
      */
-    public void resetCollectionSchedule(UUID clusterId, String collectionId){
-        removeCollectionSchedule(clusterId, collectionId); // 기존 스케줄을 전부 지우고
-        registerCollectionSchedule(clusterId, collectionId); //새로 스케줄을 등록한다
+    public void reload(UUID clusterId, String collectionId){
+        unregister(clusterId, collectionId); // 기존 스케줄을 전부 지우고
+        register(clusterId, collectionId); //새로 스케줄을 등록한다
     }
 
     /**
      * 클러스터 내에 있는 모든 스케줄이 활성화된 컬렉션들에 대해 스케줄 매니저에 등록한다
      * @param clusterId
      */
-    public void registerAllSchedule(UUID clusterId){
+    public void registerAll(UUID clusterId){
         if(clusterId == null) throw new NullArgumentException("");
 
         try {
@@ -220,7 +220,7 @@ public class CollectionScheduleManager {
                 collectionList.forEach(collection -> {
                     try {
                         if(collection.isScheduled()) {
-                            registerCronJob(clusterId, collection.getId(), collection.getCron());
+                            register(clusterId, collection.getId(), collection.getCron());
                         }
                     } catch (Exception e) {
                         logger.error("[Register schedule ERROR] ", e);
@@ -237,7 +237,7 @@ public class CollectionScheduleManager {
      * @param clusterId
      * @param collectionId
      */
-    public void registerCollectionSchedule(UUID clusterId, String collectionId){
+    public void register(UUID clusterId, String collectionId){
         if(clusterId == null) throw new NullArgumentException("");
 
         try {
@@ -247,7 +247,7 @@ public class CollectionScheduleManager {
             try {
                 if(collection.isScheduled()) {
                     String crons = collection.getCron();
-                    registerCronJob(clusterId, collection.getId(), crons);
+                    register(clusterId, collection.getId(), crons);
                 }
             } catch (Exception e) {
                 logger.error("[Register schedule ERROR] ", e);
@@ -258,22 +258,10 @@ public class CollectionScheduleManager {
     }
 
     /**
-     * 스케줄이 제대로 등록되어 있는지 확인하는 함수
-     * @param key
-     * @return
-     */
-    public boolean isAliveSchedule(String key){
-        if(schedulerMap.get(key) == null){
-            return false;
-        }
-        return true;
-    }
-
-    /**
      * 모든 스케줄을 읽는다.
      * @return
      */
-    public List<String> getScheduledJobs(){
+    public List<String> getScheduleList(){
         List<String> result = new ArrayList<>();
 
         for (String key : schedulerMap.keySet() ){
@@ -281,24 +269,6 @@ public class CollectionScheduleManager {
         }
 
         return result;
-    }
-
-    /**
-     * 컬렉션 스케줄에 대해서 실질적으로 스케줄 매니저를 등록한다
-     * @param clusterId
-     * @param collectionId
-     * @param crons
-     * @throws CronParseException
-     */
-    public void removeSchedule(UUID clusterId, String collectionId, String crons) throws CronParseException {
-        if(clusterId == null || collectionId == null || collectionId.equals("") || crons == null) throw new NullArgumentException("");
-
-        String[] cronList = collectionService.getCronList(crons);
-
-        for(String cron : cronList){
-            String scheduledKey = makeScheduleKey(clusterId, collectionId, cron);
-            removeCronJob(scheduledKey);
-        }
     }
 
     /**
@@ -318,7 +288,7 @@ public class CollectionScheduleManager {
      * @param collectionId
      * @param crons
      */
-    public void registerCronJob(UUID clusterId, String collectionId, String crons) throws CronParseException {
+    private void register(UUID clusterId, String collectionId, String crons) throws CronParseException {
         String[] cronList = collectionService.getCronList(crons);
         for(String cron : cronList){
             String scheduledKey = makeScheduleKey(clusterId, collectionId, cron);
@@ -328,13 +298,12 @@ public class CollectionScheduleManager {
                 try {
                     // 변경사항이 있을수 있으므로, 컬렉션 정보를 새로 가져온다.
                     Collection registerCollection = collectionService.findById(clusterId, collectionId);
-
-
-                    IndexingStatus indexingStatus = indexingJobManager.getScheduleQueue(registerCollection.getId());
+                    IndexingStatus indexingStatus = indexingJobManager.getManageQueue(registerCollection.getId());
 
                     if (indexingStatus != null) {
                         return;
                     }
+
                     Deque<IndexActionStep> nextStep = new ArrayDeque<>();
                     nextStep.add(IndexActionStep.EXPOSE);
                     IndexingStatus status = indexingJobService.indexing(clusterId, registerCollection, true, IndexActionStep.FULL_INDEX, nextStep);

@@ -1,0 +1,173 @@
+package com.danawa.dsearch.server.collections.service;
+
+import com.danawa.dsearch.server.collections.entity.IndexingStatus;
+import com.danawa.dsearch.server.config.ElasticsearchFactory;
+import com.google.gson.Gson;
+import org.apache.http.util.EntityUtils;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.client.Request;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.Response;
+import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.core.CountRequest;
+import org.elasticsearch.client.core.CountResponse;
+import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+@Service
+public class IndexHistoryService {
+    private static final Logger logger = LoggerFactory.getLogger(IndexHistoryService.class);
+
+    private final String indexHistory = ".dsearch_index_history";
+
+    private final ElasticsearchFactory elasticsearchFactory;
+
+    public IndexHistoryService(ElasticsearchFactory elasticsearchFactory){
+        this.elasticsearchFactory = elasticsearchFactory;
+    }
+
+    public void createIndexHistory(IndexingStatus indexingStatus, String status) throws IOException, InterruptedException {
+        UUID clusterId = indexingStatus.getClusterId();
+        String index = indexingStatus.getIndex();
+        String jobType = indexingStatus.getCurrentStep().name();
+        long startTime = indexingStatus.getStartTime();
+        long endTime = indexingStatus.getEndTime();
+        boolean autoRun = indexingStatus.isAutoRun();
+
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            // catIndex 시 bulk indexing이 끝난 경우에도 ES write queue에 적재만 되어 있는 경우가 있기 때문에 1초 대기
+            Thread.sleep(1000);
+
+            Map<String, Object> catIndex = catIndex(client, index);
+            String docSize = (String) catIndex.get("docs.count");
+            String store = (String) catIndex.get("store.size");
+
+            // 이력의 갯수를 체크하여 0일때만 이력에 남김.
+            BoolQueryBuilder countQuery = QueryBuilders.boolQuery();
+            countQuery.filter().add(QueryBuilders.termQuery("index", index));
+            countQuery.filter().add(QueryBuilders.termQuery("startTime", startTime));
+            countQuery.filter().add(QueryBuilders.termQuery("jobType", jobType));
+
+            CountResponse countResponse = client.count(new CountRequest(indexHistory).query(countQuery), RequestOptions.DEFAULT);
+            logger.debug("addIndexHistory: index: {}, startTime: {}, jobType: {}, result Count: {}", index, startTime, jobType, countResponse.getCount());
+            if (countResponse.getCount() == 0) {
+                Map<String, Object> source = new HashMap<>();
+                source.put("index", index);
+                source.put("jobType", jobType);
+                source.put("startTime", startTime);
+                source.put("endTime", endTime);
+                source.put("autoRun", autoRun);
+                source.put("status", status);
+                source.put("docSize", docSize);
+                source.put("store", store);
+                client.index(new IndexRequest().index(indexHistory).source(source), RequestOptions.DEFAULT);
+            }
+        }
+    }
+
+    public void createIndexHistory(IndexingStatus indexingStatus, String docSize, String status, String store) throws IOException {
+        UUID clusterId = indexingStatus.getClusterId();
+        String index = indexingStatus.getIndex();
+        String jobType = indexingStatus.getCurrentStep().name();
+        long startTime = indexingStatus.getStartTime();
+        long endTime = indexingStatus.getEndTime();
+        boolean autoRun = indexingStatus.isAutoRun();
+
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            // 이력의 갯수를 체크하여 0일때만 이력에 남김.
+            BoolQueryBuilder countQuery = QueryBuilders.boolQuery();
+            countQuery.filter().add(QueryBuilders.termQuery("index", index));
+            countQuery.filter().add(QueryBuilders.termQuery("startTime", startTime));
+            countQuery.filter().add(QueryBuilders.termQuery("jobType", jobType));
+
+            CountResponse countResponse = client.count(new CountRequest(indexHistory).query(countQuery), RequestOptions.DEFAULT);
+            logger.debug("addIndexHistory: index: {}, startTime: {}, jobType: {}, result Count: {}", index, startTime, jobType, countResponse.getCount());
+            if (countResponse.getCount() == 0) {
+                Map<String, Object> source = new HashMap<>();
+                source.put("index", index);
+                source.put("jobType", jobType);
+                source.put("startTime", startTime);
+                source.put("endTime", endTime);
+                source.put("autoRun", autoRun);
+                source.put("status", status);
+                source.put("docSize", docSize);
+                source.put("store", store);
+                client.index(new IndexRequest().index(indexHistory).source(source), RequestOptions.DEFAULT);
+            }
+        }
+    }
+
+    private Map<String ,Object> catIndex(RestHighLevelClient client, String index) throws IOException {
+        Request request = new Request("GET", String.format("/_cat/indices/%s", index));
+        request.addParameter("format", "json");
+        Response response = client.getLowLevelClient().performRequest(request);
+        String responseBodyString = EntityUtils.toString(response.getEntity());
+        List<Map<String, Object>> catIndices = new Gson().fromJson(responseBodyString, List.class);
+        return catIndices == null && catIndices.size() > 0 ? new HashMap<>() : catIndices.get(0);
+    }
+
+//    public void addIndexingFailHistory(UUID clusterId, Collection collection, Collection.Index targetIndex, String errorMessage) {
+//        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+//            NoticeHandler.send(String.format("%s 컬렉션의 색인이 실패하였습니다.\n%s", collection.getBaseId(), errorMessage));
+//            Collection.Index index = targetIndex;
+//
+//            long currentTime = System.currentTimeMillis();
+//            BoolQueryBuilder countQuery = QueryBuilders.boolQuery();
+//            countQuery.filter().add(QueryBuilders.termQuery("index", index));
+//            countQuery.filter().add(QueryBuilders.termQuery("startTime", currentTime));
+//            countQuery.filter().add(QueryBuilders.termQuery("jobType", IndexActionStep.FULL_INDEX));
+//
+//            CountResponse countResponse = client.count(new CountRequest(indexHistory).query(countQuery), RequestOptions.DEFAULT);
+//            logger.debug("index: {}, startTime: {}, jobType: {}, result Count: {}", index, currentTime, IndexActionStep.FULL_INDEX, countResponse.getCount());
+//
+//            if (countResponse.getCount() == 0) {
+//                Map<String, Object> source = new HashMap<>();
+//                source.put("index", index);
+//                source.put("jobType", IndexActionStep.FULL_INDEX);
+//                source.put("startTime", currentTime);
+//                source.put("endTime", currentTime);
+//                source.put("autoRun", collection.isAutoRun());
+//                source.put("status", "ERROR");
+//                source.put("docSize", "0");
+//                source.put("store", "0");
+//                client.index(new IndexRequest().index(indexHistory).source(source), RequestOptions.DEFAULT);
+//            }
+//        } catch (IOException e) {
+//            logger.error("", e);
+//        }
+//    }
+
+//    public void changeLatestIndexHistory(IndexingStatus indexingStatus, IndexerStatus status) {
+//        UUID clusterId = indexingStatus.getClusterId();
+//        String index = indexingStatus.getIndex();
+//
+//        while(true){
+//            try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+//                client.getLowLevelClient().performRequest(new Request("POST", String.format("/%s/_flush", index)));
+//
+//                Map<String, Object> catIndex = catIndex(client, index);
+//                String docSize = (String) catIndex.get("docs.count");
+//                String store = (String) catIndex.get("store.size");
+//                long startTime = indexingStatus.getStartTime();
+//                deleteLastIndexStatus(client, index, startTime);
+//                addIndexHistory(indexingStatus, docSize, status.toString(), store);
+//                break;
+//            } catch (IOException e) {
+//                logger.error("{}", e);
+//                try {
+//                    Thread.sleep(1000);
+//                } catch (InterruptedException ignore) {
+//                }
+//            }
+//        }
+//    }
+}

@@ -132,7 +132,7 @@ public class ClusterController {
                         Collection collection = collectionList.get(i);
                         if (collection.isScheduled()) {
                             collection.setScheduled(false);
-                            collectionService.editSchedule(clusterId, collection.getId(), collection);
+                            collectionService.updateSchedule(clusterId, collection.getId(), collection);
                         }
                     } catch (Exception e){
                         logger.error("", e);
@@ -163,11 +163,11 @@ public class ClusterController {
         if(flag){
             // 해당 클러스터의 스케줄 제거
             logger.info("클러스터 점검 시작, clusterId: {}", clusterId);
-            collectionScheduleManager.removeAllSchedule(clusterId);
+            collectionScheduleManager.unregisterAll(clusterId);
         }else{
             // 해당 클러스터의 스케줄 재 등록
             logger.info("클러스터 점검 완료, clusterId: {}", clusterId);
-            collectionScheduleManager.registerAllSchedule(clusterId);
+            collectionScheduleManager.registerAll(clusterId);
         }
         return new ResponseEntity<>(HttpStatus.OK);
     }
