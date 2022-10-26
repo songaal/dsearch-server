@@ -2,13 +2,14 @@ package com.danawa.dsearch.server.collections.controller;
 
 import com.danawa.dsearch.server.clusters.service.ClusterService;
 import com.danawa.dsearch.server.collections.entity.IndexingActionType;
-import com.danawa.dsearch.server.collections.service.CollectionScheduleManager;
-import com.danawa.dsearch.server.collections.service.IndexingJobManager;
-import com.danawa.dsearch.server.collections.service.IndexingJobService;
+import com.danawa.dsearch.server.collections.service.schedule.CollectionScheduleManager;
+import com.danawa.dsearch.server.collections.service.indexing.IndexingJobManager;
+import com.danawa.dsearch.server.collections.service.indexing.IndexingJobService;
 import com.danawa.dsearch.server.collections.service.CollectionService;
 import com.danawa.dsearch.server.clusters.entity.Cluster;
 import com.danawa.dsearch.server.collections.entity.Collection;
 import com.danawa.dsearch.server.collections.entity.IndexingStatus;
+import com.danawa.dsearch.server.collections.service.indexing.IndexingService;
 import com.danawa.dsearch.server.excpetions.DuplicatedUserException;
 import com.danawa.dsearch.server.excpetions.IndexingJobFailureException;
 import org.slf4j.Logger;
@@ -35,6 +36,7 @@ public class CollectionController {
     private final IndexingJobService indexingJobService;
     private final IndexingJobManager indexingJobManager;
     private final CollectionScheduleManager scheduleManager;
+    private final IndexingService indexingService;
 
     public CollectionController(@Value("${dsearch.collection.index-suffix-a}") String indexSuffixA,
                                 @Value("${dsearch.collection.index-suffix-b}") String indexSuffixB,
@@ -42,7 +44,8 @@ public class CollectionController {
                                 ClusterService clusterService,
                                 IndexingJobService indexingJobService,
                                 IndexingJobManager indexingJobManager,
-                                CollectionScheduleManager scheduleManager) {
+                                CollectionScheduleManager scheduleManager,
+                                IndexingService indexingService) {
         this.indexSuffixA = indexSuffixA;
         this.indexSuffixB = indexSuffixB;
         this.collectionService = collectionService;
@@ -50,6 +53,7 @@ public class CollectionController {
         this.indexingJobManager = indexingJobManager;
         this.clusterService = clusterService;
         this.scheduleManager = scheduleManager;
+        this.indexingService = indexingService;
     }
 
     @PostMapping
@@ -131,7 +135,7 @@ public class CollectionController {
         Map<String, Object> response = new HashMap<>();
         IndexingActionType actionType = getActionType(action);
         Collection collection = collectionService.findById(clusterId, id);
-        collectionService.processIndexingJob(clusterId, clientIP, id, collection, actionType, "", response);
+        indexingService.processIndexingJob(clusterId, clientIP, id, collection, actionType, "", response);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
@@ -180,7 +184,7 @@ public class CollectionController {
             }
         }
 
-        collectionService.processIndexingJob(clusterId, "from-remote-indexer", id, collection, actionType, groupSeq, response);
+        indexingService.processIndexingJob(clusterId, "from-remote-indexer", id, collection, actionType, groupSeq, response);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 

@@ -1,20 +1,13 @@
 package com.danawa.dsearch.server.temp;
 
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
-import com.danawa.dsearch.server.collections.service.IndexingJobManager;
-import com.google.gson.Gson;
-import org.apache.http.util.EntityUtils;
-import org.elasticsearch.client.Request;
-import org.elasticsearch.client.Response;
-import org.elasticsearch.client.RestHighLevelClient;
+import com.danawa.dsearch.server.collections.service.indexing.IndexingJobManager;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @SpringBootTest

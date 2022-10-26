@@ -1,4 +1,4 @@
-package com.danawa.dsearch.server.collections.service;
+package com.danawa.dsearch.server.collections.service.monitor;
 
 import com.danawa.dsearch.server.collections.entity.IndexingStatus;
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
@@ -25,6 +25,9 @@ import java.util.UUID;
 
 @Service
 public class IndexHistoryService {
+    /**
+     * 색인 시 상태 로깅에 대한 책임을 갖는 클래스 입니다.
+     */
     private static final Logger logger = LoggerFactory.getLogger(IndexHistoryService.class);
 
     private final String indexHistory = ".dsearch_index_history";

@@ -1,11 +1,12 @@
-package com.danawa.dsearch.server.collections.service;
+package com.danawa.dsearch.server.collections.service.indexing;
 
+import com.danawa.dsearch.server.collections.service.indexer.IndexerClient;
+import com.danawa.dsearch.server.collections.service.monitor.CollectionHistoryAndStatusMonitor;
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
 import com.danawa.dsearch.server.collections.entity.Collection;
 import com.danawa.dsearch.server.collections.entity.IndexActionStep;
 import com.danawa.dsearch.server.collections.entity.IndexingStatus;
 import com.danawa.dsearch.server.excpetions.IndexingJobFailureException;
-import com.danawa.fastcatx.indexer.IndexJobManager;
 import com.google.gson.Gson;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
@@ -36,15 +37,16 @@ import java.util.*;
 @Service
 @ConfigurationProperties(prefix = "dsearch.collection")
 public class IndexingJobService {
+    /**
+     * 인덱서를 통해 색인 시작을 하기 전 타겟 인덱스에 대한 전처리/후처리를 담당합니다.
+     */
     private static final Logger logger = LoggerFactory.getLogger(IndexingJobService.class);
     private final ElasticsearchFactory elasticsearchFactory;
 
     private final String indexHistory = ".dsearch_index_history";
     private final IndexerClient indexerClient;
-
     private final CollectionHistoryAndStatusMonitor collectionHistoryAndStatusMonitor;
     private final String jdbcSystemIndex;
-    private final com.danawa.fastcatx.indexer.IndexJobManager indexerJobManager;
 
     private Map<String, Object> params;
     private Map<String, Object> indexing;
@@ -52,17 +54,11 @@ public class IndexingJobService {
     public IndexingJobService(ElasticsearchFactory elasticsearchFactory,
                               @Value("${dsearch.jdbc.setting}") String jdbcSystemIndex,
                               IndexerClient indexerClient,
-                              IndexJobManager indexerJobManager,
                               CollectionHistoryAndStatusMonitor collectionHistoryAndStatusMonitor) {
         this.elasticsearchFactory = elasticsearchFactory;
         this.jdbcSystemIndex = jdbcSystemIndex;
         this.indexerClient = indexerClient;
-        this.indexerJobManager = indexerJobManager;
         this.collectionHistoryAndStatusMonitor = collectionHistoryAndStatusMonitor;
-    }
-
-    public com.danawa.fastcatx.indexer.IndexJobManager getIndexerJobManager() {
-        return this.indexerJobManager;
     }
 
     /**

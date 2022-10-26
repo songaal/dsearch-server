@@ -1,10 +1,13 @@
-package com.danawa.dsearch.server.collections.service;
+package com.danawa.dsearch.server.collections.service.schedule;
 
 import com.danawa.dsearch.server.clusters.entity.Cluster;
 import com.danawa.dsearch.server.clusters.service.ClusterService;
 import com.danawa.dsearch.server.collections.entity.Collection;
 import com.danawa.dsearch.server.collections.entity.IndexActionStep;
 import com.danawa.dsearch.server.collections.entity.IndexingStatus;
+import com.danawa.dsearch.server.collections.service.CollectionService;
+import com.danawa.dsearch.server.collections.service.indexing.IndexingJobManager;
+import com.danawa.dsearch.server.collections.service.indexing.IndexingJobService;
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
 import com.danawa.dsearch.server.excpetions.CronParseException;
 import com.danawa.dsearch.server.excpetions.IndexingJobFailureException;
@@ -28,6 +31,13 @@ import java.util.concurrent.ScheduledFuture;
 
 @Service
 public class CollectionScheduleManager {
+    /**
+     * 색인 스케쥴을 관리하는 클래스 입니다.
+     *
+     * 주요 변수는 아래와 같습니다
+     * - schedulerMap: 스케쥴링을 관리하는 Map
+     * - scheduler: 스케쥴링을 실제로 실행시키는 쓰레드
+     */
     private static Logger logger = LoggerFactory.getLogger(CollectionScheduleManager.class);
     private ConcurrentHashMap<String, ScheduledFuture<?>> schedulerMap = new ConcurrentHashMap<>();
     private final ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
@@ -53,7 +63,7 @@ public class CollectionScheduleManager {
 
     @PostConstruct
     public void init() {
-//        1. 등록된 모든 클러스터 조회
+        // 1. 등록된 모든 클러스터 조회
         List<Cluster> clusterList = clusterService.findAll();
 
         int clusterSize = clusterList.size();
@@ -62,7 +72,7 @@ public class CollectionScheduleManager {
             Cluster cluster = clusterList.get(i);
 
             try (RestHighLevelClient client = elasticsearchFactory.getClient(cluster.getId())) {
-//                1. 클러스터별로 기존 작업 중인 잡을 다시 등록한다.
+                // 1. 클러스터별로 기존 작업 중인 잡을 다시 등록한다.
                 SearchResponse lastIndexResponse = client.search(new SearchRequest(lastIndexStatusIndex)
                                 .source(new SearchSourceBuilder()
                                         .size(10000)

@@ -1,9 +1,11 @@
-package com.danawa.dsearch.server.collections.service;
+package com.danawa.dsearch.server.collections.service.indexing;
 
 import com.danawa.dsearch.server.collections.entity.IndexerStatus;
 import com.danawa.dsearch.server.collections.entity.Collection;
 import com.danawa.dsearch.server.collections.entity.IndexActionStep;
 import com.danawa.dsearch.server.collections.entity.IndexingStatus;
+import com.danawa.dsearch.server.collections.service.indexer.IndexerClient;
+import com.danawa.dsearch.server.collections.service.monitor.CollectionHistoryAndStatusMonitor;
 import com.danawa.dsearch.server.excpetions.IndexingJobFailureException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +19,16 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class IndexingJobManager {
+    /**
+     * 인덱싱하는 과정 및 결과를 관리하는 객체 입니다.
+     * 외부 혹은 내부 인덱서와 통신 및 해당 Job에 대한 삭제 및 조회의 책임을 갖습니다
+     * 또한, 중간 과정들을 로깅할수 있는 객체로 넘기는 책임을 갖습니다
+     *
+     * manageQueue는 실질적으로 indexing 되는 과정을 관리합니다
+     * lookupQueue는 나중에 조회가 들어왔을 시 결과를 저장해두는 큐입니다.
+     * deleteQueue는 색인이 끝난 후 manageQueue에서 해당 내용을 제거하는데 쓰이는 큐입니다.
+     */
+
     private static final Logger logger = LoggerFactory.getLogger(IndexingJobManager.class);
     private final IndexingJobService indexingJobService;
     private final CollectionHistoryAndStatusMonitor historyAndStautsMonitor;

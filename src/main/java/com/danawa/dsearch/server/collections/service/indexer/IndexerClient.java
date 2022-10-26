@@ -1,4 +1,4 @@
-package com.danawa.dsearch.server.collections.service;
+package com.danawa.dsearch.server.collections.service.indexer;
 
 import com.danawa.dsearch.server.collections.entity.Collection;
 import com.danawa.dsearch.server.collections.entity.IndexerStatus;
@@ -23,6 +23,12 @@ import java.util.UUID;
 
 @Service
 public class IndexerClient {
+    /**
+     *  외부 혹은 자체 인덱서와 통신 전용 객체 입니다.
+     *  메서드명에 외부와 통신하는 경우 ForExternal, 내부와 통신하는 경우 ForInternal 로 작성 되어 있습니다.
+     *  외부에서 호출하는 메서드는 public으로만 선언 했습니다.
+     */
+
     private static final Logger logger = LoggerFactory.getLogger(IndexerClient.class);
     private static RestTemplate restTemplate;
 
@@ -64,7 +70,6 @@ public class IndexerClient {
     private IndexerStatus getStatusForInternal(IndexingStatus indexingStatus){
         String jobId = indexingStatus.getIndexingJobId();
         Job job = indexerJobManager.status(UUID.fromString(jobId));
-        logger.info("internal indexer status response: {}", job.getStatus());
         if (job != null) return IndexerStatus.changeToStatus(job.getStatus());
 
         return IndexerStatus.UNKNOWN;

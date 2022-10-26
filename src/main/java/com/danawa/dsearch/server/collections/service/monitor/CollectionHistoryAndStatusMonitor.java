@@ -1,4 +1,4 @@
-package com.danawa.dsearch.server.collections.service;
+package com.danawa.dsearch.server.collections.service.monitor;
 
 import com.danawa.dsearch.server.collections.entity.IndexingStatus;
 import com.danawa.dsearch.server.notice.NoticeHandler;
@@ -11,6 +11,14 @@ import java.util.UUID;
 
 @Service
 public class CollectionHistoryAndStatusMonitor {
+    /**
+     * 색인 대상의 상태 및 로깅, 그리고 알림에 대한 책임을 갖는 클래스 입니다.
+     *
+     * 아래 세개의 객체애 대해 관리합니다.
+     * - IndexStatusService: 색인 상태에 대한 책임을 갖습니다
+     * - IndexHistoryService: 색인 시 있을 수 있는 로깅에 대한 책임을 갖습니다
+     * - Noticehandler: 알림을 담당합니다.
+     */
 
     private static final Logger logger = LoggerFactory.getLogger(CollectionHistoryAndStatusMonitor.class);
     private IndexStatusService indexStatusService;
@@ -75,20 +83,6 @@ public class CollectionHistoryAndStatusMonitor {
         }
 
     }
-
-
-//    public void deleteLatestStatus(UUID clusterId, String index, long startTime) {
-//        boolean isFailed = true;
-//
-//        while(isFailed){
-//            try {
-//                indexStatusService.deleteIndexStatus(clusterId, index, startTime);
-//            } catch (InterruptedException|IOException e) {
-//                logger.error("delete last index status failed... {}", e);
-//            }
-//            isFailed = false;
-//        }
-//    }
 
     public void createIndexStatus(IndexingStatus indexingStatus, String status) {
         while(true){

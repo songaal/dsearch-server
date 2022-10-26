@@ -4,7 +4,7 @@ import com.danawa.dsearch.server.clusters.service.ClusterRoutingAllocationServic
 import com.danawa.dsearch.server.clusters.service.ClusterService;
 import com.danawa.dsearch.server.clusters.entity.Cluster;
 import com.danawa.dsearch.server.clusters.entity.ClusterStatusResponse;
-import com.danawa.dsearch.server.collections.service.CollectionScheduleManager;
+import com.danawa.dsearch.server.collections.service.schedule.CollectionScheduleManager;
 import com.danawa.dsearch.server.collections.service.CollectionService;
 import com.danawa.dsearch.server.dictionary.service.DictionaryService;
 import com.danawa.dsearch.server.collections.entity.Collection;
