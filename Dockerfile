@@ -1,7 +1,5 @@
 FROM openjdk:8
 
-ARG VERSION
-
 ENV TZ=Asia/Seoul
 ENV LOG4J_FORMAT_MSG_NO_LOOKUPS=true
 
@@ -23,6 +21,7 @@ WORKDIR /app
 
 COPY branch-desc.txt/ .
 
+ARG VERSION
 COPY target/dsearch-server-${VERSION}.jar dsearch-server.jar
 
 USER danawa
