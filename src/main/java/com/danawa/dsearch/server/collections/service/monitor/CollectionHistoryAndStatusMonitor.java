@@ -2,6 +2,7 @@ package com.danawa.dsearch.server.collections.service.monitor;
 
 import com.danawa.dsearch.server.collections.entity.IndexingStatus;
 import com.danawa.dsearch.server.notice.NoticeHandler;
+import com.danawa.dsearch.server.utils.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -52,10 +53,7 @@ public class CollectionHistoryAndStatusMonitor {
                 indexHistoryService.createIndexHistory(indexingStatus, docSize, status, store);
             } catch (IOException e) {
                 logger.error("엘라스틱서치({}:{}) 연결 실패... {}", indexingStatus.getHost(), indexingStatus.getPort(), e);
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException ex) {
-                }
+                Time.sleep(1000);
                 continue;
             }
             break;
@@ -71,10 +69,7 @@ public class CollectionHistoryAndStatusMonitor {
                 indexHistoryService.createIndexHistory(indexingStatus, status);
             } catch (IOException e) {
                 logger.error("엘라스틱서치({}:{}) 연결 실패... {}", indexingStatus.getHost(), indexingStatus.getPort(), e);
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException ex) {
-                }
+                Time.sleep(1000);
                 continue;
             }catch (InterruptedException ex){
                 continue;
@@ -90,10 +85,7 @@ public class CollectionHistoryAndStatusMonitor {
                 indexStatusService.createIndexStatus(indexingStatus, status);
             } catch (IOException e) {
                 logger.error("add last index status failed... {}", e);
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException ex) {
-                }
+                Time.sleep(1000);
                 continue;
             }
             break;
@@ -110,10 +102,7 @@ public class CollectionHistoryAndStatusMonitor {
                 indexStatusService.deleteIndexStatus(clusterId, index, startTime);
             } catch (IOException | InterruptedException e) {
                 logger.error("delete last index status failed... {}", e);
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException ex) {
-                }
+                Time.sleep(1000);
                 continue;
             }
 
@@ -121,10 +110,7 @@ public class CollectionHistoryAndStatusMonitor {
                 indexStatusService.createIndexStatus(indexingStatus, status);
             } catch (IOException e) {
                 logger.error("add last index status failed... {}", e);
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException ex) {
-                }
+                Time.sleep(1000);
                 continue;
             }
 

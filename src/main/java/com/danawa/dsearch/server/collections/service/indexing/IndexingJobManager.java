@@ -7,6 +7,7 @@ import com.danawa.dsearch.server.collections.entity.IndexingStatus;
 import com.danawa.dsearch.server.collections.service.indexer.IndexerClient;
 import com.danawa.dsearch.server.collections.service.monitor.CollectionHistoryAndStatusMonitor;
 import com.danawa.dsearch.server.excpetions.IndexingJobFailureException;
+import com.danawa.dsearch.server.utils.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -146,10 +147,18 @@ public class IndexingJobManager {
         deleteQueue.add(collectionId);
     }
 
-    private void changeIndexAlias(IndexingStatus indexingStatus) throws IOException {
+    private void changeIndexAlias(IndexingStatus indexingStatus) {
         UUID clusterId = indexingStatus.getClusterId();
         Collection collection = indexingStatus.getCollection();
-        indexingJobService.expose(clusterId, collection, indexingStatus.getIndex());
+        while(true){
+            try{
+                indexingJobService.expose(clusterId, collection, indexingStatus.getIndex());
+            } catch (IOException e) {
+                Time.sleep(1000);
+                continue;
+            }
+            break;
+        }
     }
 
     private void updateLookupQueue(String collectionId, String status){

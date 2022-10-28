@@ -2,6 +2,7 @@ package com.danawa.dsearch.server.collections.service.monitor;
 
 import com.danawa.dsearch.server.collections.entity.IndexingStatus;
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
+import com.danawa.dsearch.server.utils.Time;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
@@ -76,7 +77,7 @@ public class IndexStatusService {
                             , RequestOptions.DEFAULT);
                 }
                 if (response != null && response.getDeleted() == 0) {
-                    Thread.sleep(500);
+                    Time.sleep(1000);
                 } else {
                     break;
                 }

@@ -2,6 +2,7 @@ package com.danawa.dsearch.server.collections.service.monitor;
 
 import com.danawa.dsearch.server.collections.entity.IndexingStatus;
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
+import com.danawa.dsearch.server.utils.Time;
 import com.google.gson.Gson;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.action.index.IndexRequest;
@@ -48,7 +49,7 @@ public class IndexHistoryService {
 
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             // catIndex 시 bulk indexing이 끝난 경우에도 ES write queue에 적재만 되어 있는 경우가 있기 때문에 1초 대기
-            Thread.sleep(1000);
+            Time.sleep(1000);
 
             Map<String, Object> catIndex = catIndex(client, index);
             String docSize = (String) catIndex.get("docs.count");
