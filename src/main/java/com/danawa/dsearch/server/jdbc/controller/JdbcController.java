@@ -1,6 +1,6 @@
 package com.danawa.dsearch.server.jdbc.controller;
 
-import com.danawa.dsearch.server.jdbc.service.JdbcService;
+import com.danawa.dsearch.server.jdbc.service.JdbcServiceImpl;
 import com.danawa.dsearch.server.jdbc.entity.JdbcRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,52 +12,48 @@ import java.util.*;
 @RestController
 @RequestMapping("/jdbc")
 public class JdbcController {
-    private final JdbcService jdbcService;
+    private final JdbcServiceImpl jdbcServiceImpl;
 
-    private JdbcController(JdbcService jdbcService) {
-        this.jdbcService = jdbcService;
+    private JdbcController(JdbcServiceImpl jdbcServiceImpl) {
+        this.jdbcServiceImpl = jdbcServiceImpl;
     }
 
     @PostMapping("/")
-    public ResponseEntity<?> getConnectionTest(@RequestBody JdbcRequest jdbcRequest) throws Exception {
-        System.out.println(jdbcRequest.getUrl());
-        System.out.println(jdbcRequest.getDriver());
+    public ResponseEntity<?> isConnectable(@RequestBody JdbcRequest jdbcRequest){
         Map<String, Object> response = new HashMap<String, Object>();
-        boolean flag = jdbcService.connectionTest(jdbcRequest);
-        response.put("message", flag);
+        response.put("message", jdbcServiceImpl.isConnectable(jdbcRequest));
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @GetMapping("/list")
-    public ResponseEntity<?> getJdbcList(@RequestHeader(value = "cluster-id") UUID clusterId) throws Exception {
+    public ResponseEntity<?> findAll(@RequestHeader(value = "cluster-id") UUID clusterId) throws Exception {
         Map<String, Object> response = new HashMap<>();
-        response.put("list", jdbcService.getJdbcList(clusterId));
+        response.put("list", jdbcServiceImpl.findAll(clusterId));
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @PutMapping("/add")
-    public ResponseEntity<?> addJdbcSource(@RequestHeader(value = "cluster-id") UUID clusterId,
+    public ResponseEntity<?> create(@RequestHeader(value = "cluster-id") UUID clusterId,
                                            @RequestBody JdbcRequest jdbcRequest) throws Exception {
         Map<String, Object> response = new HashMap<>();
-        response.put("isSuccess", jdbcService.addJdbcSource(clusterId, jdbcRequest));
-        return new ResponseEntity<>(jdbcService.addJdbcSource(clusterId, jdbcRequest), HttpStatus.OK);
+        response.put("isSuccess", jdbcServiceImpl.create(clusterId, jdbcRequest));
+        return new ResponseEntity<>(jdbcServiceImpl.create(clusterId, jdbcRequest), HttpStatus.OK);
     }
 
     @DeleteMapping("/delete/{id}")
-    public ResponseEntity<?> deleteJdbcSource(@RequestHeader(value = "cluster-id") UUID clusterId,
+    public ResponseEntity<?> delete(@RequestHeader(value = "cluster-id") UUID clusterId,
                                               @PathVariable String id) throws Exception {
         Map<String, Object> response = new HashMap<>();
-        response.put("isSuccess", jdbcService.deleteJdbcSource(clusterId, id));
-        System.out.println(response.get("isSuccess"));
+        response.put("isSuccess", jdbcServiceImpl.delete(clusterId, id));
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @PostMapping("/update/{id}")
-    public ResponseEntity<?> updateJdbcSource(@RequestHeader(value = "cluster-id") UUID clusterId,
+    public ResponseEntity<?> update(@RequestHeader(value = "cluster-id") UUID clusterId,
                                               @RequestBody JdbcRequest jdbcRequest,
                                               @PathVariable String id) throws Exception {
         Map<String, Object> response = new HashMap<>();
-        response.put("isSuccess", jdbcService.updateJdbcSource(clusterId, id, jdbcRequest));
+        response.put("isSuccess", jdbcServiceImpl.update(clusterId, id, jdbcRequest));
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }

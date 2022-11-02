@@ -7,10 +7,9 @@ public class RankingTuningRequest implements Serializable {
     private String text;
     private String index;
 
-    public boolean getIsMultiple() {
+    public boolean isMultiple() {
         return isMultiple;
     }
-
     public void setIsMultiple(boolean isMultiple) {
         this.isMultiple = isMultiple ;
     }

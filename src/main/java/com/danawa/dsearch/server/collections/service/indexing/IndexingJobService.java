@@ -1,12 +1,13 @@
 package com.danawa.dsearch.server.collections.service.indexing;
 
 import com.danawa.dsearch.server.collections.service.indexer.IndexerClient;
-import com.danawa.dsearch.server.collections.service.monitor.CollectionHistoryAndStatusMonitor;
+import com.danawa.dsearch.server.collections.service.history.HistoryService;
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
 import com.danawa.dsearch.server.collections.entity.Collection;
 import com.danawa.dsearch.server.collections.entity.IndexActionStep;
 import com.danawa.dsearch.server.collections.entity.IndexingStatus;
 import com.danawa.dsearch.server.excpetions.IndexingJobFailureException;
+import com.danawa.dsearch.server.notice.AlertService;
 import com.google.gson.Gson;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
@@ -45,20 +46,23 @@ public class IndexingJobService {
 
     private final String indexHistory = ".dsearch_index_history";
     private final IndexerClient indexerClient;
-    private final CollectionHistoryAndStatusMonitor collectionHistoryAndStatusMonitor;
     private final String jdbcSystemIndex;
 
+    private AlertService alertService;
+    private HistoryService indexHistoryService;
     private Map<String, Object> params;
     private Map<String, Object> indexing;
 
     public IndexingJobService(ElasticsearchFactory elasticsearchFactory,
                               @Value("${dsearch.jdbc.setting}") String jdbcSystemIndex,
-                              IndexerClient indexerClient,
-                              CollectionHistoryAndStatusMonitor collectionHistoryAndStatusMonitor) {
+                              HistoryService indexHistoryService,
+                              AlertService alertService,
+                              IndexerClient indexerClient) {
         this.elasticsearchFactory = elasticsearchFactory;
         this.jdbcSystemIndex = jdbcSystemIndex;
         this.indexerClient = indexerClient;
-        this.collectionHistoryAndStatusMonitor = collectionHistoryAndStatusMonitor;
+        this.indexHistoryService = indexHistoryService;
+        this.alertService  = alertService;
     }
 
     /**
@@ -157,10 +161,8 @@ public class IndexingJobService {
             indexingStatus.setEndTime(errTime);
             indexingStatus.setCurrentStep(IndexActionStep.FULL_INDEX);
             indexingStatus.setIndex(index.getIndex());
-            collectionHistoryAndStatusMonitor.alertWhenStarted(collection.getBaseId(), e.getMessage());
-            collectionHistoryAndStatusMonitor.createIndexHistory(indexingStatus, "0", "ERROR", "0");
-
-//            indexHistoryService.addIndexingFailHistory(clusterId, collection, index, e.getMessage());
+            alertService.send(String.format("%s 컬렉션의 색인이 실패하였습니다.\n%s", collection.getBaseId(), e.getMessage()));
+            indexHistoryService.create(indexingStatus, "0", "ERROR", "0");
             throw new IndexingJobFailureException(e);
         }
 

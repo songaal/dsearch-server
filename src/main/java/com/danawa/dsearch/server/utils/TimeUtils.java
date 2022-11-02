@@ -1,6 +1,6 @@
 package com.danawa.dsearch.server.utils;
 
-public class Time {
+public class TimeUtils {
     public static void sleep(long millis){
         try {
             Thread.sleep(millis);

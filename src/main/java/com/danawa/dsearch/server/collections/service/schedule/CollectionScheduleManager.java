@@ -8,6 +8,7 @@ import com.danawa.dsearch.server.collections.entity.IndexingStatus;
 import com.danawa.dsearch.server.collections.service.CollectionService;
 import com.danawa.dsearch.server.collections.service.indexing.IndexingJobManager;
 import com.danawa.dsearch.server.collections.service.indexing.IndexingJobService;
+import com.danawa.dsearch.server.collections.service.status.StatusService;
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
 import com.danawa.dsearch.server.excpetions.CronParseException;
 import com.danawa.dsearch.server.excpetions.IndexingJobFailureException;
@@ -43,21 +44,20 @@ public class CollectionScheduleManager {
     private final ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
 
     private ClusterService clusterService;
-    private ElasticsearchFactory elasticsearchFactory;
     private final CollectionService collectionService;
     private final IndexingJobService indexingJobService;
     private final IndexingJobManager indexingJobManager;
-    private final String lastIndexStatusIndex = ".dsearch_last_index_status";
+    private final StatusService statusService;
     public CollectionScheduleManager(ClusterService clusterService,
                                      CollectionService collectionService,
-                                     ElasticsearchFactory elasticsearchFactory,
+                                     StatusService statusService,
                                      IndexingJobService indexingJobService,
                                      IndexingJobManager indexingJobManager){
         this.indexingJobService = indexingJobService;
         this.indexingJobManager = indexingJobManager;
         this.collectionService = collectionService;
+        this.statusService = statusService;
         this.clusterService = clusterService;
-        this.elasticsearchFactory = elasticsearchFactory;
         this.scheduler.initialize();
     }
 
@@ -70,52 +70,33 @@ public class CollectionScheduleManager {
 
         for (int i = 0; i < clusterSize; i++) {
             Cluster cluster = clusterList.get(i);
-
-            try (RestHighLevelClient client = elasticsearchFactory.getClient(cluster.getId())) {
+            try {
                 // 1. 클러스터별로 기존 작업 중인 잡을 다시 등록한다.
-                SearchResponse lastIndexResponse = client.search(new SearchRequest(lastIndexStatusIndex)
-                                .source(new SearchSourceBuilder()
-                                        .size(10000)
-                                        .from(0))
-                        , RequestOptions.DEFAULT);
+                SearchResponse lastIndexResponse = statusService.findAll(cluster.getId(), 10000, 0);
 
+                // 2. 진행 중 문서 중 jobID가 null 인경우와 7일 지난 문서는 무시.
                 Calendar calendar = Calendar.getInstance();
-                // 진행 중 문서 중 jobID가 null 인경우와 7일 지난 문서는 무시.
                 calendar.add(Calendar.DATE, 7);
                 long expireStartTime = calendar.getTimeInMillis();
+
+                // 3. 마지막 인덱싱 내역 확인 후 컬렉션 관리 스케쥴링 등록
                 lastIndexResponse.getHits().forEach(documentFields -> {
                     try {
                         Map<String, Object> source = documentFields.getSourceAsMap();
                         // 잡아이디가 없는 문서가 많음... 로컬 실행하여 테스트 데이터 의심...
                         if (source.get("jobId") != null && !"".equals(source.get("jobId"))) {
-                            String collectionId = (String) source.get("collectionId");
-                            String jobId = String.valueOf(source.getOrDefault("jobId", ""));
-                            String index = (String) source.get("index");
                             long startTime = (long) source.get("startTime");
-                            IndexActionStep step = IndexActionStep.valueOf(String.valueOf(source.get("step")));
 
                             if (expireStartTime <= startTime) {
-                                Collection collection = collectionService.findById(cluster.getId(), collectionId);
-                                Collection.Launcher launcher = collection.getLauncher();
-                                IndexingStatus indexingStatus = new IndexingStatus();
-                                indexingStatus.setClusterId(cluster.getId());
-                                indexingStatus.setIndex(index);
-                                indexingStatus.setStartTime(startTime);
-                                if (launcher != null) {
-                                    indexingStatus.setIndexingJobId(jobId);
-                                    indexingStatus.setScheme(launcher.getScheme());
-                                    indexingStatus.setHost(launcher.getHost());
-                                    indexingStatus.setPort(launcher.getPort());
-                                }
-                                indexingStatus.setAutoRun(true);
-                                indexingStatus.setCurrentStep(step);
-                                indexingStatus.setNextStep(new ArrayDeque<>());
-                                indexingStatus.setRetry(50);
-                                indexingStatus.setCollection(collection);
+                                UUID clusterId = cluster.getId();
+                                String collectionId = (String) source.get("collectionId");
 
-                                if(indexingJobManager.getManageQueue(collectionId) == null) {
+                                if(!indexingJobManager.isExistInManageQueue(collectionId)) {
+                                    Collection collection = collectionService.findById(clusterId, collectionId);
+                                    IndexingStatus indexingStatus = makeIndexingStatus(clusterId, source, collection);
                                     indexingJobManager.add(collectionId, indexingStatus, false);
-                                    logger.debug("collection register cluster: {}, job: {}, step: {}", cluster.getName(), collectionId, step);
+                                    logger.debug("collection register cluster: {}, job: {}, step: {}",
+                                            cluster.getName(), collectionId, IndexActionStep.valueOf(String.valueOf(source.get("step"))));
                                 }
                             }
                         }
@@ -131,6 +112,31 @@ public class CollectionScheduleManager {
             registerAll(cluster.getId());
             logger.debug("init finished");
         }
+    }
+
+    private IndexingStatus makeIndexingStatus(UUID clusterId, Map<String, Object> source, Collection collection){
+        Collection.Launcher launcher = collection.getLauncher();
+        String jobId = String.valueOf(source.getOrDefault("jobId", ""));
+        String index = (String) source.get("index");
+        long startTime = (long) source.get("startTime");
+        IndexActionStep step = IndexActionStep.valueOf(String.valueOf(source.get("step")));
+
+        IndexingStatus indexingStatus = new IndexingStatus();
+        indexingStatus.setClusterId(clusterId);
+        indexingStatus.setIndex(index);
+        indexingStatus.setStartTime(startTime);
+        if (launcher != null) {
+            indexingStatus.setIndexingJobId(jobId);
+            indexingStatus.setScheme(launcher.getScheme());
+            indexingStatus.setHost(launcher.getHost());
+            indexingStatus.setPort(launcher.getPort());
+        }
+        indexingStatus.setAutoRun(true);
+        indexingStatus.setCurrentStep(step);
+        indexingStatus.setNextStep(new ArrayDeque<>());
+        indexingStatus.setRetry(50);
+        indexingStatus.setCollection(collection);
+        return indexingStatus;
     }
 
     /**

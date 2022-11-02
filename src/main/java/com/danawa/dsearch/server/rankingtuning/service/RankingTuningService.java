@@ -46,7 +46,7 @@ public class RankingTuningService {
             Map<String, Object> resultEntitiy = new HashMap<String, Object>();
 
             /* 여러개를 입력 했을 때 */
-            if(rankingTuningRequest.getIsMultiple()){
+            if(rankingTuningRequest.isMultiple()){
                 /* 1. index mapping 테이블 가져오기 */
                 Map<String, Object> analyzers = new LinkedHashMap<String, Object>();
 
@@ -180,13 +180,6 @@ public class RankingTuningService {
             if(key.equals("analyzer")){
                 analyzers.put(property, linkedHashMap.get(key));
             }
-            // TODO fields 대해선 로직에 고려되지 않아 일단 주석처리.
-//            else{
-//                if(linkedHashMap.get(key) != null && linkedHashMap.get(key) instanceof LinkedHashMap){
-//                    Map<String, Object> map = (LinkedHashMap) linkedHashMap.get(key);
-//                    findAnalyzer(analyzers, property, map, prefix);
-//                }
-//            }
         }
     }
 

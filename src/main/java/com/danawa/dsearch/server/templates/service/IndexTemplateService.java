@@ -33,13 +33,15 @@ public class IndexTemplateService {
     private IndicesService indicesService;
     private final String COMMENTS_JSON = "comments.json";
 
-    public IndexTemplateService(@Value("${dsearch.comments.setting}") String commentsIndex, IndicesService indicesService, ElasticsearchFactory factory){
+    public IndexTemplateService(@Value("${dsearch.comments.setting}") String commentsIndex,
+                                IndicesService indicesService,
+                                ElasticsearchFactory factory){
         this.commentsIndex = commentsIndex;
         this.factory = factory;
         this.indicesService = indicesService;
     }
 
-    public void fetchSystemIndex(UUID clusterId) throws IOException {
+    public void initialize(UUID clusterId) throws IOException {
         indicesService.createSystemIndex(clusterId, commentsIndex, COMMENTS_JSON);
     }
 

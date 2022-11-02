@@ -3,7 +3,7 @@ package com.danawa.dsearch.server.jdbc;
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
 import com.danawa.dsearch.server.indices.service.IndicesService;
 import com.danawa.dsearch.server.jdbc.entity.JdbcRequest;
-import com.danawa.dsearch.server.jdbc.service.JdbcService;
+import com.danawa.dsearch.server.jdbc.service.JdbcServiceImpl;
 import org.apache.commons.lang.NullArgumentException;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
@@ -30,8 +30,8 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class JdbcServiceTest {
-    private JdbcService jdbcService;
+public class JdbcServiceImplTest {
+    private JdbcServiceImpl jdbcServiceImpl;
     @Mock
     private ElasticsearchFactory elasticsearchFactory;
     @Mock
@@ -40,7 +40,7 @@ public class JdbcServiceTest {
     private String JDBC_JSON = "jdbc.json";
     @BeforeEach
     public void setup() {
-        this.jdbcService = new FakeJdbcService(jdbcIndex, indicesService, elasticsearchFactory);
+        this.jdbcServiceImpl = new FakeJdbcServiceImpl(jdbcIndex, indicesService, elasticsearchFactory);
     }
 
     @Test
@@ -51,7 +51,7 @@ public class JdbcServiceTest {
         doNothing().when(indicesService).createSystemIndex(clusterId, jdbcIndex, JDBC_JSON);
 
         //when
-        jdbcService.fetchSystemIndex(clusterId);
+        jdbcServiceImpl.initialize(clusterId);
 
         //then
         verify(indicesService, times(1)).createSystemIndex(clusterId, jdbcIndex, JDBC_JSON);
@@ -66,7 +66,7 @@ public class JdbcServiceTest {
         request.setUser("user");
         request.setPassword("password");
 
-        boolean result = jdbcService.connectionTest(request);
+        boolean result = jdbcServiceImpl.isConnectable(request);
 
         Assertions.assertTrue(result);
     }
@@ -75,19 +75,19 @@ public class JdbcServiceTest {
     @DisplayName("JDBC 커넥션 테스트 실패, 필수 파라미터가 없을 경우")
     public void connection_test_fail_when_required_params_not_found(){
         JdbcRequest request = new JdbcRequest();
-        boolean result = jdbcService.connectionTest(request);
+        boolean result = jdbcServiceImpl.isConnectable(request);
         Assertions.assertFalse(result);
 
         request.setUrl("url");
-        result = jdbcService.connectionTest(request);
+        result = jdbcServiceImpl.isConnectable(request);
         Assertions.assertFalse(result);
 
         request.setDriver("driver");
-        result = jdbcService.connectionTest(request);
+        result = jdbcServiceImpl.isConnectable(request);
         Assertions.assertFalse(result);
 
         request.setUser("user");
-        result = jdbcService.connectionTest(request);
+        result = jdbcServiceImpl.isConnectable(request);
         Assertions.assertFalse(result);
     }
 
@@ -105,7 +105,7 @@ public class JdbcServiceTest {
         given(response.getHits()).willReturn(searchHits);
         given(response.getHits().getHits()).willReturn(searchHit);
 
-        List<Map<String, Object>> result  = jdbcService.getJdbcList(clusterId);
+        List<Map<String, Object>> result  = jdbcServiceImpl.findAll(clusterId);
         Assertions.assertEquals(0, result.size());
     }
 
@@ -113,7 +113,7 @@ public class JdbcServiceTest {
     @DisplayName("JDBC 리스트 가져오기 실패")
     public void get_jdbc_list_fail()  {
         Assertions.assertThrows(NullArgumentException.class, () -> {
-            List<Map<String, Object>> result  = jdbcService.getJdbcList(null);
+            List<Map<String, Object>> result  = jdbcServiceImpl.findAll(null);
         });
     }
 
@@ -125,7 +125,7 @@ public class JdbcServiceTest {
         JdbcRequest jdbcRequest = new JdbcRequest();
 
         //when
-        boolean result = jdbcService.addJdbcSource(clusterId, jdbcRequest);
+        boolean result = jdbcServiceImpl.create(clusterId, jdbcRequest);
 
         //then
         Assertions.assertTrue(result);
@@ -136,7 +136,7 @@ public class JdbcServiceTest {
     public void add_jdbc_fail_when_clusterId_is_null() throws IOException {
         Assertions.assertThrows(NullArgumentException.class, () -> {
             JdbcRequest jdbcRequest = new JdbcRequest();
-            boolean result = jdbcService.addJdbcSource(null, jdbcRequest);
+            boolean result = jdbcServiceImpl.create(null, jdbcRequest);
         });
     }
 
@@ -145,7 +145,7 @@ public class JdbcServiceTest {
     public void add_jdbc_fail_when_jdbcRequest_is_null() throws IOException {
         Assertions.assertThrows(NullArgumentException.class, () -> {
             UUID clusterId = UUID.randomUUID();
-            boolean result = jdbcService.addJdbcSource(clusterId, null);
+            boolean result = jdbcServiceImpl.create(clusterId, null);
         });
     }
 
@@ -155,7 +155,7 @@ public class JdbcServiceTest {
         UUID clusterId = UUID.randomUUID();
         String id = "id";
 
-        boolean result = jdbcService.deleteJdbcSource(clusterId, id);
+        boolean result = jdbcServiceImpl.delete(clusterId, id);
 
         Assertions.assertTrue(result);
     }
@@ -166,7 +166,7 @@ public class JdbcServiceTest {
         UUID clusterId = UUID.randomUUID();
         String id = "";
 
-        boolean result = jdbcService.deleteJdbcSource(clusterId, id);
+        boolean result = jdbcServiceImpl.delete(clusterId, id);
 
         Assertions.assertFalse(result);
     }
@@ -176,7 +176,7 @@ public class JdbcServiceTest {
     public void delete_jdbc_fail_when_clusterId_is_null() throws IOException {
         Assertions.assertThrows(NullArgumentException.class, () -> {
             String id = "id";
-            boolean result = jdbcService.deleteJdbcSource(null, id);
+            boolean result = jdbcServiceImpl.delete(null, id);
         });
     }
 
@@ -185,7 +185,7 @@ public class JdbcServiceTest {
     public void delete_jdbc_fail_when_id_is_null() throws IOException {
         Assertions.assertThrows(NullArgumentException.class, () -> {
             UUID clusterId = UUID.randomUUID();
-            boolean result = jdbcService.deleteJdbcSource(clusterId, null);
+            boolean result = jdbcServiceImpl.delete(clusterId, null);
         });
     }
 
@@ -196,7 +196,7 @@ public class JdbcServiceTest {
         String id = "id";
         JdbcRequest request = new JdbcRequest();
 
-        boolean result = jdbcService.updateJdbcSource(clusterId, id, request);
+        boolean result = jdbcServiceImpl.update(clusterId, id, request);
 
         Assertions.assertTrue(result);
     }
@@ -209,7 +209,7 @@ public class JdbcServiceTest {
             String id = "id";
             JdbcRequest request = new JdbcRequest();
 
-            boolean result = jdbcService.updateJdbcSource(null, id, request);
+            boolean result = jdbcServiceImpl.update(null, id, request);
         });
     }
 
@@ -221,7 +221,7 @@ public class JdbcServiceTest {
             String id = "id";
             JdbcRequest request = new JdbcRequest();
 
-            boolean result = jdbcService.updateJdbcSource(clusterId, null, request);
+            boolean result = jdbcServiceImpl.update(clusterId, null, request);
         });
     }
 
@@ -233,7 +233,7 @@ public class JdbcServiceTest {
             String id = "id";
             JdbcRequest request = new JdbcRequest();
 
-            boolean result = jdbcService.updateJdbcSource(clusterId, id, null);
+            boolean result = jdbcServiceImpl.update(clusterId, id, null);
         });
     }
 
@@ -244,7 +244,7 @@ public class JdbcServiceTest {
         String id = "";
         JdbcRequest request = new JdbcRequest();
 
-        boolean result = jdbcService.updateJdbcSource(clusterId, id, request);
+        boolean result = jdbcServiceImpl.update(clusterId, id, request);
         Assertions.assertFalse(result);
     }
 
@@ -253,7 +253,7 @@ public class JdbcServiceTest {
     public void download_success() throws IOException {
         UUID clusterId = UUID.fromString("4d503fa9-1a8c-444c-891e-4553a2f189e6");
         Map<String, Object> message = new HashMap<>();
-        String result = jdbcService.download(clusterId, message);
+        String result = jdbcServiceImpl.download(clusterId, message);
 
         Assertions.assertTrue(Matchers.greaterThan(0).matches(result.length()));
         Assertions.assertNotNull(message.get("jdbc"));
@@ -263,7 +263,7 @@ public class JdbcServiceTest {
     @DisplayName("JDBC 내용 다운로드 실패, clusterId 가 null 일 경우")
     public void download_fail_when_clusterId_is_null()  {
         Map<String, Object> message = new HashMap<>();
-        String result = jdbcService.download(null, message);
+        String result = jdbcServiceImpl.download(null, message);
 
         Assertions.assertEquals(0, result.length());
         Assertions.assertNull(message.get("jdbc"));
@@ -273,7 +273,7 @@ public class JdbcServiceTest {
     @DisplayName("JDBC 내용 다운로드 실패, message 가 null 일 경우")
     public void download_fail_when_message_is_null()  {
         UUID clusterId = UUID.randomUUID();
-        String result = jdbcService.download(clusterId, null);
+        String result = jdbcServiceImpl.download(clusterId, null);
 
         Assertions.assertEquals(0, result.length());
     }

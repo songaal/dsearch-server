@@ -28,35 +28,41 @@ public class ToolsService {
             RestClient restClient = client.getLowLevelClient();
             Request request = new Request("GET", "_cat/plugins");
             Response response = restClient.performRequest(request);
-
             String responseBody = EntityUtils.toString(response.getEntity());
             return responseBody;
         }
     }
 
     public List<String> checkPlugins(UUID clusterId, Set<String> plugins) throws IOException{
+        List<String> result = new ArrayList<>();
+        for(String pluginName : plugins){
+            if( isUsablePlugin(clusterId, pluginName) ){
+                result.add(pluginName);
+            }
+        }
+        return result;
+    }
+
+    private boolean isUsablePlugin(UUID clusterId, String pluginName) throws IOException {
         try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             RestClient restClient = client.getLowLevelClient();
+            String method = "POST";
+            String endPoint = "/_" + pluginName + "/analyze";
 
-            List<String> result = new ArrayList<>();
-            for(String plugin : plugins){
-                String method = "POST";
-                String endPoint = "/_" + plugin + "/analyze";
-                /* 임의의 쿼리를 만들어서 보낸다 */
-                String setJson = "{ \"index\": \"" + dictionaryIndex + "\", \n" +
-                        "\"detail\": true, \n" +
-                        "\"useForQuery\": true, \n" +
-                        "\"text\": \"Sandisk Extream Z80 USB 16gb\"}";
-                try{
-                    Request pluginRequest = new Request(method, endPoint);
-                    pluginRequest.setJsonEntity(setJson);
-                    Response pluginResponse = restClient.performRequest(pluginRequest);
-                    result.add(plugin);
-                }catch(ResponseException re){
-                    logger.trace("Plugin Check Fail: {}", re.getMessage());
-                }
+            /* 임의의 쿼리를 만들어서 보낸다 */
+            String setJson = "{ \"index\": \"" + dictionaryIndex + "\", \n" +
+                    "\"detail\": true, \n" +
+                    "\"useForQuery\": true, \n" +
+                    "\"text\": \"Sandisk Extream Z80 USB 16gb\"}";
+            try{
+                Request pluginRequest = new Request(method, endPoint);
+                pluginRequest.setJsonEntity(setJson);
+                Response pluginResponse = restClient.performRequest(pluginRequest);
+                return true;
+            }catch(ResponseException re){
+                logger.trace("Plugin Check Fail: {}", re.getMessage());
+                return false;
             }
-            return result;
         }
     }
 

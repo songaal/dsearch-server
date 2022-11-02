@@ -19,11 +19,11 @@ public class InfoController {
     private String name;
 
     @GetMapping
-    public ResponseEntity<?> build() {
-        Map<String, String> build = new HashMap<>();
-        build.put("name", name);
-        build.put("version", version);
-        return new ResponseEntity<>(build, HttpStatus.OK);
+    public ResponseEntity<?> info() {
+        Map<String, String> info = new HashMap<>();
+        info.put("name", name);
+        info.put("version", version);
+        return new ResponseEntity<>(info, HttpStatus.OK);
     }
 
 }

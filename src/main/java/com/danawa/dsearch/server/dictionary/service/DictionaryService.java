@@ -70,7 +70,7 @@ public class DictionaryService {
         this.elasticsearchFactory = elasticsearchFactory;
     }
 
-    public void fetchSystemIndex(UUID clusterId) throws IOException {
+    public void initialize(UUID clusterId) throws IOException {
         indicesService.createSystemIndex(clusterId, dictionaryIndex, INDEX_JSON);
         indicesService.createSystemIndex(clusterId, dictionaryApplyIndex, DICT_APPLY_JSON);
     }
@@ -144,7 +144,7 @@ public class DictionaryService {
         BoolQueryBuilder boolQueryBuilder = new BoolQueryBuilder().filter(new TermQueryBuilder("type", type));
 
         if (value != null && !"".equals(value)) {
-//            검색이 있을 경우.
+            // 검색이 있을 경우.
             String[] columns = searchColumns.split(",");
             for (int i = 0; i < columns.length; i++) {
                 if (isMatch) {

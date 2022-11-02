@@ -21,10 +21,6 @@ import java.util.*;
 public class ProxyService {
     private static Logger logger = LoggerFactory.getLogger(ProxyService.class);
 
-    public ProxyService( ) {
-
-    }
-
     public ResponseEntity<byte[]> proxy(String url, String keyword) throws UnsupportedEncodingException {
         ResponseEntity response = null;
         url += URLEncoder.encode(keyword, "UTF-8");

@@ -1,4 +1,4 @@
-package com.danawa.dsearch.server.dashboard;
+package com.danawa.dsearch.server.dashboard.controller;
 
 import com.danawa.dsearch.server.collections.service.indexing.IndexingJobManager;
 import org.slf4j.Logger;

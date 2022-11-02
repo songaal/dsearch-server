@@ -4,7 +4,7 @@ package com.danawa.dsearch.server.migration.controller;
 import com.danawa.dsearch.server.clusters.service.ClusterService;
 import com.danawa.dsearch.server.collections.service.CollectionService;
 import com.danawa.dsearch.server.clusters.entity.Cluster;
-import com.danawa.dsearch.server.jdbc.service.JdbcService;
+import com.danawa.dsearch.server.jdbc.service.JdbcServiceImpl;
 import com.danawa.dsearch.server.migration.service.MigrationService;
 import com.danawa.dsearch.server.pipeline.service.PipelineService;
 import com.danawa.dsearch.server.templates.service.IndexTemplateService;
@@ -27,7 +27,7 @@ public class MigrationController {
     private static Logger logger = LoggerFactory.getLogger(MigrationController.class);
     private ClusterService clusterService;
     private CollectionService collectionService;
-    private JdbcService jdbcService;
+    private JdbcServiceImpl jdbcServiceImpl;
     private PipelineService pipelineService;
     private IndexTemplateService indexTemplateService ;
     private MigrationService migrationService;
@@ -36,13 +36,13 @@ public class MigrationController {
             ClusterService clusterService,
                                 PipelineService pipelineService,
                                CollectionService collectionService,
-                               JdbcService jdbcService,
+                               JdbcServiceImpl jdbcServiceImpl,
                                IndexTemplateService indexTemplateService,
             MigrationService migrationService) {
         this.clusterService = clusterService;
         this.pipelineService = pipelineService;
         this.collectionService = collectionService;
-        this.jdbcService = jdbcService;
+        this.jdbcServiceImpl = jdbcServiceImpl;
         this.indexTemplateService = indexTemplateService;
         this.migrationService = migrationService;
     }
@@ -77,7 +77,7 @@ public class MigrationController {
 
         if(jdbc){
             if(firstFlag) {sb.append(",\n"); }
-            sb.append("\"jdbc\": [" + jdbcService.download(clusterId, message) + "]\n");
+            sb.append("\"jdbc\": [" + jdbcServiceImpl.download(clusterId, message) + "]\n");
             firstFlag = true;
         }
 

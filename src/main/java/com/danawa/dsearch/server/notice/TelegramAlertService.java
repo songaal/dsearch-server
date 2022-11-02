@@ -13,8 +13,8 @@ import java.util.Map;
 
 @Component
 @ConfigurationProperties(prefix = "dsearch.notice")
-public class NoticeHandler {
-    private final static Logger logger = LoggerFactory.getLogger(NoticeHandler.class);
+public class TelegramAlertService implements AlertService{
+    private final static Logger logger = LoggerFactory.getLogger(TelegramAlertService.class);
 
     private static Telegram telegram;
     private static WebClient telegramWebClient;
@@ -31,7 +31,7 @@ public class NoticeHandler {
         }
     }
 
-    public static void send(String message) {
+    public void send(String message) {
         try {
             if (telegramWebClient != null) {
                 telegramBody.put("text", message);

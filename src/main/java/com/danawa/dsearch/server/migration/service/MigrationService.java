@@ -20,7 +20,6 @@ import java.util.*;
 @Service
 public class MigrationService {
     private static Logger logger = LoggerFactory.getLogger(MigrationService.class);
-
     private final ElasticsearchFactory elasticsearchFactory;
     private final PipelineService pipelineService;
 

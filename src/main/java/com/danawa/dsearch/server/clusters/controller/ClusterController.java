@@ -4,8 +4,10 @@ import com.danawa.dsearch.server.clusters.service.ClusterRoutingAllocationServic
 import com.danawa.dsearch.server.clusters.service.ClusterService;
 import com.danawa.dsearch.server.clusters.entity.Cluster;
 import com.danawa.dsearch.server.clusters.entity.ClusterStatusResponse;
+import com.danawa.dsearch.server.collections.service.history.HistoryService;
 import com.danawa.dsearch.server.collections.service.schedule.CollectionScheduleManager;
 import com.danawa.dsearch.server.collections.service.CollectionService;
+import com.danawa.dsearch.server.collections.service.status.StatusService;
 import com.danawa.dsearch.server.dictionary.service.DictionaryService;
 import com.danawa.dsearch.server.collections.entity.Collection;
 import com.danawa.dsearch.server.excpetions.NotFoundException;
@@ -34,6 +36,10 @@ public class ClusterController {
     private final CollectionService collectionService;
     private final JdbcService jdbcService;
     private final IndicesService indicesService;
+
+    private final StatusService indexStatusService;
+    private final HistoryService historyService;
+
     private final IndexTemplateService indexTemplateService;
     private final ClusterRoutingAllocationService clusterRoutingAllocationService;
     private final CollectionScheduleManager collectionScheduleManager;
@@ -43,10 +49,13 @@ public class ClusterController {
                              DictionaryService dictionaryService,
                              ReferenceService referenceService,
                              CollectionService collectionService,
-                             IndicesService indicesService, JdbcService jdbcService,
+                             IndicesService indicesService,
+                             JdbcService jdbcService,
                              IndexTemplateService indexTemplateService,
                              ClusterRoutingAllocationService clusterRoutingAllocationService,
-                             CollectionScheduleManager collectionScheduleManager) {
+                             CollectionScheduleManager collectionScheduleManager,
+                             StatusService indexStatusService,
+                             HistoryService historyService) {
         this.deletePrefix = deletePrefix;
         this.clusterService = clusterService;
         this.dictionaryService = dictionaryService;
@@ -57,6 +66,8 @@ public class ClusterController {
         this.indexTemplateService = indexTemplateService;
         this.clusterRoutingAllocationService = clusterRoutingAllocationService;
         this.collectionScheduleManager = collectionScheduleManager;
+        this.indexStatusService = indexStatusService;
+        this.historyService = historyService;
     }
 
     @GetMapping
@@ -107,12 +118,15 @@ public class ClusterController {
     @PostMapping
     public ResponseEntity<?> add(@RequestBody Cluster cluster) throws IOException, NullPointerException {
         Cluster registerCluster = clusterService.add(cluster);
-        dictionaryService.fetchSystemIndex(registerCluster.getId());
-        referenceService.fetchSystemIndex(registerCluster.getId());
-        collectionService.fetchSystemIndex(registerCluster.getId());
-        indicesService.fetchSystemIndex(registerCluster.getId());
-        jdbcService.fetchSystemIndex(registerCluster.getId()); /* JDBC 인덱스 추가 */
-        indexTemplateService.fetchSystemIndex(registerCluster.getId()); /* 인덱스 템플릿 추가 */
+        dictionaryService.initialize(registerCluster.getId());
+        referenceService.initialize(registerCluster.getId());
+
+        indexTemplateService.initialize(registerCluster.getId()); /* 인덱스 템플릿 추가 */
+        collectionService.initialize(registerCluster.getId());
+        jdbcService.initialize(registerCluster.getId()); /* JDBC 인덱스 추가 */
+        historyService.initialize(registerCluster.getId());
+        indexStatusService.initialize(registerCluster.getId());
+
         collectionScheduleManager.init(); /* 이전에 등록되어 있던 클러스터라면 스케쥴 재 등록 */
         return new ResponseEntity<>(registerCluster, HttpStatus.OK);
     }
@@ -156,7 +170,7 @@ public class ClusterController {
 
     @PutMapping("/check")
     public ResponseEntity<?> check(@RequestHeader(value = "cluster-id") UUID clusterId,
-                                   @RequestParam boolean flag) throws IOException {
+                                   @RequestParam boolean flag) {
 
         clusterRoutingAllocationService.updateClusterAllocation(clusterId, flag ? "none" : "all");
 

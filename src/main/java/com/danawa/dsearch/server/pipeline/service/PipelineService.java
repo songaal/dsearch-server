@@ -18,7 +18,6 @@ public class PipelineService {
     private static Logger logger = LoggerFactory.getLogger(PipelineService.class);
 
     private final ElasticsearchFactory elasticsearchFactory;
-
     public PipelineService(ElasticsearchFactory elasticsearchFactory) {
         this.elasticsearchFactory = elasticsearchFactory;
     }

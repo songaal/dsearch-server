@@ -71,7 +71,7 @@ public class DictionaryServiceTest {
         doNothing().when(indicesService).createSystemIndex(clusterId, dictionaryApplyIndex, DICT_APPLY_JSON);
 
         //when
-        dictionaryService.fetchSystemIndex(clusterId);
+        dictionaryService.initialize(clusterId);
 
         //then
         verify(indicesService).createSystemIndex(clusterId, dictionaryIndex, INDEX_JSON);

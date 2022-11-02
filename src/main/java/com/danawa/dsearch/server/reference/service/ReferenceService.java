@@ -54,23 +54,20 @@ public class ReferenceService {
         this.jsonUtils = jsonUtils;
     }
 
-    public void fetchSystemIndex(UUID clusterId) throws IOException {
+    public void initialize(UUID clusterId) throws IOException {
         indicesService.createSystemIndex(clusterId, referenceIndex, REFERENCE_INDEX_JSON);
     }
 
     public List<ReferenceTemp> findAll(UUID clusterId) throws IOException {
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            List<ReferenceTemp> referenceTempList = new ArrayList<>();
-            SearchResponse response = indicesService.findAll(clusterId, referenceIndex);
-            SearchHit[] SearchHitArr = response.getHits().getHits();
-            int hitsSize = SearchHitArr.length;
-            for (int i = 0; i < hitsSize; i++) {
-                Map<String, Object> source = SearchHitArr[i].getSourceAsMap();
-                referenceTempList.add(convertMapToObject(SearchHitArr[i].getId(), source));
-            }
-            return referenceTempList;
+        List<ReferenceTemp> referenceTempList = new ArrayList<>();
+        SearchResponse response = indicesService.findAll(clusterId, referenceIndex);
+        SearchHit[] SearchHitArr = response.getHits().getHits();
+        int hitsSize = SearchHitArr.length;
+        for (int i = 0; i < hitsSize; i++) {
+            Map<String, Object> source = SearchHitArr[i].getSourceAsMap();
+            referenceTempList.add(convertMapToObject(SearchHitArr[i].getId(), source));
         }
-
+        return referenceTempList;
     }
 
     public ReferenceTemp find(UUID clusterId, String id) throws IOException {

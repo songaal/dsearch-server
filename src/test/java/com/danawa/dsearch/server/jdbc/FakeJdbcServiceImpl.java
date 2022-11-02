@@ -3,26 +3,18 @@ package com.danawa.dsearch.server.jdbc;
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
 import com.danawa.dsearch.server.indices.service.IndicesService;
 import com.danawa.dsearch.server.jdbc.entity.JdbcRequest;
-import com.danawa.dsearch.server.jdbc.service.JdbcService;
+import com.danawa.dsearch.server.jdbc.service.JdbcServiceImpl;
 import org.apache.commons.lang.NullArgumentException;
-import org.elasticsearch.action.delete.DeleteRequest;
-import org.elasticsearch.action.delete.DeleteResponse;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.search.builder.SearchSourceBuilder;
 
 import java.io.IOException;
 import java.util.*;
 
-public class FakeJdbcService extends JdbcService {
-    public FakeJdbcService(String jdbcIndex, IndicesService indicesService, ElasticsearchFactory elasticsearchFactory) {
+public class FakeJdbcServiceImpl extends JdbcServiceImpl {
+    public FakeJdbcServiceImpl(String jdbcIndex, IndicesService indicesService, ElasticsearchFactory elasticsearchFactory) {
         super(jdbcIndex, indicesService, elasticsearchFactory);
     }
 
-    public boolean connectionTest(JdbcRequest jdbcRequest){
+    public boolean isConnectable(JdbcRequest jdbcRequest){
         // 파라미터 체크
         if(jdbcRequest.getUrl() == null
                 || jdbcRequest.getDriver() == null
@@ -34,7 +26,7 @@ public class FakeJdbcService extends JdbcService {
         return true;
     }
 
-    public boolean addJdbcSource(UUID clusterId, JdbcRequest jdbcRequest) throws IOException {
+    public boolean create(UUID clusterId, JdbcRequest jdbcRequest) throws IOException {
         if(clusterId == null || jdbcRequest == null){
             throw new NullArgumentException("");
         }else {
@@ -43,7 +35,7 @@ public class FakeJdbcService extends JdbcService {
     }
 
 
-    public boolean deleteJdbcSource(UUID clusterId, String id) throws IOException {
+    public boolean delete(UUID clusterId, String id) throws IOException {
         if(clusterId == null || id == null){
             throw new NullArgumentException("");
         } else if (id.equals("")) {
@@ -53,7 +45,7 @@ public class FakeJdbcService extends JdbcService {
         return true;
     }
 
-    public boolean updateJdbcSource(UUID clusterId, String id, JdbcRequest jdbcRequest) throws IOException {
+    public boolean update(UUID clusterId, String id, JdbcRequest jdbcRequest) throws IOException {
         if(clusterId == null || id == null || jdbcRequest == null){
             throw new NullArgumentException("");
         } else if (id.equals("")) {

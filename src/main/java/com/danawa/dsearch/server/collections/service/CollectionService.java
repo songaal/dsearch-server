@@ -46,7 +46,6 @@ public class CollectionService {
      * 컬렉션에 대해 CRUD 작업을 담당하는 객체입니다.
      */
     private static Logger logger = LoggerFactory.getLogger(CollectionService.class);
-
     private final ClusterService clusterService;
     private final String COLLECTION_INDEX_JSON = "collection.json";
     private final String collectionIndex;
@@ -79,7 +78,7 @@ public class CollectionService {
         }
     }
 
-    public void fetchSystemIndex(UUID clusterId) throws IOException {
+    public void initialize(UUID clusterId) throws IOException {
         indicesService.createSystemIndex(clusterId, collectionIndex, COLLECTION_INDEX_JSON);
     }
 

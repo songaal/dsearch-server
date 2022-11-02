@@ -5,9 +5,11 @@ import com.danawa.dsearch.server.collections.entity.Collection;
 import com.danawa.dsearch.server.collections.entity.IndexActionStep;
 import com.danawa.dsearch.server.collections.entity.IndexingStatus;
 import com.danawa.dsearch.server.collections.service.indexer.IndexerClient;
-import com.danawa.dsearch.server.collections.service.monitor.CollectionHistoryAndStatusMonitor;
+import com.danawa.dsearch.server.collections.service.history.HistoryService;
+import com.danawa.dsearch.server.collections.service.status.StatusService;
 import com.danawa.dsearch.server.excpetions.IndexingJobFailureException;
-import com.danawa.dsearch.server.utils.Time;
+import com.danawa.dsearch.server.notice.AlertService;
+import com.danawa.dsearch.server.utils.TimeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,10 +34,13 @@ public class IndexingJobManager {
 
     private static final Logger logger = LoggerFactory.getLogger(IndexingJobManager.class);
     private final IndexingJobService indexingJobService;
-    private final CollectionHistoryAndStatusMonitor historyAndStautsMonitor;
 
     // 색인 관리 큐에서 제거 용도 임시 저장소
     private Set<String> deleteQueue = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
+
+    private StatusService indexStatusService;
+    private HistoryService indexHistoryService;
+    private AlertService alertService;
 
     // 색인 관리 큐
     // key: collection id,  value: Indexing status
@@ -49,11 +54,15 @@ public class IndexingJobManager {
 
     public IndexingJobManager(IndexingJobService indexingJobService,
                               IndexerClient indexerClient,
-                              CollectionHistoryAndStatusMonitor historyAndStautsMonitor,
+                              StatusService indexStatusService,
+                              HistoryService indexHistoryService,
+                              AlertService alertService,
                               @Value("${dsearch.timeout}") long timeout) {
         this.timeout = timeout;
+        this.indexStatusService = indexStatusService;
+        this.indexHistoryService = indexHistoryService;
+        this.alertService = alertService;
         this.indexingJobService = indexingJobService;
-        this.historyAndStautsMonitor = historyAndStautsMonitor;
         this.indexerClient = indexerClient;
     }
 
@@ -142,7 +151,7 @@ public class IndexingJobManager {
         // 혹시나 있을 인덱싱 중지
         indexingJobService.stopIndexing(indexingStatus);
         // 기존 latest status 변경
-        historyAndStautsMonitor.updateIndexStatus(indexingStatus, "SUCCESS");
+        indexStatusService.update(indexingStatus, "SUCCESS");
         // 큐에서 삭제
         deleteQueue.add(collectionId);
     }
@@ -154,7 +163,7 @@ public class IndexingJobManager {
             try{
                 indexingJobService.expose(clusterId, collection, indexingStatus.getIndex());
             } catch (IOException e) {
-                Time.sleep(1000);
+                TimeUtils.sleep(1000);
                 continue;
             }
             break;
@@ -172,8 +181,8 @@ public class IndexingJobManager {
         String status = "ERROR";
         String docSize = "0";
         String store = "0";
-        historyAndStautsMonitor.createIndexHistory(indexingStatus, docSize, status, store);
-        historyAndStautsMonitor.updateIndexStatus(indexingStatus, status);
+        indexHistoryService.create(indexingStatus, docSize, status, store);
+        indexStatusService.update(indexingStatus, status);
     }
 
     public void add(String collectionId, IndexingStatus indexingStatus) throws IndexingJobFailureException {
@@ -193,13 +202,18 @@ public class IndexingJobManager {
 
     public void add(String collectionId, IndexingStatus indexingStatus, boolean register) throws IndexingJobFailureException {
         if (register) {
-            historyAndStautsMonitor.createIndexStatus(indexingStatus, "READY");
+            indexStatusService.create(indexingStatus, "READY");
         }
         manageQueue.put(collectionId, indexingStatus);
     }
 
     public IndexingStatus getManageQueue(String collectionId) {
         return manageQueue.get(collectionId);
+    }
+
+    public boolean isExistInManageQueue(String collectionId){
+        if(manageQueue.get(collectionId) == null) return false;
+        return true;
     }
 
     private void processIndexStep(IndexingStatus indexingStatus, String collectionId) throws IOException{
@@ -213,14 +227,14 @@ public class IndexingJobManager {
         if (status == IndexerStatus.SUCCESS){
             indexingStatus.setEndTime(endTime);
 
-            historyAndStautsMonitor.createIndexHistory(indexingStatus, status.toString()); // 로깅
-            historyAndStautsMonitor.updateIndexStatus(indexingStatus, status.toString());
+            indexHistoryService.create(indexingStatus, status.toString()); // 로깅
+            indexStatusService.update(indexingStatus, status.toString());
             IndexActionStep nextStep = indexingStatus.getNextStep().poll();
 
             logger.info("Indexing {} ==> clusterId: {}, index: {}, collectionId", status, clusterId, indexingStatus.getIndex(), collectionId);
             if (nextStep != null) {
                 indexingJobService.changeRefreshInterval(clusterId, collection, index); // 색인 끝나면 refresh_interval 변경
-                historyAndStautsMonitor.createIndexStatus(indexingStatus, "RUNNING"); // Expose가 남아 있기 때문에 status 추가
+                indexStatusService.create(indexingStatus, "RUNNING"); // Expose가 남아 있기 때문에 status 추가
                 indexingStatus.setCurrentStep(nextStep); // 교체 단계 셋팅 (안하면 Null Pointer Exception)
                 manageQueue.put(collectionId, indexingStatus); // 교체 단계가 있으므로 다시 스케줄에 넣는다.
             }else{
@@ -232,8 +246,8 @@ public class IndexingJobManager {
         }else if (status == IndexerStatus.ERROR || status == IndexerStatus.STOP){
             logger.info("Indexing {} ==> clusterId: {}, index: {}, collectionId", status, clusterId, indexingStatus.getIndex(), collectionId);
             indexingStatus.setEndTime(endTime);
-            historyAndStautsMonitor.createIndexHistory(indexingStatus, status.toString()); // 로깅
-            historyAndStautsMonitor.updateIndexStatus(indexingStatus, status.toString());
+            indexHistoryService.create(indexingStatus, status.toString()); // 로깅
+            indexStatusService.update(indexingStatus, status.toString());
 
             deleteQueue.add(collectionId);
             updateLookupQueue(collectionId, status.toString());

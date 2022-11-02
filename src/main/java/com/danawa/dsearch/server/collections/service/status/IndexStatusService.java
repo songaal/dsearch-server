@@ -1,26 +1,36 @@
-package com.danawa.dsearch.server.collections.service.monitor;
+package com.danawa.dsearch.server.collections.service.status;
 
 import com.danawa.dsearch.server.collections.entity.IndexingStatus;
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
-import com.danawa.dsearch.server.utils.Time;
+import com.danawa.dsearch.server.indices.service.IndicesService;
+import com.danawa.dsearch.server.utils.TimeUtils;
 import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.indices.CreateIndexRequest;
+import org.elasticsearch.client.indices.GetIndexRequest;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.MatchQueryBuilder;
 import org.elasticsearch.index.reindex.BulkByScrollResponse;
 import org.elasticsearch.index.reindex.DeleteByQueryRequest;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StreamUtils;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
 @Service
-public class IndexStatusService {
+public class IndexStatusService implements StatusService {
     /**
      * 색인 상태에 대해서 관리하는 클래스 입니다.
      */
@@ -28,14 +38,25 @@ public class IndexStatusService {
     private static final Logger logger = LoggerFactory.getLogger(IndexStatusService.class);
 
     private final ElasticsearchFactory elasticsearchFactory;
-
     private final String lastIndexStatusIndex = ".dsearch_last_index_status";
 
-    public IndexStatusService(ElasticsearchFactory elasticsearchFactory){
+    private final String lastIndexStatusIndexJson = "last_index_status.json";
+
+    private IndicesService indicesService;
+
+    public IndexStatusService(ElasticsearchFactory elasticsearchFactory,
+                              IndicesService indicesService) {
         this.elasticsearchFactory = elasticsearchFactory;
+        this.indicesService = indicesService;
     }
 
-    public void createIndexStatus(IndexingStatus status, String currentStatus) throws IOException {
+    @Override
+    public void initialize(UUID clusterId) throws IOException {
+        indicesService.createSystemIndex(clusterId, lastIndexStatusIndex, lastIndexStatusIndexJson);
+    }
+
+    @Override
+    public void create(IndexingStatus status, String currentStatus) {
         UUID clusterId = status.getClusterId();
         String collectionId = status.getCollection().getId();
         long startTime = status.getStartTime();
@@ -43,9 +64,16 @@ public class IndexStatusService {
         String step = status.getCurrentStep().name();
         String jobId = status.getIndexingJobId();
 
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            createIndexStatus(client, collectionId, index, startTime, currentStatus, step, jobId);
+        while (true) {
+            try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+                createIndexStatus(client, collectionId, index, startTime, currentStatus, step, jobId);
+            } catch (IOException e) {
+                TimeUtils.sleep(1000);
+                continue;
+            }
+            break;
         }
+
     }
 
     private void createIndexStatus(RestHighLevelClient client, String collectionId, String index, long startTime, String status, String step, String jobId) throws IOException {
@@ -59,7 +87,8 @@ public class IndexStatusService {
         client.index(new IndexRequest().index(lastIndexStatusIndex).source(source), RequestOptions.DEFAULT);
     }
 
-    public void deleteIndexStatus(UUID clusterId, String index, long startTime) throws IOException, InterruptedException {
+    @Override
+    public void delete(UUID clusterId, String index, long startTime) throws IOException, InterruptedException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             logger.debug("deleteLastIndexStatus index: {} , startTime: {}", index, startTime);
             for (int i = 0; i < 3; i++) {
@@ -77,11 +106,41 @@ public class IndexStatusService {
                             , RequestOptions.DEFAULT);
                 }
                 if (response != null && response.getDeleted() == 0) {
-                    Time.sleep(1000);
+                    TimeUtils.sleep(1000);
                 } else {
                     break;
                 }
             }
+        }
+    }
+
+    @Override
+    public void update(IndexingStatus indexingStatus, String status) {
+        UUID clusterId = indexingStatus.getClusterId();
+        String index = indexingStatus.getIndex();
+        long startTime = indexingStatus.getStartTime();
+
+        while (true) {
+            try {
+                delete(clusterId, index, startTime);
+            } catch (IOException | InterruptedException e) {
+                logger.error("delete last index status failed... {}", e);
+                TimeUtils.sleep(1000);
+                continue;
+            }
+
+            create(indexingStatus, status);
+        }
+    }
+
+    @Override
+    public SearchResponse findAll(UUID clusterId, int size, int from) throws IOException {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            return client.search(new SearchRequest(lastIndexStatusIndex)
+                            .source(new SearchSourceBuilder()
+                                    .size(size)
+                                    .from(from))
+                    , RequestOptions.DEFAULT);
         }
     }
 }

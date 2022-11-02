@@ -22,15 +22,9 @@ import java.util.UUID;
 public class ElasticsearchFactory {
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchFactory.class);
     private final ClusterService clusterService;
-    private final RestTemplate restTemplate;
 
     public ElasticsearchFactory(ClusterService clusterService) {
         this.clusterService = clusterService;
-
-        HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory();
-        factory.setConnectTimeout(3 * 1000);
-        factory.setReadTimeout(3 * 1000);
-        this.restTemplate = new RestTemplate(factory);
     }
 
     public UUID getDictionaryRemoteClusterId(UUID id) {
