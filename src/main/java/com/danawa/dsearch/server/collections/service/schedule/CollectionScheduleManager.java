@@ -72,7 +72,7 @@ public class CollectionScheduleManager {
             Cluster cluster = clusterList.get(i);
             try {
                 // 1. 클러스터별로 기존 작업 중인 잡을 다시 등록한다.
-                SearchResponse lastIndexResponse = statusService.findAll(cluster.getId(), 10000, 0);
+                List<Map<String, Object>> documents = statusService.findAll(cluster.getId(), 10000, 0);
 
                 // 2. 진행 중 문서 중 jobID가 null 인경우와 7일 지난 문서는 무시.
                 Calendar calendar = Calendar.getInstance();
@@ -80,9 +80,10 @@ public class CollectionScheduleManager {
                 long expireStartTime = calendar.getTimeInMillis();
 
                 // 3. 마지막 인덱싱 내역 확인 후 컬렉션 관리 스케쥴링 등록
-                lastIndexResponse.getHits().forEach(documentFields -> {
+                documents.forEach(documentFields -> {
                     try {
-                        Map<String, Object> source = documentFields.getSourceAsMap();
+                        Map<String, Object> source = documentFields;
+
                         // 잡아이디가 없는 문서가 많음... 로컬 실행하여 테스트 데이터 의심...
                         if (source.get("jobId") != null && !"".equals(source.get("jobId"))) {
                             long startTime = (long) source.get("startTime");

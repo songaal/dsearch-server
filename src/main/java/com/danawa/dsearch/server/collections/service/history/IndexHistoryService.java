@@ -1,21 +1,15 @@
 package com.danawa.dsearch.server.collections.service.history;
 
-import com.danawa.dsearch.server.collections.entity.History;
+import com.danawa.dsearch.server.collections.entity.IndexHistory;
 import com.danawa.dsearch.server.collections.entity.IndexingStatus;
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
 import com.danawa.dsearch.server.indices.service.IndicesService;
 import com.danawa.dsearch.server.utils.TimeUtils;
 import com.google.gson.Gson;
 import org.apache.http.util.EntityUtils;
-import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.Request;
-import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.client.core.CountRequest;
-import org.elasticsearch.client.core.CountResponse;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -27,25 +21,29 @@ import java.util.Map;
 import java.util.UUID;
 
 @Service
-public class IndexHistoryService implements HistoryService{
+public class IndexHistoryService implements HistoryService {
     /**
      * 색인 시 상태 로깅에 대한 책임을 갖는 클래스 입니다.
      */
     private static final Logger logger = LoggerFactory.getLogger(IndexHistoryService.class);
 
-    private final String indexHistory = ".dsearch_index_history";
-    private final String indexHistoryJson = "index_history.json";
+    private IndexHistoryAdapter indexHistoryAdapter;
 
     private final ElasticsearchFactory elasticsearchFactory;
-    private IndicesService indicesService;
+
+//    private IndicesService indicesService;
+//    private final String indexHistory = ".dsearch_index_history";
+//    private final String indexHistoryJson = "index_history.json";
 
     public IndexHistoryService(IndicesService indicesService,
-                               ElasticsearchFactory elasticsearchFactory){
+                               IndexHistoryAdapter indexHistoryAdapter,
+                               ElasticsearchFactory elasticsearchFactory) {
+        this.indexHistoryAdapter = indexHistoryAdapter;
         this.elasticsearchFactory = elasticsearchFactory;
-        this.indicesService = indicesService;
+//        this.indicesService = indicesService;
     }
 
-    private Map<String ,Object> catIndex(RestHighLevelClient client, String index) throws IOException {
+    private Map<String, Object> catIndex(RestHighLevelClient client, String index) throws IOException {
         Request request = new Request("GET", String.format("/_cat/indices/%s", index));
         request.addParameter("format", "json");
         Response response = client.getLowLevelClient().performRequest(request);
@@ -56,11 +54,11 @@ public class IndexHistoryService implements HistoryService{
 
     @Override
     public void initialize(UUID clusterId) throws IOException {
-        indicesService.createSystemIndex(clusterId, indexHistory, indexHistoryJson);
+//        indicesService.createSystemIndex(clusterId, indexHistory, indexHistoryJson);
     }
 
     @Override
-    public void create(IndexingStatus indexingStatus, String status){
+    public void create(IndexingStatus indexingStatus, String status) {
         UUID clusterId = indexingStatus.getClusterId();
         String index = indexingStatus.getIndex();
         String jobType = indexingStatus.getCurrentStep().name();
@@ -68,43 +66,25 @@ public class IndexHistoryService implements HistoryService{
         long endTime = indexingStatus.getEndTime();
         boolean autoRun = indexingStatus.isAutoRun();
 
-        while(true){
-            try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-                // catIndex 시 bulk indexing이 끝난 경우에도 ES write queue에 적재만 되어 있는 경우가 있기 때문에 1초 대기
-                TimeUtils.sleep(1000);
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            // catIndex 시 bulk indexing이 끝난 경우에도 ES write queue에 적재만 되어 있는 경우가 있기 때문에 1초 대기
+            TimeUtils.sleep(1000);
 
-                Map<String, Object> catIndex = catIndex(client, index);
-                String docSize = (String) catIndex.get("docs.count");
-                String store = (String) catIndex.get("store.size");
+            Map<String, Object> catIndex = catIndex(client, index);
+            String docSize = (String) catIndex.get("docs.count");
+            String store = (String) catIndex.get("store.size");
 
-                // 이력의 갯수를 체크하여 0일때만 이력에 남김.
-                BoolQueryBuilder countQuery = QueryBuilders.boolQuery();
-                countQuery.filter().add(QueryBuilders.termQuery("index", index));
-                countQuery.filter().add(QueryBuilders.termQuery("startTime", startTime));
-                countQuery.filter().add(QueryBuilders.termQuery("jobType", jobType));
-
-                CountResponse countResponse = client.count(new CountRequest(indexHistory).query(countQuery), RequestOptions.DEFAULT);
-                logger.debug("addIndexHistory: index: {}, startTime: {}, jobType: {}, result Count: {}", index, startTime, jobType, countResponse.getCount());
-                if (countResponse.getCount() == 0) {
-                    Map<String, Object> source = new HashMap<>();
-                    source.put("index", index);
-                    source.put("jobType", jobType);
-                    source.put("startTime", startTime);
-                    source.put("endTime", endTime);
-                    source.put("autoRun", autoRun);
-                    source.put("status", status);
-                    source.put("docSize", docSize);
-                    source.put("store", store);
-                    client.index(new IndexRequest().index(indexHistory).source(source), RequestOptions.DEFAULT);
-                }
-            } catch (IOException e) {
-                TimeUtils.sleep(1000);
-                continue;
+            // 이력의 갯수를 체크하여 0일때만 이력에 남김.
+            long count = indexHistoryAdapter.count(clusterId, index, startTime, jobType);
+            if (count == 0) {
+                IndexHistory indexHistory = makeHistory(clusterId, index, jobType, startTime, endTime, autoRun, status, docSize, store);
+                indexHistoryAdapter.create(indexHistory);
             }
-            break;
+        } catch (IOException e) {
+            logger.error("히스토리 적재 실패, {}", e);
         }
-
     }
+
 
     @Override
     public void create(IndexingStatus indexingStatus, String docSize, String status, String store) {
@@ -115,34 +95,26 @@ public class IndexHistoryService implements HistoryService{
         long endTime = indexingStatus.getEndTime();
         boolean autoRun = indexingStatus.isAutoRun();
 
-        while(true){
-            try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-                // 이력의 갯수를 체크하여 0일때만 이력에 남김.
-                BoolQueryBuilder countQuery = QueryBuilders.boolQuery();
-                countQuery.filter().add(QueryBuilders.termQuery("index", index));
-                countQuery.filter().add(QueryBuilders.termQuery("startTime", startTime));
-                countQuery.filter().add(QueryBuilders.termQuery("jobType", jobType));
+        // 이력의 갯수를 체크하여 0일때만 이력에 남김.
+        long count = indexHistoryAdapter.count(clusterId, index, startTime, jobType);
 
-                CountResponse countResponse = client.count(new CountRequest(indexHistory).query(countQuery), RequestOptions.DEFAULT);
-                logger.debug("addIndexHistory: index: {}, startTime: {}, jobType: {}, result Count: {}", index, startTime, jobType, countResponse.getCount());
-                if (countResponse.getCount() == 0) {
-                    Map<String, Object> source = new HashMap<>();
-                    source.put("index", index);
-                    source.put("jobType", jobType);
-                    source.put("startTime", startTime);
-                    source.put("endTime", endTime);
-                    source.put("autoRun", autoRun);
-                    source.put("status", status);
-                    source.put("docSize", docSize);
-                    source.put("store", store);
-                    client.index(new IndexRequest().index(indexHistory).source(source), RequestOptions.DEFAULT);
-                }
-            } catch (IOException e) {
-                TimeUtils.sleep(1000);
-                continue;
-            }
-            break;
+        if (count == 0) {
+            IndexHistory indexHistory = makeHistory(clusterId, index, jobType, startTime, endTime, autoRun, status, docSize, store);
+            indexHistoryAdapter.create(indexHistory);
         }
+    }
 
+    private IndexHistory makeHistory(UUID clusterId, String index, String jobType, long startTime, long endTime, boolean autoRun, String status, String docSize, String store){
+        IndexHistory indexHistory = new IndexHistory();
+        indexHistory.setClusterId(clusterId);
+        indexHistory.setIndex(index);
+        indexHistory.setJobType(jobType);
+        indexHistory.setStartTime(startTime);
+        indexHistory.setEndTime(endTime);
+        indexHistory.setAutoRun(autoRun);
+        indexHistory.setStatus(status);
+        indexHistory.setDocSize(docSize);
+        indexHistory.setStore(store);
+        return indexHistory;
     }
 }

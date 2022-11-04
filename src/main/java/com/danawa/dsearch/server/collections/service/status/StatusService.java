@@ -1,9 +1,10 @@
 package com.danawa.dsearch.server.collections.service.status;
 
 import com.danawa.dsearch.server.collections.entity.IndexingStatus;
-import org.elasticsearch.action.search.SearchResponse;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public interface StatusService {
@@ -12,5 +13,5 @@ public interface StatusService {
     void delete(UUID clusterId, String index, long startTime) throws IOException, InterruptedException;
     void update(IndexingStatus indexingStatus, String status);
 
-    SearchResponse findAll(UUID clusterId, int size, int from) throws IOException;
+    List<Map<String, Object>> findAll(UUID clusterId, int size, int from) throws IOException;
 }
