@@ -1,6 +1,5 @@
 package com.danawa.dsearch.server.collections.service.history;
 
-import com.danawa.dsearch.server.collections.entity.History;
 import com.danawa.dsearch.server.collections.entity.IndexingStatus;
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
 import com.danawa.dsearch.server.indices.service.IndicesService;
