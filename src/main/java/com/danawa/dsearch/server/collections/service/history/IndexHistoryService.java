@@ -1,5 +1,6 @@
 package com.danawa.dsearch.server.collections.service.history;
 
+import com.danawa.dsearch.server.collections.dto.HistoryReadRequest;
 import com.danawa.dsearch.server.collections.entity.IndexHistory;
 import com.danawa.dsearch.server.collections.entity.IndexingStatus;
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
@@ -31,16 +32,10 @@ public class IndexHistoryService implements HistoryService {
 
     private final ElasticsearchFactory elasticsearchFactory;
 
-//    private IndicesService indicesService;
-//    private final String indexHistory = ".dsearch_index_history";
-//    private final String indexHistoryJson = "index_history.json";
-
-    public IndexHistoryService(IndicesService indicesService,
-                               IndexHistoryAdapter indexHistoryAdapter,
+    public IndexHistoryService(IndexHistoryAdapter indexHistoryAdapter,
                                ElasticsearchFactory elasticsearchFactory) {
         this.indexHistoryAdapter = indexHistoryAdapter;
         this.elasticsearchFactory = elasticsearchFactory;
-//        this.indicesService = indicesService;
     }
 
     private Map<String, Object> catIndex(RestHighLevelClient client, String index) throws IOException {
@@ -55,6 +50,21 @@ public class IndexHistoryService implements HistoryService {
     @Override
     public void initialize(UUID clusterId) throws IOException {
 //        indicesService.createSystemIndex(clusterId, indexHistory, indexHistoryJson);
+    }
+
+    @Override
+    public List<Map<String, Object>> findAllByIndexs(UUID clusterId, HistoryReadRequest historyReadRequest) {
+        if(historyReadRequest.getJobType() != null){
+            return indexHistoryAdapter.findAllByIndexs(clusterId, historyReadRequest);
+        }else{
+            return indexHistoryAdapter.findAllByIndexsWithJobType(clusterId, historyReadRequest);
+        }
+    }
+
+
+    @Override
+    public long countByClusterIdAndIndex(UUID clusterId, HistoryReadRequest historyReadRequest) {
+        return indexHistoryAdapter.countByClusterIdAndIndex(clusterId, historyReadRequest);
     }
 
     @Override
@@ -76,7 +86,8 @@ public class IndexHistoryService implements HistoryService {
 
             // 이력의 갯수를 체크하여 0일때만 이력에 남김.
             long count = indexHistoryAdapter.count(clusterId, index, startTime, jobType);
-            if (count == 0) {
+            logger.info("{} {} {} {} {} ", clusterId, index, startTime, jobType, count);
+            if (count >= 1) {
                 IndexHistory indexHistory = makeHistory(clusterId, index, jobType, startTime, endTime, autoRun, status, docSize, store);
                 indexHistoryAdapter.create(indexHistory);
             }

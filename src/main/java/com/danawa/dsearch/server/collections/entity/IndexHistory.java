@@ -1,5 +1,8 @@
 package com.danawa.dsearch.server.collections.entity;
 
+import org.hibernate.annotations.Columns;
+
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import java.util.UUID;
@@ -9,15 +12,23 @@ public class IndexHistory {
     @Id
     private long id;
 
+    @Column(name = "clusterId")
     private UUID clusterId;
-
+    @Column(name = "index")
     private String index;
+    @Column(name = "jobType")
     private String jobType;
+    @Column(name = "startTime")
     private long startTime;
+    @Column(name = "endTime")
     private long endTime;
+    @Column(name = "autoRun")
     private boolean autoRun;
+    @Column(name = "status")
     private String status;
+    @Column(name = "docSize")
     private String docSize;
+    @Column(name = "store")
     private String store;
 
     public long getId() {

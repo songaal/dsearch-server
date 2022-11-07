@@ -1,7 +1,9 @@
 package com.danawa.dsearch.server.collections.controller;
 
 import com.danawa.dsearch.server.clusters.service.ClusterService;
+import com.danawa.dsearch.server.collections.dto.HistoryReadRequest;
 import com.danawa.dsearch.server.collections.entity.IndexingActionType;
+import com.danawa.dsearch.server.collections.service.history.IndexHistoryService;
 import com.danawa.dsearch.server.collections.service.schedule.CollectionScheduleManager;
 import com.danawa.dsearch.server.collections.service.indexing.IndexingJobManager;
 import com.danawa.dsearch.server.collections.service.indexing.IndexingJobService;
