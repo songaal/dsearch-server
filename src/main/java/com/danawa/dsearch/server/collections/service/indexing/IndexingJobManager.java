@@ -153,10 +153,12 @@ public class IndexingJobManager {
         indexingJobService.stopIndexing(indexingStatus);
         // 기존 latest status 변경
         indexStatusService.update(indexingStatus, status);
-        // 로깅
-        indexHistoryService.create(indexingStatus, status); // 로깅
         // 큐에서 삭제
         deleteQueue.add(collectionId);
+
+        // 로깅
+        indexingStatus.setCurrentStep(IndexActionStep.FULL_INDEX);
+        indexHistoryService.create(indexingStatus, status); // 로깅
     }
 
     private void changeIndexAlias(IndexingStatus indexingStatus) {
@@ -233,7 +235,7 @@ public class IndexingJobManager {
             indexStatusService.update(indexingStatus, status.toString());
             IndexActionStep nextStep = indexingStatus.getNextStep().poll();
 
-            logger.info("Indexing {} ==> clusterId: {}, index: {}, collectionId", status, clusterId, indexingStatus.getIndex(), collectionId);
+            logger.info("Indexing {} => clusterId: {}, index: {}, collectionId: {}", status, clusterId, indexingStatus.getIndex(), collectionId);
             if (nextStep != null) {
                 indexingJobService.changeRefreshInterval(clusterId, collection, index); // 색인 끝나면 refresh_interval 변경
                 indexStatusService.create(indexingStatus, "RUNNING"); // Expose가 남아 있기 때문에 status 추가
@@ -248,7 +250,7 @@ public class IndexingJobManager {
             updateLookupQueue(collectionId, status.toString());
             indexerClient.deleteJob(indexingStatus);
         }else if (status == IndexerStatus.ERROR || status == IndexerStatus.STOP){
-            logger.info("Indexing {} ==> clusterId: {}, index: {}, collectionId", status, clusterId, indexingStatus.getIndex(), collectionId);
+            logger.info("Indexing {} ==> clusterId: {}, index: {}, collectionId: {}", status, clusterId, indexingStatus.getIndex(), collectionId);
             indexingStatus.setEndTime(endTime);
             indexHistoryService.create(indexingStatus, status.toString()); // 로깅
             indexStatusService.update(indexingStatus, status.toString());
