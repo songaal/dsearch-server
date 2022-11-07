@@ -144,14 +144,17 @@ public class IndexingJobManager {
     }
 
     private void processExposeStep(IndexingStatus indexingStatus, String collectionId) throws IOException {
+        String status = "SUCCESS";
         // 인덱스 alias 교체
         changeIndexAlias(indexingStatus);
         // 인덱싱 결과 조회용 큐에 적재
-        updateLookupQueue(collectionId, "SUCCESS");
+        updateLookupQueue(collectionId, status);
         // 혹시나 있을 인덱싱 중지
         indexingJobService.stopIndexing(indexingStatus);
         // 기존 latest status 변경
-        indexStatusService.update(indexingStatus, "SUCCESS");
+        indexStatusService.update(indexingStatus, status);
+        // 로깅
+        indexHistoryService.create(indexingStatus, status); // 로깅
         // 큐에서 삭제
         deleteQueue.add(collectionId);
     }
@@ -227,7 +230,7 @@ public class IndexingJobManager {
         if (status == IndexerStatus.SUCCESS){
             indexingStatus.setEndTime(endTime);
 
-            indexHistoryService.create(indexingStatus, status.toString()); // 로깅
+            // status 변경
             indexStatusService.update(indexingStatus, status.toString());
             IndexActionStep nextStep = indexingStatus.getNextStep().poll();
 
@@ -239,6 +242,8 @@ public class IndexingJobManager {
                 manageQueue.put(collectionId, indexingStatus); // 교체 단계가 있으므로 다시 스케줄에 넣는다.
             }else{
                 deleteQueue.add(collectionId);
+                // 로깅
+                indexHistoryService.create(indexingStatus, status.toString()); // 로깅
             }
 
             updateLookupQueue(collectionId, status.toString());
