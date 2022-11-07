@@ -152,6 +152,9 @@ public class IndexingJobManager {
         indexingJobService.stopIndexing(indexingStatus);
         // 기존 latest status 변경
         indexStatusService.update(indexingStatus, "SUCCESS");
+        // 로깅
+        indexingStatus.setCurrentStep(IndexActionStep.FULL_INDEX);
+        indexHistoryService.create(indexingStatus, "SUCCESS");
         // 큐에서 삭제
         deleteQueue.add(collectionId);
     }
@@ -223,11 +226,9 @@ public class IndexingJobManager {
         long endTime = System.currentTimeMillis();
 
         IndexerStatus status = indexerClient.getStatus(indexingStatus);
-
         if (status == IndexerStatus.SUCCESS){
             indexingStatus.setEndTime(endTime);
 
-            indexHistoryService.create(indexingStatus, status.toString()); // 로깅
             indexStatusService.update(indexingStatus, status.toString());
             IndexActionStep nextStep = indexingStatus.getNextStep().poll();
 

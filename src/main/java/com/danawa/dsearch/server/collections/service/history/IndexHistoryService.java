@@ -1,5 +1,6 @@
 package com.danawa.dsearch.server.collections.service.history;
 
+import com.danawa.dsearch.server.collections.dto.HistoryDeleteRequest;
 import com.danawa.dsearch.server.collections.dto.HistoryReadRequest;
 import com.danawa.dsearch.server.collections.entity.IndexHistory;
 import com.danawa.dsearch.server.collections.entity.IndexingStatus;
@@ -54,7 +55,10 @@ public class IndexHistoryService implements HistoryService {
 
     @Override
     public List<Map<String, Object>> findAllByIndexs(UUID clusterId, HistoryReadRequest historyReadRequest) {
-        if(historyReadRequest.getJobType() != null){
+
+        if (historyReadRequest.getIndexA() == null && historyReadRequest.getIndexB() == null){
+            return indexHistoryAdapter.findByClusterIdAndJobType(clusterId, historyReadRequest);
+        } else if(historyReadRequest.getJobType() == null){
             return indexHistoryAdapter.findAllByIndexs(clusterId, historyReadRequest);
         }else{
             return indexHistoryAdapter.findAllByIndexsWithJobType(clusterId, historyReadRequest);
@@ -63,8 +67,12 @@ public class IndexHistoryService implements HistoryService {
 
 
     @Override
-    public long countByClusterIdAndIndex(UUID clusterId, HistoryReadRequest historyReadRequest) {
-        return indexHistoryAdapter.countByClusterIdAndIndex(clusterId, historyReadRequest);
+    public long getTotalSize(UUID clusterId, HistoryReadRequest historyReadRequest) {
+        if(historyReadRequest.getIndexA() != null || historyReadRequest.getIndexB() != null ){
+            return indexHistoryAdapter.countByClusterIdAndIndex(clusterId, historyReadRequest);
+        }else{
+            return indexHistoryAdapter.countByClusterId(clusterId);
+        }
     }
 
     @Override
@@ -78,19 +86,19 @@ public class IndexHistoryService implements HistoryService {
 
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             // catIndex 시 bulk indexing이 끝난 경우에도 ES write queue에 적재만 되어 있는 경우가 있기 때문에 1초 대기
-            TimeUtils.sleep(1000);
+            TimeUtils.sleep(5000);
 
             Map<String, Object> catIndex = catIndex(client, index);
             String docSize = (String) catIndex.get("docs.count");
             String store = (String) catIndex.get("store.size");
 
             // 이력의 갯수를 체크하여 0일때만 이력에 남김.
-            long count = indexHistoryAdapter.count(clusterId, index, startTime, jobType);
-            logger.info("{} {} {} {} {} ", clusterId, index, startTime, jobType, count);
-            if (count >= 1) {
-                IndexHistory indexHistory = makeHistory(clusterId, index, jobType, startTime, endTime, autoRun, status, docSize, store);
-                indexHistoryAdapter.create(indexHistory);
-            }
+//            long count = indexHistoryAdapter.count(clusterId, index, startTime, jobType);
+//            logger.info("{} {} {} {} {} ", clusterId, index, startTime, jobType, count);
+//            if (count >= 1) {
+            IndexHistory indexHistory = makeHistory(clusterId, index, jobType, startTime, endTime, autoRun, status, docSize, store);
+            indexHistoryAdapter.create(indexHistory);
+//            }
         } catch (IOException e) {
             logger.error("히스토리 적재 실패, {}", e);
         }
@@ -107,17 +115,22 @@ public class IndexHistoryService implements HistoryService {
         boolean autoRun = indexingStatus.isAutoRun();
 
         // 이력의 갯수를 체크하여 0일때만 이력에 남김.
-        long count = indexHistoryAdapter.count(clusterId, index, startTime, jobType);
+//        long count = indexHistoryAdapter.count(clusterId, index, startTime, jobType);
 
-        if (count == 0) {
-            IndexHistory indexHistory = makeHistory(clusterId, index, jobType, startTime, endTime, autoRun, status, docSize, store);
-            indexHistoryAdapter.create(indexHistory);
-        }
+//        if (count == 0) {
+        IndexHistory indexHistory = makeHistory(clusterId, index, jobType, startTime, endTime, autoRun, status, docSize, store);
+        indexHistoryAdapter.create(indexHistory);
+//        }
+    }
+
+    @Override
+    public void delete(UUID clusterId, String collectionId){
+        indexHistoryAdapter.deleteAll(clusterId, collectionId);
     }
 
     private IndexHistory makeHistory(UUID clusterId, String index, String jobType, long startTime, long endTime, boolean autoRun, String status, String docSize, String store){
         IndexHistory indexHistory = new IndexHistory();
-        indexHistory.setClusterId(clusterId);
+        indexHistory.setClusterId(clusterId.toString());
         indexHistory.setIndex(index);
         indexHistory.setJobType(jobType);
         indexHistory.setStartTime(startTime);

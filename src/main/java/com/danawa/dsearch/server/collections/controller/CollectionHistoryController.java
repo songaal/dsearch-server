@@ -1,5 +1,6 @@
 package com.danawa.dsearch.server.collections.controller;
 
+import com.danawa.dsearch.server.collections.dto.HistoryDeleteRequest;
 import com.danawa.dsearch.server.collections.dto.HistoryReadRequest;
 import com.danawa.dsearch.server.collections.service.history.IndexHistoryService;
 import org.slf4j.Logger;
@@ -9,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -29,9 +31,22 @@ public class CollectionHistoryController {
                                         @RequestBody HistoryReadRequest historyReadRequest) {
 
         Map<String, Object> response = new HashMap<>();
-        response.put("total_size", indexHistoryService.countByClusterIdAndIndex(clusterId, historyReadRequest));
-        response.put("result", indexHistoryService.findAllByIndexs(clusterId, historyReadRequest));
+        response.put("total_size", indexHistoryService.getTotalSize(clusterId, historyReadRequest));
+        List<Map<String, Object>> list = indexHistoryService.findAllByIndexs(clusterId, historyReadRequest);
+        response.put("result", list);
         logger.info("{}", response);
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+
+
+    @DeleteMapping
+    public ResponseEntity<?> deleteCollectionHistory(@RequestHeader(value = "cluster-id") UUID clusterId,
+                                                     @RequestBody HistoryDeleteRequest deleteRequest) {
+
+        Map<String, Object> response = new HashMap<>();
+        logger.info("{} {}", clusterId, deleteRequest);
+        indexHistoryService.delete(clusterId, deleteRequest.getCollectionName());
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }

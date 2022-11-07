@@ -150,7 +150,8 @@ public class IndexingService {
         status = indexingJobService.indexing(clusterId, collection, false, IndexActionStep.FULL_INDEX);
         status.setAction(actionType.getAction());
         status.setStatus("RUNNING");
-        indexingJobManager.add(collection.getId(), status);
+        indexingJobManager.add(collectionId, status);
+        logger.info("indexingJobManager: {}", indexingJobManager.getManageQueue(collectionId));
         return status;
     }
 

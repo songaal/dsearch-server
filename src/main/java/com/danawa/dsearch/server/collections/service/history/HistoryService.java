@@ -12,7 +12,8 @@ public interface HistoryService {
     void initialize(UUID clusterId) throws IOException;
     void create(IndexingStatus indexingStatus, String status);
     void create(IndexingStatus indexingStatus, String docSize, String status, String store);
+    void delete(UUID clusterId, String collectionId);
 
     List<Map<String,Object>> findAllByIndexs(UUID clusterId, HistoryReadRequest historyReadRequest);
-    long countByClusterIdAndIndex(UUID clusterId, HistoryReadRequest historyReadRequest);
+    long getTotalSize(UUID clusterId, HistoryReadRequest historyReadRequest);
 }

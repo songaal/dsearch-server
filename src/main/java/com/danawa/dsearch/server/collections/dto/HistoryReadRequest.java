@@ -5,7 +5,6 @@ public class HistoryReadRequest {
     private String indexB;
     private int from;
     private int size;
-
     private String jobType;
 
     public String getIndexA() {
@@ -45,5 +44,10 @@ public class HistoryReadRequest {
 
     public void setJobType(String jobType) {
         this.jobType = jobType;
+    }
+
+    @Override
+    public String toString(){
+        return "indexA=" +indexA + ", indexB="+ indexB + ", size=" + size+ ", from="+ from;
     }
 }

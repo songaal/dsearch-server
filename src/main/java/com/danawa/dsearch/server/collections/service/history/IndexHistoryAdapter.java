@@ -1,5 +1,6 @@
 package com.danawa.dsearch.server.collections.service.history;
 
+import com.danawa.dsearch.server.collections.dto.HistoryDeleteRequest;
 import com.danawa.dsearch.server.collections.dto.HistoryReadRequest;
 import com.danawa.dsearch.server.collections.entity.IndexHistory;
 import com.danawa.dsearch.server.collections.service.history.repository.HistoryRepository;
@@ -8,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
@@ -23,82 +25,145 @@ public class IndexHistoryAdapter {
 
     public void create(IndexHistory indexHistory){
         IndexHistory savedIndexHistory = historyRepository.save(indexHistory);
-        logger.info("saved History: {}", savedIndexHistory);
+        logger.info("saved History: {}, {}, {}", savedIndexHistory.getId(), savedIndexHistory.getClusterId(), savedIndexHistory.getIndex());
+    }
+
+    @Transactional
+    public void deleteAll(UUID clusterId, String collectionId){
+        try{
+            historyRepository.deleteByClusterIdAndIndexStartsWith(clusterId.toString(), collectionId);
+        }catch (Exception e){
+            logger.info("", e);
+        }
     }
 
     public long count(UUID clusterId, String index, long startTime, String jobType){
-        List<IndexHistory> select = historyRepository.findByClusterIdAndIndexAndStartTimeAndJobType(clusterId, index, startTime, jobType);
+        List<IndexHistory> select = historyRepository.findByClusterIdAndIndexAndStartTimeAndJobType(clusterId.toString(), index, startTime, jobType);
         logger.info("{} {} {} History count: {}", clusterId, index, startTime, select.size());
         return select.size();
     }
 
     public long countByClusterIdAndIndex(UUID clusterId, HistoryReadRequest historyReadRequest){
-        int len = 0 ;
         long count = 0;
-        String collectionName = "";
-        if(historyReadRequest.getIndexA() != null){
-            len = historyReadRequest.getIndexA().length();
-            collectionName = historyReadRequest.getIndexA().substring(0, len);
-            count = historyRepository.countByClusterIdAndIndexLike(clusterId, collectionName);
-        }else if(historyReadRequest.getIndexB() != null){
-            len = historyReadRequest.getIndexA().length();
-            collectionName = historyReadRequest.getIndexA().substring(0, len);
-            count = historyRepository.countByClusterIdAndIndexLike(clusterId, collectionName);
+        String collectionName = parseCollectionName(historyReadRequest);
+
+        try{
+            count = historyRepository.countByClusterIdAndIndexStartsWith(clusterId.toString(), collectionName);
+        }catch (Exception e){
+            logger.info("{}", e);
         }
 
-        logger.info("{} {} {} History count: {}", clusterId, collectionName, count);
+        return count;
+    }
+
+    public long countByClusterId(UUID clusterId){
+        long count = 0;
+
+        try{
+            count = historyRepository.countByClusterId(clusterId.toString());
+        }catch (Exception e){
+            logger.info("{}", e);
+        }
+
         return count;
     }
 
     public List<Map<String,Object>> findAllByIndexs(UUID clusterId, HistoryReadRequest historyReadRequest){
-        int len = historyReadRequest.getIndexA().length();
-        String collectionName = historyReadRequest.getIndexA().substring(0, len);
-        int from = historyReadRequest.getFrom();
-        int size = historyReadRequest.getSize();
-        Pageable paging = PageRequest.of(from, size);
-        List<IndexHistory> list =  historyRepository.findByClusterIdAndIndexLike(clusterId, collectionName, paging);
+        String collectionName = parseCollectionName(historyReadRequest);
+        Pageable paging = getPagination(historyReadRequest.getFrom(), historyReadRequest.getSize());
+
+        List<IndexHistory> list = new ArrayList<>();
         List<Map<String, Object>> result = new ArrayList<>();
 
+        try{
+            list =  historyRepository.findByClusterIdAndIndexStartsWith(clusterId.toString(), collectionName, paging);
+        }catch (Exception e){
+            logger.info("", e);
+        }
+
         for (IndexHistory history: list){
-            Map<String, Object> item = new HashMap<String, Object>();
-            item.put("index", history.getIndex());
-            item.put("jobType", history.getJobType());
-            item.put("startTime", history.getStartTime());
-            item.put("endTime", history.getEndTime());
-            item.put("docSize", history.getDocSize());
-            item.put("status", history.getStatus());
-            item.put("store", history.getStore());
-            item.put("autoRun", history.isAutoRun());
+            Map<String, Object> item = makeHistoryMap(history);
+            result.add(item);
+        }
+        return result;
+    }
+
+    public List<Map<String,Object>> findByClusterIdAndJobType(UUID clusterId, HistoryReadRequest historyReadRequest){
+        Pageable paging = getPagination(historyReadRequest.getFrom(), historyReadRequest.getSize());
+        String jobType = historyReadRequest.getJobType();
+        List<IndexHistory> list = new ArrayList<>();
+        List<Map<String, Object>> result = new ArrayList<>();
+
+        try{
+            list =  historyRepository.findByClusterIdAndJobType(clusterId.toString(), jobType, paging);
+        }catch (Exception e){
+            logger.info("", e);
+        }
+
+        for (IndexHistory history: list){
+            Map<String, Object> item = makeHistoryMap(history);
             result.add(item);
         }
         return result;
     }
 
     public List<Map<String,Object>> findAllByIndexsWithJobType(UUID clusterId, HistoryReadRequest historyReadRequest){
-        int len = historyReadRequest.getIndexA().length();
-        String collectionName = historyReadRequest.getIndexA().substring(0, len);
 
-        int from = historyReadRequest.getFrom();
-        int size = historyReadRequest.getSize();
-        Pageable paging = PageRequest.of(from, size);
+        String collectionName = parseCollectionName(historyReadRequest);
         String jobType = historyReadRequest.getJobType();
-        List<IndexHistory> list =  historyRepository.findByClusterIdAndJobTypeAndIndexLike(clusterId, jobType, collectionName, paging);
 
+        Pageable paging = getPagination(historyReadRequest.getFrom(), historyReadRequest.getSize());
+
+        List<IndexHistory> list = new ArrayList<>();
         List<Map<String, Object>> result = new ArrayList<>();
+        try{
+             list =  historyRepository.findByClusterIdAndJobTypeAndIndexStartsWith(clusterId.toString(), jobType, collectionName, paging);
+        }catch (Exception e){
+            logger.info("", e);
+        }
 
         for (IndexHistory history: list){
-            Map<String, Object> item = new HashMap<String, Object>();
-            item.put("index", history.getIndex());
-            item.put("jobType", history.getJobType());
-            item.put("startTime", history.getStartTime());
-            item.put("endTime", history.getEndTime());
-            item.put("docSize", history.getDocSize());
-            item.put("status", history.getStatus());
-            item.put("store", history.getStore());
-            item.put("autoRun", history.isAutoRun());
+            Map<String, Object> item = makeHistoryMap(history);
             result.add(item);
         }
         return result;
+    }
+
+    private Map<String, Object> makeHistoryMap(IndexHistory history){
+        logger.info("{}", history);
+        Map<String, Object> item = new HashMap<String, Object>();
+        item.put("id", history.getId());
+        item.put("index", history.getIndex());
+        item.put("jobType", history.getJobType());
+        item.put("startTime", history.getStartTime());
+        item.put("endTime", history.getEndTime());
+        item.put("docSize", history.getDocSize());
+        item.put("status", history.getStatus());
+        item.put("store", history.getStore());
+        item.put("autoRun", history.isAutoRun());
+        return item;
+    }
+
+    private Pageable getPagination(int from, int size){
+        int page = 0;
+
+        if (from == 0 ) page = 0;
+        else page = (from / size);
+
+        return PageRequest.of(page, size);
+    }
+
+    private String parseCollectionName(HistoryReadRequest historyReadRequest){
+        if(historyReadRequest.getIndexA() != null ){
+            return parseCollectionName(historyReadRequest.getIndexA());
+        }else{
+            return parseCollectionName(historyReadRequest.getIndexB());
+        }
+    }
+
+    private String parseCollectionName(String index){
+        int len = index.length();
+        return  index.substring(0, len-2);
     }
 
 }

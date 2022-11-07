@@ -1,27 +1,34 @@
 package com.danawa.dsearch.server.collections.entity;
 
-import javax.persistence.Entity;
-import javax.persistence.Id;
+import javax.annotation.Generated;
+import javax.persistence.*;
 import java.util.UUID;
 
 @Entity
+@SequenceGenerator(
+        name="STATUS_SEQ_GEN", //시퀀스 제너레이터 이름
+        sequenceName="STATUS_SEQ", //시퀀스 이름
+        initialValue=1, //시작값
+        allocationSize=1 //메모리를 통해 할당할 범위 사이즈
+)
 public class IndexStatus {
     @Id
-    long id;
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "STATUS_SEQ_GEN")
+    private Long id;
 
     private UUID clusterId;
-    String collectionId;
-    String index;
-    long startTime;
-    String status;
-    String step;
-    String jobId;
+    private String collectionId;
+    private String index;
+    private long startTime;
+    private String status;
+    private String step;
+    private String jobId;
 
-    public long getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(long id) {
+    public void setId(Long id) {
         this.id = id;
     }
 

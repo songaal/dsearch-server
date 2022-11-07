@@ -2,48 +2,44 @@ package com.danawa.dsearch.server.collections.entity;
 
 import org.hibernate.annotations.Columns;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
+import javax.persistence.*;
 import java.util.UUID;
 
 @Entity
+@SequenceGenerator(
+        name="HISTORY_SEQ_GEN", //시퀀스 제너레이터 이름
+        sequenceName="HISTORY_SEQ", //시퀀스 이름
+        initialValue=1, //시작값
+        allocationSize=1 //메모리를 통해 할당할 범위 사이즈
+)
 public class IndexHistory {
     @Id
-    private long id;
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "HISTORY_SEQ_GEN")
+    private Long id;
 
-    @Column(name = "clusterId")
-    private UUID clusterId;
-    @Column(name = "index")
+    private String clusterId;
     private String index;
-    @Column(name = "jobType")
     private String jobType;
-    @Column(name = "startTime")
     private long startTime;
-    @Column(name = "endTime")
     private long endTime;
-    @Column(name = "autoRun")
     private boolean autoRun;
-    @Column(name = "status")
     private String status;
-    @Column(name = "docSize")
     private String docSize;
-    @Column(name = "store")
     private String store;
 
-    public long getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(long id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
-    public UUID getClusterId() {
+    public String getClusterId() {
         return clusterId;
     }
 
-    public void setClusterId(UUID clusterId) {
+    public void setClusterId(String clusterId) {
         this.clusterId = clusterId;
     }
 
@@ -109,5 +105,11 @@ public class IndexHistory {
 
     public void setStore(String store) {
         this.store = store;
+    }
+
+    @Override
+    public String toString(){
+        return  "id=" + id + ", clusterId=" + clusterId + ", index=" + index + ", jobType=" + jobType + ", startTime=" + startTime
+                + ", endTime=" + endTime + ", autoRun=" + autoRun + ", status=" + status + ", docSize=" + docSize +", store=" + store;
     }
 }
