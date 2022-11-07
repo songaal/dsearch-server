@@ -226,12 +226,13 @@ public class IndexingJobManager {
         long endTime = System.currentTimeMillis();
 
         IndexerStatus status = indexerClient.getStatus(indexingStatus);
-
+        logger.info("status {}", status);
         if (status == IndexerStatus.SUCCESS){
             indexingStatus.setEndTime(endTime);
 
             // status 변경
             indexStatusService.update(indexingStatus, status.toString());
+            logger.info("status update");
             IndexActionStep nextStep = indexingStatus.getNextStep().poll();
 
             logger.info("Indexing {} ==> clusterId: {}, index: {}, collectionId", status, clusterId, indexingStatus.getIndex(), collectionId);
@@ -258,9 +259,13 @@ public class IndexingJobManager {
             updateLookupQueue(collectionId, status.toString());
             indexerClient.deleteJob(indexingStatus);
         } else if(status == IndexerStatus.RUNNING){
+
             indexingStatus.setStatus(IndexerStatus.RUNNING.toString());
+            logger.info("indexing status 변경");
             updateLookupQueue(collectionId, status.toString());
+            logger.info("lookup queue 변경");
             manageQueue.put(collectionId, indexingStatus);
+            logger.info("manage queue 변경");
         } else { // UNKNOWN
             deleteQueue.add(collectionId);
         }
