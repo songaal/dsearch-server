@@ -128,9 +128,10 @@ public class IndexStatusService implements StatusService {
                 TimeUtils.sleep(1000);
                 continue;
             }
-
-            create(indexingStatus, status);
+            break;
         }
+
+        create(indexingStatus, status);
     }
 
     @Override
