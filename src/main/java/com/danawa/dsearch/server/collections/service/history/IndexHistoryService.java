@@ -69,12 +69,13 @@ public class IndexHistoryService implements HistoryService{
 
         while(true){
             try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-                // catIndex 시 bulk indexing이 끝난 경우에도 ES write queue에 적재만 되어 있는 경우가 있기 때문에 15초 대기
-                TimeUtils.sleep(15000);
+                // catIndex 시 bulk indexing이 끝난 경우에도 ES write queue에 적재만 되어 있는 경우가 있기 때문에 30초 대기
+                TimeUtils.sleep(30000);
 
                 Map<String, Object> catIndex = catIndex(client, index);
                 String docSize = (String) catIndex.get("docs.count");
                 String store = (String) catIndex.get("store.size");
+                logger.info("index={} docSize={} store={}", index, docSize, store);
 
                 // 이력의 갯수를 체크하여 0일때만 이력에 남김.
                 BoolQueryBuilder countQuery = QueryBuilders.boolQuery();
