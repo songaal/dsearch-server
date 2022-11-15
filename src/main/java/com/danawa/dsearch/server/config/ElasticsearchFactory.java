@@ -2,12 +2,14 @@ package com.danawa.dsearch.server.config;
 
 import com.danawa.dsearch.server.clusters.entity.Cluster;
 import com.danawa.dsearch.server.clusters.service.ClusterService;
+import com.google.gson.Gson;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.nio.reactor.IOReactorConfig;
+import org.apache.http.util.EntityUtils;
 import org.elasticsearch.client.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +18,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Component
@@ -87,4 +92,32 @@ public class ElasticsearchFactory {
             }
         }
     }
+
+    public Map<String, Object> catIndex(UUID clusterId, String index) {
+        RestHighLevelClient client = null;
+        Map<String, Object> result = new HashMap<>();
+        result.put("docs.count", "0");
+        result.put("store.size", "0");
+
+        try {
+            client = getClient(clusterId);
+            Request request = new Request("GET", String.format("/_cat/indices/%s", index));
+            request.addParameter("format", "json");
+            Response response = client.getLowLevelClient().performRequest(request);
+            String responseBodyString = EntityUtils.toString(response.getEntity());
+            List<Map<String, Object>> catIndices = new Gson().fromJson(responseBodyString, List.class);
+
+            if ( catIndices != null && catIndices.size() > 0){
+                return catIndices.get(0);
+            }
+        } catch (IOException e) {
+            logger.error("{}", e);
+        }finally {
+            close(client);
+        }
+
+        return result;
+
+    }
+
 }

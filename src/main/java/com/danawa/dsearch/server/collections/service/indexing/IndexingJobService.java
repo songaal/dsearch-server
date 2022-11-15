@@ -385,9 +385,9 @@ public class IndexingJobService {
         }
     }
 
-    public void subStart(IndexingStatus status, Collection collection, String groupSeq) {
+    public void startGroupJob(IndexingStatus status, Collection collection, String groupSeq) {
         try {
-            indexerClient.subStart(status, collection, groupSeq);
+            indexerClient.startGroupJob(status, collection, groupSeq);
         } catch (URISyntaxException ignore) {
 
         }

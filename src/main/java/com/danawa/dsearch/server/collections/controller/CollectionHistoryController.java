@@ -32,7 +32,7 @@ public class CollectionHistoryController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("total_size", indexHistoryService.getTotalSize(clusterId, historyReadRequest));
-        List<Map<String, Object>> list = indexHistoryService.findAllByIndexs(clusterId, historyReadRequest);
+        List<Map<String, Object>> list = indexHistoryService.findByCollection(clusterId, historyReadRequest);
         response.put("result", list);
         logger.info("{}", response);
         return new ResponseEntity<>(response, HttpStatus.OK);

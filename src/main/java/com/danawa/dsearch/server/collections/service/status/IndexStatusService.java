@@ -19,21 +19,10 @@ public class IndexStatusService implements StatusService {
 
     private static final Logger logger = LoggerFactory.getLogger(IndexStatusService.class);
 
-//    private final ElasticsearchFactory elasticsearchFactory;
-//    private final String lastIndexStatusIndex = ".dsearch_last_index_status";
-//
-//    private final String lastIndexStatusIndexJson = "last_index_status.json";
-
-//    private IndicesService indicesService;
-
     private IndexStatusAdapter indexStatusAdapter;
 
     public IndexStatusService(
-//            ElasticsearchFactory elasticsearchFactory,
-//                              IndicesService indicesService,
                               IndexStatusAdapter indexStatusAdapter) {
-//        this.elasticsearchFactory = elasticsearchFactory;
-//        this.indicesService = indicesService;
         this.indexStatusAdapter = indexStatusAdapter;
     }
 
@@ -102,92 +91,4 @@ public class IndexStatusService implements StatusService {
 
         return result;
     }
-
-
-//    @Override
-//    public void create(IndexingStatus status, String currentStatus) {
-//        UUID clusterId = status.getClusterId();
-//        String collectionId = status.getCollection().getId();
-//        long startTime = status.getStartTime();
-//        String index = status.getIndex();
-//        String step = status.getCurrentStep().name();
-//        String jobId = status.getIndexingJobId();
-//
-//        while (true) {
-//            try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-//                createIndexStatus(client, collectionId, index, startTime, currentStatus, step, jobId);
-//            } catch (IOException e) {
-//                TimeUtils.sleep(1000);
-//                continue;
-//            }
-//            break;
-//        }
-//
-//    }
-
-//    private void createIndexStatus(RestHighLevelClient client, String collectionId, String index, long startTime, String status, String step, String jobId) throws IOException {
-//        Map<String, Object> source = new HashMap<>();
-//        source.put("collectionId", collectionId);
-//        source.put("index", index);
-//        source.put("startTime", startTime);
-//        source.put("status", status);
-//        source.put("step", step);
-//        source.put("jobId", jobId);
-//        client.index(new IndexRequest().index(lastIndexStatusIndex).source(source), RequestOptions.DEFAULT);
-//    }
-
-//    @Override
-//    public void delete(UUID clusterId, String index, long startTime) throws IOException, InterruptedException {
-//        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-//            logger.debug("deleteLastIndexStatus index: {} , startTime: {}", index, startTime);
-//            for (int i = 0; i < 3; i++) {
-//                BulkByScrollResponse response;
-//                if (startTime > 0) {
-//                    response = client.deleteByQuery(new DeleteByQueryRequest(lastIndexStatusIndex)
-//                                    .setQuery(new BoolQueryBuilder()
-//                                            .must(new MatchQueryBuilder("index", index))
-//                                            .must(new MatchQueryBuilder("startTime", startTime)))
-//                            , RequestOptions.DEFAULT);
-//                } else {
-//                    response = client.deleteByQuery(new DeleteByQueryRequest(lastIndexStatusIndex)
-//                                    .setQuery(new BoolQueryBuilder()
-//                                            .must(new MatchQueryBuilder("index", index)))
-//                            , RequestOptions.DEFAULT);
-//                }
-//                if (response != null && response.getDeleted() == 0) {
-//                    TimeUtils.sleep(1000);
-//                } else {
-//                    break;
-//                }
-//            }
-//        }
-//    }
-//@Override
-//public void update(IndexingStatus indexingStatus, String status) {
-//    UUID clusterId = indexingStatus.getClusterId();
-//    String index = indexingStatus.getIndex();
-//    long startTime = indexingStatus.getStartTime();
-//
-//    while (true) {
-//        try {
-//            delete(clusterId, index, startTime);
-//        } catch (IOException | InterruptedException e) {
-//            logger.error("delete last index status failed... {}", e);
-//            TimeUtils.sleep(1000);
-//            continue;
-//        }
-//
-//        create(indexingStatus, status);
-//    }
-//}
-//@Override
-//public SearchResponse findAll(UUID clusterId, int size, int from) throws IOException {
-//    try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-//        return client.search(new SearchRequest(lastIndexStatusIndex)
-//                        .source(new SearchSourceBuilder()
-//                                .size(size)
-//                                .from(from))
-//                , RequestOptions.DEFAULT);
-//    }
-//}
 }

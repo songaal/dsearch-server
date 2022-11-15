@@ -14,5 +14,5 @@ public interface IndexerClient {
 
     void stopJob(IndexingStatus status) throws URISyntaxException;
 
-    void subStart(IndexingStatus status, Collection collection, String groupSeq) throws URISyntaxException;
+    void startGroupJob(IndexingStatus status, Collection collection, String groupSeq) throws URISyntaxException;
 }

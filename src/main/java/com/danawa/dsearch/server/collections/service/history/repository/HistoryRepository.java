@@ -13,17 +13,16 @@ import java.util.UUID;
 public interface HistoryRepository extends JpaRepository<IndexHistory, Long> {
 
     List<IndexHistory> findByClusterIdAndIndexAndStartTimeAndJobType(
-            String clusterId,
+            UUID clusterId,
             String index,
             long startTime,
             String jobType);
 
-    List<IndexHistory> findByClusterIdAndIndexStartsWith(String clusterId, String index, Pageable pageable);
-    List<IndexHistory> findByClusterIdAndJobType(String clusterId, String jobType, Pageable pageable);
-    List<IndexHistory> findByClusterIdAndJobTypeAndIndexStartsWith(String clusterId, String jobType, String index, Pageable pageable);
+    List<IndexHistory> findByClusterIdAndIndexStartsWith(UUID clusterId, String index, Pageable pageable);
+    List<IndexHistory> findByClusterIdAndJobType(UUID clusterId, String jobType, Pageable pageable);
+    List<IndexHistory> findByClusterIdAndJobTypeAndIndexStartsWith(UUID clusterId, String jobType, String index, Pageable pageable);
 
-    Long countByClusterIdAndIndexStartsWith( String clusterId, String index);
-    Long countByClusterId(String clusterId);
-
-    void deleteByClusterIdAndIndexStartsWith(String clusterId, String collectionId);
+    Long countByClusterIdAndIndexStartsWith( UUID clusterId, String index);
+    Long countByClusterId(UUID clusterId);
+    void deleteByClusterIdAndIndexStartsWith(UUID clusterId, String collectionId);
 }

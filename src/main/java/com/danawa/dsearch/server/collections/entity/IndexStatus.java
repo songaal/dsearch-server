@@ -1,6 +1,5 @@
 package com.danawa.dsearch.server.collections.entity;
 
-import javax.annotation.Generated;
 import javax.persistence.*;
 import java.util.UUID;
 

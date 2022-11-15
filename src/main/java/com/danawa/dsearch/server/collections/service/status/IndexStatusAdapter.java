@@ -25,7 +25,7 @@ public class IndexStatusAdapter {
     public void create(IndexStatus indexStatus){
         try{
             IndexStatus entity = statusRepository.save(indexStatus);
-            logger.info("{} {} {}", entity.getClusterId(), entity.getIndex(), entity.getId());
+//            logger.info("{} {} {}", entity.getClusterId(), entity.getIndex(), entity.getId());
         }catch (Exception e){
             logger.info("", e);
         }

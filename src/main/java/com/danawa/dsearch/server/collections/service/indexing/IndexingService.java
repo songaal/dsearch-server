@@ -46,7 +46,6 @@ public class IndexingService {
             IndexingActionType actionType,
             String groupSeq,
             Map<String, Object> response) {
-
         logger.info("clusterId={}, clientIP={}, id={}, collection={}, actionType={}, groupSeq={}, response={}",
                 clusterId,
                 clientIP,
@@ -60,7 +59,7 @@ public class IndexingService {
             case ALL:
                 synchronized (obj) {
                     try{
-                        IndexingStatus status = startIndexingAll(clusterId, collection, actionType);
+                        IndexingStatus status = startIndexingAll(clusterId, collection);
                         response.put("indexingStatus", status);
                         response.put("result", "success");
                     } catch (IndexingJobFailureException e) {
@@ -72,7 +71,7 @@ public class IndexingService {
             case INDEXING:
                 synchronized (obj) {
                     try {
-                        IndexingStatus status = startIndexing(clusterId, collection, actionType);
+                        IndexingStatus status = startIndexing(clusterId, collection);
                         response.put("indexingStatus", status);
                         response.put("result", "success");
                     } catch (IndexingJobFailureException e) {
@@ -107,7 +106,8 @@ public class IndexingService {
                 break;
             case SUB_START:
                 synchronized (obj) {
-                    IndexingStatus status = startIndexingForSubStart(collection, groupSeq);
+                    IndexingStatus status = startGroupIndexing(collection, groupSeq);
+                    logger.info("GroupIndexing 확인,  {} {}", collection, groupSeq);
                     if (status == null) {
                         response.put("result", "fail");
                     } else {
@@ -122,7 +122,7 @@ public class IndexingService {
         }
     }
 
-    public IndexingStatus startIndexingAll(UUID clusterId, Collection collection, IndexingActionType actionType) throws IndexingJobFailureException {
+    public IndexingStatus startIndexingAll(UUID clusterId, Collection collection) throws IndexingJobFailureException {
         String collectionId = collection.getId();
 
         IndexingStatus status = indexingJobManager.getManageQueue(collectionId);
@@ -133,13 +133,13 @@ public class IndexingService {
         Queue<IndexActionStep> nextStep = new ArrayDeque<>();
         nextStep.add(IndexActionStep.EXPOSE);
         status = indexingJobService.indexing(clusterId, collection, true, IndexActionStep.FULL_INDEX, nextStep);
-        status.setAction(actionType.getAction());
+        status.setAction(IndexingActionType.ALL.getAction());
         status.setStatus("RUNNING");
         indexingJobManager.add(collectionId, status);
         return status;
     }
 
-    public IndexingStatus startIndexing(UUID clusterId, Collection collection, IndexingActionType actionType) throws IndexingJobFailureException {
+    public IndexingStatus startIndexing(UUID clusterId, Collection collection) throws IndexingJobFailureException {
         String collectionId = collection.getId();
 
         IndexingStatus status = indexingJobManager.getManageQueue(collectionId);
@@ -148,7 +148,7 @@ public class IndexingService {
         }
 
         status = indexingJobService.indexing(clusterId, collection, false, IndexActionStep.FULL_INDEX);
-        status.setAction(actionType.getAction());
+        status.setAction(IndexingActionType.INDEXING.getAction());
         status.setStatus("RUNNING");
         indexingJobManager.add(collectionId, status);
         logger.info("indexingJobManager: {}", indexingJobManager.getManageQueue(collectionId));
@@ -182,19 +182,33 @@ public class IndexingService {
                 || status.getCurrentStep() == IndexActionStep.DYNAMIC_INDEX );
     }
 
-    public IndexingStatus startIndexingForSubStart(Collection collection, String groupSeq){
+    public IndexingStatus startGroupIndexing(Collection collection, String groupSeq){
         String collectionId = collection.getId();
         IndexingStatus status = indexingJobManager.getManageQueue(collectionId);
 
-        if (isRightStatusForSubStart(status, groupSeq)) {
+        if (isRightStatusForGroupIndexing(status, groupSeq)) {
             logger.info("sub_start >>>> {}, groupSeq: {}", collection.getName(), groupSeq);
-            indexingJobService.subStart(status, collection, groupSeq);
+            indexingJobService.startGroupJob(status, collection, groupSeq);
             return status;
         }else{
             return null;
         }
     }
-    private boolean isRightStatusForSubStart(IndexingStatus status, String groupSeq){
-        return status != null && (status.getCurrentStep() == IndexActionStep.FULL_INDEX || status.getCurrentStep() == IndexActionStep.DYNAMIC_INDEX) && groupSeq != null && !"".equalsIgnoreCase(groupSeq);
+    private boolean isRightStatusForGroupIndexing(IndexingStatus status, String groupSeq){
+        return status != null && (status.getCurrentStep() == IndexActionStep.FULL_INDEX || status.getCurrentStep() == IndexActionStep.DYNAMIC_INDEX) && isValidGroupSeq(groupSeq);
     }
+
+    private boolean isValidGroupSeq(String groupSeq){
+        if (groupSeq == null || "".equalsIgnoreCase(groupSeq)){
+            return false;
+        }
+
+        try{
+            Integer.parseInt(groupSeq);
+        }catch (Exception e){
+            return false;
+        }
+        return true;
+    }
+
 }

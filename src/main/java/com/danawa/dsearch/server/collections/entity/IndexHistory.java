@@ -1,7 +1,5 @@
 package com.danawa.dsearch.server.collections.entity;
 
-import org.hibernate.annotations.Columns;
-
 import javax.persistence.*;
 import java.util.UUID;
 
@@ -17,7 +15,7 @@ public class IndexHistory {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "HISTORY_SEQ_GEN")
     private Long id;
 
-    private String clusterId;
+    private UUID clusterId;
     private String index;
     private String jobType;
     private long startTime;
@@ -35,11 +33,11 @@ public class IndexHistory {
         this.id = id;
     }
 
-    public String getClusterId() {
+    public UUID getClusterId() {
         return clusterId;
     }
 
-    public void setClusterId(String clusterId) {
+    public void setClusterId(UUID clusterId) {
         this.clusterId = clusterId;
     }
 
@@ -107,9 +105,8 @@ public class IndexHistory {
         this.store = store;
     }
 
-    @Override
     public String toString(){
-        return  "id=" + id + ", clusterId=" + clusterId + ", index=" + index + ", jobType=" + jobType + ", startTime=" + startTime
+        return  "id=" + id + ", clusterId=" + clusterId.toString() + ", index=" + index + ", jobType=" + jobType + ", startTime=" + startTime
                 + ", endTime=" + endTime + ", autoRun=" + autoRun + ", status=" + status + ", docSize=" + docSize +", store=" + store;
     }
 }

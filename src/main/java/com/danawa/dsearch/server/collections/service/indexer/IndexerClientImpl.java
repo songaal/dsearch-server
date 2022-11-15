@@ -32,10 +32,10 @@ public class IndexerClientImpl implements IndexerClient{
     private static final Logger logger = LoggerFactory.getLogger(IndexerClientImpl.class);
     private static RestTemplate restTemplate;
 
-    private final IndexJobManager indexerJobManager;
+    private final IndexJobManager indexJobManager;
 
-    public IndexerClientImpl(IndexJobManager indexerJobManager){
-        this.indexerJobManager = indexerJobManager;
+    public IndexerClientImpl(IndexJobManager indexJobManager){
+        this.indexJobManager = indexJobManager;
         HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory();
         factory.setConnectTimeout(10 * 1000);
         factory.setReadTimeout(10 * 1000);
@@ -69,7 +69,7 @@ public class IndexerClientImpl implements IndexerClient{
 
     private IndexerStatus getStatusForInternal(IndexingStatus indexingStatus){
         String jobId = indexingStatus.getIndexingJobId();
-        Job job = indexerJobManager.status(UUID.fromString(jobId));
+        Job job = indexJobManager.status(UUID.fromString(jobId));
         if (job != null) return IndexerStatus.changeToStatus(job.getStatus());
 
         return IndexerStatus.UNKNOWN;
@@ -93,7 +93,7 @@ public class IndexerClientImpl implements IndexerClient{
 
     private void deleteJobForInternal(IndexingStatus indexingStatus){
         String jobId = indexingStatus.getIndexingJobId();
-        indexerJobManager.remove(UUID.fromString(jobId));
+        indexJobManager.remove(UUID.fromString(jobId));
     }
 
     public String startJob(Map<String, Object> body, Collection collection) throws URISyntaxException {
@@ -121,7 +121,7 @@ public class IndexerClientImpl implements IndexerClient{
     }
 
     private String startJobForInternal(Map<String, Object> body, String action){
-        Job job = indexerJobManager.start(action, body);
+        Job job = indexJobManager.start(action, body);
         return job.getId().toString();
     }
     public void stopJob(IndexingStatus status) throws URISyntaxException {
@@ -147,10 +147,10 @@ public class IndexerClientImpl implements IndexerClient{
         );
     }
     private void stopJobForInternal(String jobId){
-        indexerJobManager.stop(UUID.fromString(jobId));
+        indexJobManager.stop(UUID.fromString(jobId));
     }
 
-    public void subStart(IndexingStatus status, Collection collection, String groupSeq) throws URISyntaxException {
+    public void startGroupJob(IndexingStatus status, Collection collection, String groupSeq) throws URISyntaxException {
         boolean isExtIndexer = collection.isExtIndexer();
         String jobId = status.getIndexingJobId();
         Collection.Launcher launcher = collection.getLauncher();
@@ -160,14 +160,14 @@ public class IndexerClientImpl implements IndexerClient{
 
         if (isExtIndexer) {
             logger.info(">>>>> Ext call sub_start: id: {}, groupSeq: {}", jobId, groupSeq);
-            subStartForExternal(scheme, host, port, jobId, groupSeq);
+            startGroupJobForExternal(scheme, host, port, jobId, groupSeq);
         } else {
             logger.info(">>>>> Local call sub_start: id: {}, groupSeq: {}", jobId, groupSeq);
-            subStartForInternal(jobId, groupSeq);
+            startGroupJobForInternal(jobId, groupSeq);
         }
     }
 
-    private void subStartForExternal(String scheme, String host, int port, String jobId, String groupSeq ) throws URISyntaxException {
+    private void startGroupJobForExternal(String scheme, String host, int port, String jobId, String groupSeq ) throws URISyntaxException {
         restTemplate.exchange(new URI(String.format("%s://%s:%d/async/%s/sub_start?groupSeq=%s", scheme, host, port, jobId, groupSeq)),
                 HttpMethod.PUT,
                 new HttpEntity(new HashMap<>()),
@@ -175,8 +175,8 @@ public class IndexerClientImpl implements IndexerClient{
         );
     }
 
-    private void subStartForInternal(String jobId, String groupSeq) {
-        Job job = indexerJobManager.status(UUID.fromString(jobId));
+    private void startGroupJobForInternal(String jobId, String groupSeq) {
+        Job job = indexJobManager.status(UUID.fromString(jobId));
         job.getGroupSeq().add(Integer.parseInt(groupSeq));
     }
 }
