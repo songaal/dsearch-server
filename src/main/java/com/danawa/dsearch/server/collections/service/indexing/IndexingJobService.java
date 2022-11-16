@@ -71,107 +71,237 @@ public class IndexingJobService {
      *
      * @return IndexingStatus
      */
-    public IndexingStatus indexing(UUID clusterId, Collection collection, boolean autoRun, IndexActionStep step) throws IndexingJobFailureException {
-        return indexing(clusterId, collection, autoRun, step, new ArrayDeque<>());
-    }
+    public IndexingStatus indexing(UUID clusterId, Collection collection, Queue<IndexActionStep> actionSteps) throws IndexingJobFailureException {
+        IndexingStatus status = null;
+        Collection.Index targetIndex = null;
+        IndexActionStep currentStep = actionSteps.poll();
 
-    public IndexingStatus indexing(UUID clusterId, Collection collection, boolean autoRun, IndexActionStep step, Queue<IndexActionStep> nextStep)
-            throws IndexingJobFailureException {
-
-        IndexingStatus indexingStatus = new IndexingStatus();
-        Collection.Index index = null;
-
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            Collection.Index indexA = collection.getIndexA();
-            Collection.Index indexB = collection.getIndexB();
-
+        try{
             // 1. 대상 인덱스 찾기.
-            index = getTargetIndex(client, collection.getBaseId(), indexA, indexB);
+            targetIndex = getTargetIndex(clusterId, collection);
 
             // 2. 인덱스 설정 변경.
-            editPreparations(client, index);
+            editPreparations(clusterId, targetIndex);
 
-            // 3. 런처 파라미터 변환작업
-            Collection.Launcher launcher = collection.getLauncher();
-            Map<String, Object> body = convertRequestParams(launcher.getYaml());
-            String jdbcId = collection.getJdbcId();
-            if (jdbcId != null && !jdbcId.equals("null")) {
-                if(!"".equals(jdbcId)){
-                    GetResponse getResponse = client.get(new GetRequest().index(jdbcSystemIndex).id(collection.getJdbcId()), RequestOptions.DEFAULT);
-                    Map<String, Object> jdbcSource = getResponse.getSourceAsMap();
-                    jdbcSource.put("driverClassName", jdbcSource.get("driver"));
-                    jdbcSource.put("url", jdbcSource.get("url"));
-                    jdbcSource.put("user", jdbcSource.get("user"));
-                    jdbcSource.put("password", jdbcSource.get("password"));
-                    body.put("_jdbc", jdbcSource);
-                }
-            }
-            body.put("index", index.getIndex());
-            body.put("_indexingSettings", indexing);
-            // null 대비 에러처리
-            if (collection.getEsHost() != null && !collection.getEsHost().equals("")) {
-                body.put("host", collection.getEsHost());
-            }
-
-            int esPort = 9200;
-            if (collection.getEsPort() != null && !collection.getEsPort().equals("")) {
-                try {
-                    esPort = Integer.parseInt(collection.getEsPort());
-                } catch (NumberFormatException e) {
-                    logger.info("", e);
-                }
-                body.put("port", esPort);
-            }
-
-            body.put("scheme", collection.getEsScheme());
-            body.put("esUsername", collection.getEsUser());
-            body.put("esPassword", collection.getEsPassword());
-
-            if (launcher.getScheme() == null || "".equals(launcher.getScheme())) {
-                launcher.setScheme("http");
-            }
+            // 3. 런처 파라미터 변환 작업
+            Map<String, Object> requestBody = makeRequestBodyToIndexer(clusterId, collection, targetIndex);
 
             // 4. indexer 색인 전송
-            String indexingJobId = indexerClient.startJob(body, collection);
+            String indexingJobId = requestToIndexer(requestBody, collection);
 
-            // 외부 인덱서를 사용할 경우 추가 셋팅
-            if (collection.isExtIndexer()) {
-                indexingStatus.setScheme(launcher.getScheme());
-                indexingStatus.setHost(launcher.getHost());
-                indexingStatus.setPort(launcher.getPort());
-            }
+            // 5. Indexing Status 셋팅하기
+            status = makeIndexingStatus(clusterId, collection, targetIndex, indexingJobId, currentStep, actionSteps);
 
-            indexingStatus.setClusterId(clusterId);
-            indexingStatus.setIndex(index.getIndex());
-            indexingStatus.setStartTime(System.currentTimeMillis());
-            indexingStatus.setIndexingJobId(indexingJobId);
-            indexingStatus.setAutoRun(autoRun);
-            indexingStatus.setCurrentStep(step);
-            indexingStatus.setNextStep(nextStep);
-            indexingStatus.setRetry(50);
-            indexingStatus.setCollection(collection);
-
-            logger.info("인덱싱 시작, clusterId={}, collection={}, index={}", clusterId, collection.getBaseId(), index);
-        } catch (Exception e) {
-            logger.error("{} 컬렉션 색인 실패 ==> {}", collection.getBaseId(), e);
-            long errTime = System.currentTimeMillis();
-            indexingStatus.setStatus("ERROR");
-            indexingStatus.setAutoRun(collection.isAutoRun());
-            indexingStatus.setStartTime(errTime);
-            indexingStatus.setEndTime(errTime);
-            indexingStatus.setCurrentStep(IndexActionStep.FULL_INDEX);
-            indexingStatus.setIndex(index.getIndex());
-            alertService.send(String.format("%s 컬렉션의 색인이 실패하였습니다.\n%s", collection.getBaseId(), e.getMessage()));
-            indexHistoryService.create(indexingStatus, "0", "ERROR", "0");
-            throw new IndexingJobFailureException(e);
+            logger.info("인덱싱 시작, clusterId={}, collection={}, index={}", clusterId, collection.getBaseId(), status.getIndex());
+        }catch (IndexingJobFailureException e) {
+            sendIndexingError(collection, targetIndex, e.getMessage());
+            throw new IndexingJobFailureException(e.getMessage());
         }
 
+        return status;
+    }
+
+    private Collection.Index getTargetIndex(UUID clusterId, Collection collection) throws IndexingJobFailureException {
+        if (isEmptyAlias(collection)){
+            return getDefaultIndex(collection);
+        }
+
+        String aliasString = getAliasString(clusterId);
+        List<Map<String, Object>> aliasMap = new Gson().fromJson(aliasString, List.class);
+        Collection.Index index = parseTargetIndex(aliasMap, collection);
+        return index;
+    }
+
+    private boolean isEmptyAlias(Collection collection){
+        return (collection.getIndexA().getAliases().size() == 0 && collection.getIndexB().getAliases().size() == 0);
+    }
+
+    private Collection.Index getDefaultIndex(Collection collection){
+        if (collection.getIndexA() != null){
+            return collection.getIndexA();
+        }else if (collection.getIndexB() != null){
+            return collection.getIndexB();
+        }else{
+            return collection.getIndexA();
+        }
+    }
+
+    private String getAliasString(UUID clusterId) throws IndexingJobFailureException {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            RestClient lowLevelClient = client.getLowLevelClient();
+            Request request = new Request("GET", "_cat/aliases");
+            request.addParameter("format", "json");
+            Response response = lowLevelClient.performRequest(request);
+            return EntityUtils.toString(response.getEntity());
+        } catch (IOException e) {
+            logger.error("", e);
+            throw new IndexingJobFailureException(e.getMessage());
+        }
+    }
+
+    private Collection.Index parseTargetIndex(List<Map<String, Object>> aliasMap, Collection collection) {
+        String baseId = collection.getBaseId();
+        Collection.Index targetIndex = collection.getIndexA();
+
+        for (Map<String, Object> item : aliasMap) {
+            if (item.get("alias").equals(baseId)) {
+
+                String currentIndex = (String) item.get("index");
+                String suffix = currentIndex.substring(currentIndex.length() - 2);
+
+                if (suffix.equals("-a")) {
+                    targetIndex = collection.getIndexB();
+                } else if (suffix.equals("-b")) {
+                    targetIndex = collection.getIndexA();
+                }
+                break;
+            }
+        }
+
+        return targetIndex;
+    }
+
+    private void editPreparations(UUID clusterId, Collection.Index index) {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            // 인덱스 존재하지 않기 때문에 생성해주기.
+            // 인덱스 템플릿이 존재하기 때문에 맵핑 설정 패스
+            if (index.getUuid() == null) {
+                boolean isAcknowledged;
+                logger.info("ES 인덱스 없을 시, indexing settings >>> {}", indexing);
+                isAcknowledged = client.indices().create(new CreateIndexRequest(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
+                logger.debug("create settings : {} ", isAcknowledged);
+            } else {
+                // 기존 인덱스가 존재하기 때문에 셋팅 설정만 변경함.
+                // refresh interval: -1로 변경. 색인도중 검색노출하지 않음. 성능 향상 목적.
+                // 셋팅무시 설정이 있을시 indexing 맵에서 role 제거
+                logger.info("ES 인덱스 존재 시, indexing settings >>> {}", indexing);
+                boolean isAcknowledged = client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
+                logger.debug("edit settings : {} ", isAcknowledged);
+            }
+        }catch (IOException e){
+            logger.error("{}", e);
+        }
+    }
+
+    private Map<String, Object> makeRequestBodyToIndexer(UUID clusterId, Collection collection, Collection.Index index) throws IndexingJobFailureException {
+        Collection.Launcher launcher = collection.getLauncher();
+        if (launcher.getScheme() == null || "".equals(launcher.getScheme())) {
+            launcher.setScheme("http");
+        }
+
+        Map<String, Object> body = convertRequestParams(launcher.getYaml());
+
+        String jdbcId = collection.getJdbcId();
+        Map<String, Object> jdbcContent = getJdbcContent(clusterId, jdbcId);
+        body.put("_jdbc", jdbcContent);
+        body.put("index", index.getIndex());
+        body.put("_indexingSettings", indexing);
+
+        // null 대비 에러처리
+        if (collection.getEsHost() != null && !collection.getEsHost().equals("")) {
+            body.put("host", collection.getEsHost());
+        }
+
+        int esPort = 9200;
+        if (collection.getEsPort() != null && !collection.getEsPort().equals("")) {
+            try {
+                esPort = Integer.parseInt(collection.getEsPort());
+            } catch (NumberFormatException e) {
+                logger.info("", e);
+            }
+            body.put("port", esPort);
+        }
+
+        body.put("scheme", collection.getEsScheme());
+        body.put("esUsername", collection.getEsUser());
+        body.put("esPassword", collection.getEsPassword());
+
+        return body;
+    }
+
+    private Map<String, Object> getJdbcContent(UUID clusterId, String jdbcId){
+        if (jdbcId != null && !jdbcId.equals("null") && "".equals(jdbcId)){
+            return new HashMap<>();
+        }
+
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            GetResponse getResponse = client.get(
+                    new GetRequest().index(jdbcSystemIndex).id(jdbcId), RequestOptions.DEFAULT);
+            Map<String, Object> jdbcSource = getResponse.getSourceAsMap();
+            jdbcSource.put("driverClassName", jdbcSource.get("driver"));
+            jdbcSource.put("url", jdbcSource.get("url"));
+            jdbcSource.put("user", jdbcSource.get("user"));
+            jdbcSource.put("password", jdbcSource.get("password"));
+            return jdbcSource;
+        }catch (IOException e){
+            return new HashMap<>();
+        }
+    }
+
+    private String requestToIndexer(Map<String, Object> body, Collection collection) throws IndexingJobFailureException {
+        try{
+            String indexingJobId = indexerClient.startJob(body, collection);
+            return indexingJobId;
+        }catch (URISyntaxException e){
+            logger.error("{}", e);
+            throw new IndexingJobFailureException(e.getMessage());
+        }
+    }
+
+    private IndexingStatus makeIndexingStatus(UUID clusterId,
+                                              Collection collection,
+                                              Collection.Index targetIndex,
+                                              String indexingJobId,
+                                              IndexActionStep currentStep,
+                                              Queue<IndexActionStep> actionSteps){
+        IndexingStatus indexingStatus = new IndexingStatus();
+        Collection.Launcher launcher = collection.getLauncher();
+        int retryCount = 50;
+
+        // 외부 인덱서를 사용할 경우 추가 셋팅
+        if (collection.isExtIndexer()) {
+            indexingStatus.setScheme(launcher.getScheme());
+            indexingStatus.setHost(launcher.getHost());
+            indexingStatus.setPort(launcher.getPort());
+        }
+
+        indexingStatus.setClusterId(clusterId);
+        indexingStatus.setIndex(targetIndex.getIndex());
+        indexingStatus.setStartTime(System.currentTimeMillis());
+        indexingStatus.setIndexingJobId(indexingJobId);
+        indexingStatus.setAutoRun(collection.isAutoRun());
+        indexingStatus.setCurrentStep(currentStep);
+        indexingStatus.setNextStep(actionSteps);
+        indexingStatus.setRetry(retryCount);
+        indexingStatus.setCollection(collection);
         return indexingStatus;
+    }
+
+    private void sendIndexingError(Collection collection, Collection.Index targetIndex, String errMessage){
+        long errTime = System.currentTimeMillis();
+        IndexingStatus indexingStatus = new IndexingStatus();
+        indexingStatus.setStatus("ERROR");
+        indexingStatus.setAutoRun(collection.isAutoRun());
+        indexingStatus.setStartTime(errTime);
+        indexingStatus.setEndTime(errTime);
+        indexingStatus.setCurrentStep(IndexActionStep.FULL_INDEX);
+
+        if (targetIndex != null){
+            indexingStatus.setIndex(targetIndex.getIndex());
+        } else if(collection.getIndexA() != null){
+            indexingStatus.setIndex(collection.getIndexA().getIndex());
+        } else if(collection.getIndexB() != null){
+            indexingStatus.setIndex(collection.getIndexB().getIndex());
+        }
+
+        alertService.send(String.format("%s 컬렉션의 색인이 실패하였습니다.\n%s", collection.getBaseId(), errMessage));
+        indexHistoryService.create(indexingStatus, "0", "ERROR", "0");
     }
 
     public void changeRefreshInterval(UUID clusterId, Collection collection, String target) throws IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Map<String, Object> settings = new HashMap<>();
+            // 인덱스 설정에 있는 refresh interval
             // refresh_interval : -1, 1s, 2s, ...
             if (collection.getRefresh_interval() != null) {
                 // 0일때는 1로 셋팅.
@@ -197,170 +327,178 @@ public class IndexingJobService {
         expose(clusterId, collection, null);
     }
 
-    public void expose(UUID clusterId, Collection collection, String target) throws IOException {
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            String baseId = collection.getBaseId();
-            Collection.Index indexA = collection.getIndexA();
-            Collection.Index indexB = collection.getIndexB();
+    public void expose(UUID clusterId, Collection collection, String targetIndex) throws IOException {
+        if(!isCreatedIndexes(collection)){
+            logger.info("{} 컬렉션의 인덱스가 생성되지 않아 Expose 중지", collection.getBaseId());
+            return;
+        }
 
-            Collection.Index addIndex;
-            Collection.Index removeIndex;
-            IndicesAliasesRequest request = new IndicesAliasesRequest();
+        if (targetIndex != null) {
+            changeAliasWithTargetIndex(clusterId, collection, targetIndex);
+        } else {
+            targetIndex = changeAliasWithoutTargetIndex(clusterId, collection);
+        }
 
-            if (target != null) {
-                if (indexA.getIndex().equals(target)) {
-                    addIndex = indexA;
-                    removeIndex = indexB;
-                } else {
-                    addIndex = indexB;
-                    removeIndex = indexA;
-                }
-                try {
-                    request.addAliasAction(new IndicesAliasesRequest.
-                            AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
-                            .index(addIndex.getIndex()).alias(baseId));
-                    request.addAliasAction(new IndicesAliasesRequest.
-                            AliasActions(IndicesAliasesRequest.AliasActions.Type.REMOVE)
-                            .index(removeIndex.getIndex()).alias(baseId));
-                    // 교체
-                    client.indices().updateAliases(request, RequestOptions.DEFAULT);
-                } catch (Exception e) {
-                    request = new IndicesAliasesRequest();
-                    request.addAliasAction(new IndicesAliasesRequest.
-                            AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
-                            .index(addIndex.getIndex()).alias(baseId));
-                    // 교체
-                    client.indices().updateAliases(request, RequestOptions.DEFAULT);
-                }
-            } else {
-                if (indexA.getUuid() == null && indexB.getUuid() == null) {
-                    logger.debug("empty index");
-                    return;
-                } else if (indexA.getUuid() == null && indexB.getUuid() != null) {
-                    // 인덱스가 하나일 경우 고정
-                    request.addAliasAction(new IndicesAliasesRequest.
-                            AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
-                            .index(indexB.getIndex()).alias(baseId));
-                    target = indexB.getIndex();
+        changeRefreshInterval(clusterId, collection, targetIndex);
+    }
+    private boolean isCreatedIndexes(Collection collection){
+        Collection.Index indexA = collection.getIndexA();
+        Collection.Index indexB = collection.getIndexB();
 
-                } else if (indexA.getUuid() != null && indexB.getUuid() == null) {
-                    // 인덱스가 하나일 경우 고정
-                    request.addAliasAction(new IndicesAliasesRequest.
-                            AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
-                            .index(indexA.getIndex()).alias(baseId));
-                    target = indexA.getIndex();
-                } else {
-                    // index_history 조회하여 마지막 인덱스, 색인 완료한 인덱스 검색.
-                    QueryBuilder queryBuilder = new BoolQueryBuilder()
-                            .must(new MatchQueryBuilder("jobType", "FULL_INDEX"))
-                            .must(new MatchQueryBuilder("status", "SUCCESS"))
-                            .should(new MatchQueryBuilder("index", indexA.getIndex()))
-                            .should(new MatchQueryBuilder("index", indexB.getIndex()))
-                            .minimumShouldMatch(1);
-                    SearchRequest searchRequest = new SearchRequest()
-                            .indices(indexHistory)
-                            .source(new SearchSourceBuilder().query(queryBuilder)
-                                    .size(1)
-                                    .from(0)
-                                    .sort("endTime", SortOrder.DESC)
-                            );
-                    SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
-                    SearchHit[] searchHits = searchResponse.getHits().getHits();
+        if (indexA.getUuid() == null && indexB.getUuid() == null) {
+            logger.debug("현재 인덱스가 생성되지 않음");
+            return false;
+        }
 
-                    if (searchHits.length == 1) {
-                        // index_history 조회하여 대상 찾음.
-                        Map<String, Object> source = searchHits[0].getSourceAsMap();
-                        String targetIndex = (String) source.get("index");
+        return true;
+    }
 
-                        if (indexA.getIndex().equals(targetIndex)) {
-                            addIndex = indexA;
-                            removeIndex = indexB;
-                        } else {
-                            addIndex = indexB;
-                            removeIndex = indexA;
-                        }
+    private void changeAliasWithTargetIndex(UUID clusterId, Collection collection, String targetIndex) throws IOException{
+        IndicesAliasesRequest request = new IndicesAliasesRequest();
 
-                        request.addAliasAction(new IndicesAliasesRequest.
-                                AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
-                                .index(addIndex.getIndex()).alias(baseId));
-                        request.addAliasAction(new IndicesAliasesRequest.
-                                AliasActions(IndicesAliasesRequest.AliasActions.Type.REMOVE)
-                                .index(removeIndex.getIndex()).alias(baseId));
+        String baseId = collection.getBaseId();
+        Collection.Index indexA = collection.getIndexA();
+        Collection.Index indexB = collection.getIndexB();
 
-                        target = addIndex.getIndex();
-                    } else {
-                        // default
-                        request.addAliasAction(new IndicesAliasesRequest.
-                                AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
-                                .index(indexA.getIndex()).alias(baseId));
+        String toAddIndex = getIndexToAddAlias(indexA.getIndex(), indexB.getIndex(), targetIndex);
+        String toRemoveIndex = getIndexToRemoveAlias(indexA.getIndex(), indexB.getIndex(), targetIndex);
 
-                        target = indexA.getIndex();
-                    }
-                }
-
+        try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)){
+            try {
+                request.addAliasAction(new IndicesAliasesRequest.
+                        AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
+                        .index(toAddIndex).alias(baseId));
+                request.addAliasAction(new IndicesAliasesRequest.
+                        AliasActions(IndicesAliasesRequest.AliasActions.Type.REMOVE)
+                        .index(toRemoveIndex).alias(baseId));
+                // 교체
+                client.indices().updateAliases(request, RequestOptions.DEFAULT);
+            } catch (Exception e) {
+                request = new IndicesAliasesRequest();
+                request.addAliasAction(new IndicesAliasesRequest.
+                        AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
+                        .index(toAddIndex).alias(baseId));
                 // 교체
                 client.indices().updateAliases(request, RequestOptions.DEFAULT);
             }
-
-            changeRefreshInterval(clusterId, collection, target);
         }
     }
 
-    private Collection.Index getTargetIndex(RestHighLevelClient client, String baseId, Collection.Index indexA, Collection.Index indexB) {
-        Collection.Index index = indexA;
-        // 인덱스에 대한 alias를 확인
-        if (indexA.getAliases().size() == 0 && indexB.getAliases().size() == 0) {
-            return index;
+    private String getIndexToAddAlias(String indexA, String indexB, String targetIndex){
+        if (indexA.equals(targetIndex)) {
+
+            return indexA;
+        } else {
+
+            return indexB;
         }
+    }
 
-        try {
-            RestClient lowLevelClient = client.getLowLevelClient();
-            Request request = new Request("GET", "_cat/aliases");
-            request.addParameter("format", "json");
-            Response response = lowLevelClient.performRequest(request);
-            String entityString = EntityUtils.toString(response.getEntity());
-            List<Map<String, Object>> entityMap = new Gson().fromJson(entityString, List.class);
+    private String getIndexToRemoveAlias(String indexA, String indexB, String targetIndex){
+        if (indexA.equals(targetIndex)) {
+            return indexB;
+        } else {
+            return indexA;
+        }
+    }
 
-            for (Map<String, Object> item : entityMap) {
-                if (item.get("alias").equals(baseId)) {
-                    String currentIndex = (String) item.get("index");
-                    String suffix = currentIndex.substring(currentIndex.length() - 2);
+    private String changeAliasWithoutTargetIndex(UUID clusterId, Collection collection) throws IOException {
+        IndicesAliasesRequest request = new IndicesAliasesRequest();
 
-                    if (suffix.equals("-a")) {
-                        index = indexB;
-                    } else if (suffix.equals("-b")) {
-                        index = indexA;
-                    } else {
-                        index = indexA;
-                    }
-                    break;
+        String baseId = collection.getBaseId();
+        Collection.Index indexA = collection.getIndexA();
+        Collection.Index indexB = collection.getIndexB();
+
+        try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)){
+            String targetIndex;
+
+            if (isExistsIfOnlyIndexB(collection)) {
+                // 1. -b 인덱스만 있을 경우
+                request.addAliasAction(new IndicesAliasesRequest.
+                        AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
+                        .index(indexB.getIndex()).alias(baseId));
+                targetIndex = indexB.getIndex();
+            } else if (isExistsIfOnlyIndexA(collection)) {
+                // 2. -a 인덱스만 있을 경우
+                request.addAliasAction(new IndicesAliasesRequest.
+                        AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
+                        .index(indexA.getIndex()).alias(baseId));
+                targetIndex = indexA.getIndex();
+            } else {
+                // 3. -a, -b 인덱스가 있을 경우
+                // 인덱스 히스토리 로그를 찾아 최근에 성공한 인덱스를 찾는다
+                targetIndex = findRecentlyIndexingSuccessIndex(clusterId, indexA.getIndex(), indexB.getIndex());
+
+                if("".equals(targetIndex)){
+                    // 3.1) -a, -b 인덱스 둘다 있지만 alias가 셋팅이 되지 않은 경우
+                    request.addAliasAction(new IndicesAliasesRequest.
+                            AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
+                            .index(indexA.getIndex()).alias(baseId));
+
+                    targetIndex = indexA.getIndex();
+                }else{
+                    // 3.2) -a, -b 인덱스 둘다 있지만 alias가 셋팅이 되어 있는 경우
+                    String addIndex = getIndexToAddAlias(indexA.getIndex(), indexB.getIndex(), targetIndex);
+                    String removeIndex = getIndexToRemoveAlias(indexA.getIndex(), indexB.getIndex(), targetIndex);
+
+                    request.addAliasAction(new IndicesAliasesRequest.
+                            AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
+                            .index(addIndex).alias(baseId));
+                    request.addAliasAction(new IndicesAliasesRequest.
+                            AliasActions(IndicesAliasesRequest.AliasActions.Type.REMOVE)
+                            .index(removeIndex).alias(baseId));
                 }
             }
 
-        } catch (IOException e) {
-            logger.error("", e);
-        }
+            // Alias 교체
+            client.indices().updateAliases(request, RequestOptions.DEFAULT);
 
-        return index;
-    }
-
-    private void editPreparations(RestHighLevelClient client, Collection.Index index) throws IOException {
-        // 인덱스 존재하지 않기 때문에 생성해주기.
-        // 인덱스 템플릿이 존재하기 때문에 맵핑 설정 패쓰
-        if (index.getUuid() == null) {
-            boolean isAcknowledged;
-            logger.info("ES 인덱스 없을 시, indexing settings >>> {}", indexing);
-            isAcknowledged = client.indices().create(new CreateIndexRequest(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
-            logger.debug("create settings : {} ", isAcknowledged);
-        } else {
-            // 기존 인덱스가 존재하기 때문에 셋팅 설정만 변경함.
-            // refresh interval: -1로 변경. 색인도중 검색노출하지 않음. 성능 향상 목적.
-            // 셋팅무시 설정이 있을시 indexing 맵에서 role 제거
-            logger.info("ES 인덱스 존재 시, indexing settings >>> {}", indexing);
-            boolean isAcknowledged = client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
-            logger.debug("edit settings : {} ", isAcknowledged);
+            return targetIndex;
         }
     }
+
+    private boolean isExistsIfOnlyIndexA(Collection collection){
+        Collection.Index indexA = collection.getIndexA();
+        Collection.Index indexB = collection.getIndexB();
+        return indexA.getUuid() != null && indexB.getUuid() == null;
+    }
+
+    private boolean isExistsIfOnlyIndexB(Collection collection){
+        Collection.Index indexA = collection.getIndexA();
+        Collection.Index indexB = collection.getIndexB();
+        return indexA.getUuid() == null && indexB.getUuid() != null;
+    }
+
+    private String findRecentlyIndexingSuccessIndex(UUID clusterId, String indexA, String indexB) throws IOException {
+        try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)){
+            // index_history 조회하여 마지막 인덱스, 색인 완료한 인덱스 검색.
+            QueryBuilder queryBuilder = new BoolQueryBuilder()
+                    .must(new MatchQueryBuilder("jobType", "FULL_INDEX"))
+                    .must(new MatchQueryBuilder("status", "SUCCESS"))
+                    .should(new MatchQueryBuilder("index", indexA))
+                    .should(new MatchQueryBuilder("index", indexB))
+                    .minimumShouldMatch(1);
+            SearchRequest searchRequest = new SearchRequest()
+                    .indices(indexHistory)
+                    .source(new SearchSourceBuilder().query(queryBuilder)
+                            .size(1)
+                            .from(0)
+                            .sort("endTime", SortOrder.DESC)
+                    );
+            SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
+            SearchHit[] searchHits = searchResponse.getHits().getHits();
+
+            if(searchHits.length == 1){
+                // index_history 조회하여 대상 찾음.
+                Map<String, Object> source = searchHits[0].getSourceAsMap();
+                String targetIndex = (String) source.get("index");
+                return targetIndex;
+            }else{
+                return "";
+            }
+        }
+    }
+
 
     public Map<String, Object> convertRequestParams(String yamlStr) throws IndexingJobFailureException {
         Map<String, Object> convert = new HashMap<>(params);

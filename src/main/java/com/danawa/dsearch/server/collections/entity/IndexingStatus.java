@@ -5,6 +5,7 @@ import java.util.Queue;
 import java.util.UUID;
 
 public class IndexingStatus implements Serializable {
+    public static IndexingStatus Empty = null;
 
     private Collection collection;
 

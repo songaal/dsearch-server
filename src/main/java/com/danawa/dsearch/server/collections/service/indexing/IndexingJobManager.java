@@ -136,7 +136,6 @@ public class IndexingJobManager {
     }
 
     private void deleteInScheduleQueue(){
-
         for(String collectionId: deleteQueue){
             manageQueue.remove(collectionId);
             deleteQueue.remove(collectionId);
@@ -324,7 +323,7 @@ public class IndexingJobManager {
         if(lookupQueue.get(collectionId) != null){
             return lookupQueue.get(collectionId);
         }
-        return null;
+        return IndexingStatus.Empty;
     }
 
     public void setTimeout(long timeout) {

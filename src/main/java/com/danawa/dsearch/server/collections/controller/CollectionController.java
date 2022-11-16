@@ -215,9 +215,8 @@ public class CollectionController {
 
         String collectionId = collection.getId();
         IndexingStatus indexingStatus = indexingJobManager.getCurrentIndexingStatus(collectionId);
-        response.put("result", "success");
 
-        if(indexingStatus == null){
+        if(indexingStatus == IndexingStatus.Empty){
             Map<String, String> map = new HashMap<>();
             map.put("status", "NOT_STARTED");
             response.put("message", "Not Found Status (색인을 시작하지 않았습니다)");
@@ -225,6 +224,7 @@ public class CollectionController {
             return new ResponseEntity<>(response, HttpStatus.OK);
         }
 
+        response.put("result", "success");
         response.put("message", "");
         response.put("info",  indexingStatus);
         response.put("step",  indexingStatus.getCurrentStep());

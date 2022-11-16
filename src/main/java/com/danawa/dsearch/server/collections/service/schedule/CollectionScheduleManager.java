@@ -321,9 +321,11 @@ public class CollectionScheduleManager {
                         return;
                     }
 
-                    Deque<IndexActionStep> nextStep = new ArrayDeque<>();
-                    nextStep.add(IndexActionStep.EXPOSE);
-                    IndexingStatus status = indexingJobService.indexing(clusterId, registerCollection, true, IndexActionStep.FULL_INDEX, nextStep);
+                    Deque<IndexActionStep> actionSteps = new ArrayDeque<>();
+                    actionSteps.add(IndexActionStep.FULL_INDEX);
+                    actionSteps.add(IndexActionStep.EXPOSE);
+                    registerCollection.setAutoRun(true);
+                    IndexingStatus status = indexingJobService.indexing(clusterId, registerCollection, actionSteps);
                     indexingJobManager.add(registerCollection.getId(), status);
                 } catch (IndexingJobFailureException | IOException e) {
                     logger.error("[INIT ERROR] ", e);

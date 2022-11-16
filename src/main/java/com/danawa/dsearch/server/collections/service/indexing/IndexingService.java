@@ -130,9 +130,12 @@ public class IndexingService {
             throw new IndexingJobFailureException("기존 데이터가 있음");
         }
 
-        Queue<IndexActionStep> nextStep = new ArrayDeque<>();
-        nextStep.add(IndexActionStep.EXPOSE);
-        status = indexingJobService.indexing(clusterId, collection, true, IndexActionStep.FULL_INDEX, nextStep);
+        Queue<IndexActionStep> actionSteps = new ArrayDeque<>();
+        actionSteps.add(IndexActionStep.FULL_INDEX);
+        actionSteps.add(IndexActionStep.EXPOSE);
+        collection.setAutoRun(true);
+
+        status = indexingJobService.indexing(clusterId, collection, actionSteps);
         status.setAction(IndexingActionType.ALL.getAction());
         status.setStatus("RUNNING");
         indexingJobManager.add(collectionId, status);
@@ -146,8 +149,11 @@ public class IndexingService {
         if(status != null){
             throw new IndexingJobFailureException("기존 데이터가 있음");
         }
+        Queue<IndexActionStep> actionSteps = new ArrayDeque<>();
+        actionSteps.add(IndexActionStep.FULL_INDEX);
 
-        status = indexingJobService.indexing(clusterId, collection, false, IndexActionStep.FULL_INDEX);
+        collection.setAutoRun(false);
+        status = indexingJobService.indexing(clusterId, collection, actionSteps);
         status.setAction(IndexingActionType.INDEXING.getAction());
         status.setStatus("RUNNING");
         indexingJobManager.add(collectionId, status);
