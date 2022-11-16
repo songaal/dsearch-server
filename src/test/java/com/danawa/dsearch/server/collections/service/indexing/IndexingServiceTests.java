@@ -52,7 +52,7 @@ public class IndexingServiceTests {
             status.setClusterId(clusterId);
 
             given(indexingJobManager.getManageQueue(collection.getId())).willReturn(null);
-            given(indexingJobService.indexing(eq(clusterId), eq(collection), eq(true), eq(IndexActionStep.FULL_INDEX), any(Queue.class))).willReturn(status);
+            given(indexingJobService.indexing(eq(clusterId), eq(collection), any(Queue.class))).willReturn(status);
             doNothing().when(indexingJobManager).add(collection.getId(), status);
 
             IndexingStatus result = indexingService.startIndexingAll(clusterId, collection);
@@ -93,7 +93,7 @@ public class IndexingServiceTests {
             status.setClusterId(clusterId);
 
             given(indexingJobManager.getManageQueue(collection.getId())).willReturn(null);
-            given(indexingJobService.indexing(eq(clusterId), eq(collection), eq(false), eq(IndexActionStep.FULL_INDEX))).willReturn(status);
+            given(indexingJobService.indexing(eq(clusterId), eq(collection), any(Queue.class))).willReturn(status);
             doNothing().when(indexingJobManager).add(collection.getId(), status);
 
             IndexingStatus result = indexingService.startIndexing(clusterId, collection);
