@@ -81,7 +81,7 @@ public class IndexingJobService {
             targetIndex = getTargetIndex(clusterId, collection);
 
             // 2. 인덱스 설정 변경.
-            editPreparations(clusterId, targetIndex);
+            configureIndexSettings(clusterId, targetIndex);
 
             // 3. 런처 파라미터 변환 작업
             Map<String, Object> requestBody = makeRequestBodyToIndexer(clusterId, collection, targetIndex);
@@ -161,17 +161,16 @@ public class IndexingJobService {
         return targetIndex;
     }
 
-    private void editPreparations(UUID clusterId, Collection.Index index) {
+    private void configureIndexSettings(UUID clusterId, Collection.Index index) {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             // 인덱스 존재하지 않기 때문에 생성해주기.
             // 인덱스 템플릿이 존재하기 때문에 맵핑 설정 패스
             if (index.getUuid() == null) {
-                boolean isAcknowledged;
+                // refresh interval: -1로 셋팅
                 logger.info("ES 인덱스 없을 시, indexing settings >>> {}", indexing);
-                isAcknowledged = client.indices().create(new CreateIndexRequest(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
+                boolean isAcknowledged = client.indices().create(new CreateIndexRequest(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
                 logger.debug("create settings : {} ", isAcknowledged);
             } else {
-                // 기존 인덱스가 존재하기 때문에 셋팅 설정만 변경함.
                 // refresh interval: -1로 변경. 색인도중 검색노출하지 않음. 성능 향상 목적.
                 // 셋팅무시 설정이 있을시 indexing 맵에서 role 제거
                 logger.info("ES 인덱스 존재 시, indexing settings >>> {}", indexing);

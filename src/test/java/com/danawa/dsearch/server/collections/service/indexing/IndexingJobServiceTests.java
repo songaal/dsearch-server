@@ -8,8 +8,9 @@ import com.danawa.dsearch.server.collections.service.history.HistoryService;
 import com.danawa.dsearch.server.collections.service.indexer.IndexerClient;
 import com.danawa.dsearch.server.config.ElasticsearchFactory;
 import com.danawa.dsearch.server.notice.AlertService;
-import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.Request;
+import org.elasticsearch.client.Response;
+import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,11 +20,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Map;
+import java.util.Queue;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
@@ -52,28 +52,27 @@ public class IndexingJobServiceTests {
     @DisplayName("색인 테스트")
     public void indexingTest(){
         // 정상 작동
-//        Assertions.assertDoesNotThrow(() -> {
-//            UUID clusterId = UUID.randomUUID();
-//            Collection collection = new Collection();
-//            boolean autoRun = true;
-//            IndexActionStep step = IndexActionStep.FULL_INDEX;
-//            String indexingJobId = "indexingJobId";
-//
-//            IndexingStatus indexingStatus = new IndexingStatus();
-//            indexingStatus.setIndexingJobId(indexingJobId);
-//
-//            RestHighLevelClient restClient = mock(RestHighLevelClient.class);
-//            GetResponse getResponse = mock(GetResponse.class);
-//
-//
-//            given(elasticsearchFactory.getClient(clusterId)).willReturn(restClient);
-//            given(restClient.get(any(), eq(RequestOptions.DEFAULT))).willReturn(getResponse);
-//            given(indexerClient.startJob(any(Map.class), any(Collection.class))).willReturn(indexingJobId);
-//
-//            IndexingStatus status = indexingJobService.indexing(clusterId, collection, autoRun, step);
-//
-//
-//        });
+        UUID clusterId = UUID.randomUUID();
+        Collection collection = new Collection();
+        collection.setBaseId("collection");
+        Collection.Index indexA = new Collection.Index();
+        Collection.Index indexB = new Collection.Index();
+        collection.setIndexA(indexA);
+        collection.setIndexB(indexB);
+        Queue<IndexActionStep> actionSteps = null;
+
+        RestHighLevelClient client = mock(RestHighLevelClient.class);
+        RestClient lowLevelClient = mock(RestClient.class);
+        Response response = mock(Response.class);
+        String entity = "";
+
+        Assertions.assertDoesNotThrow(() -> {
+            given(this.elasticsearchFactory.getClient(clusterId)).willReturn(client);
+            given(lowLevelClient.performRequest(any(Request.class))).willReturn(response);
+
+            this.indexingJobService.indexing(clusterId, collection, actionSteps );
+        });
+
 
 
     }
