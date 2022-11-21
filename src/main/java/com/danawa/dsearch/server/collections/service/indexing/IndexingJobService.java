@@ -2,22 +2,15 @@ package com.danawa.dsearch.server.collections.service.indexing;
 
 import com.danawa.dsearch.server.collections.service.indexer.IndexerClient;
 import com.danawa.dsearch.server.collections.service.history.HistoryService;
-import com.danawa.dsearch.server.config.ElasticsearchFactory;
 import com.danawa.dsearch.server.collections.entity.Collection;
 import com.danawa.dsearch.server.collections.entity.IndexActionStep;
 import com.danawa.dsearch.server.collections.entity.IndexingStatus;
+import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactoryHighLevelWrapper;
 import com.danawa.dsearch.server.excpetions.IndexingJobFailureException;
 import com.danawa.dsearch.server.notice.AlertService;
 import com.google.gson.Gson;
-import org.apache.http.util.EntityUtils;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
-import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
-import org.elasticsearch.action.get.GetRequest;
-import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.*;
-import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.MatchQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
@@ -42,23 +35,23 @@ public class IndexingJobService {
      * 인덱서를 통해 색인 시작을 하기 전 타겟 인덱스에 대한 전처리/후처리를 담당합니다.
      */
     private static final Logger logger = LoggerFactory.getLogger(IndexingJobService.class);
-    private final ElasticsearchFactory elasticsearchFactory;
+    private final ElasticsearchFactoryHighLevelWrapper elasticsearchFactoryWrapper;
 
     private final String indexHistory = ".dsearch_index_history";
     private final IndexerClient indexerClient;
-    private final String jdbcSystemIndex;
+    private String jdbcSystemIndex = ".dsearch_jdbc";
 
     private AlertService alertService;
     private HistoryService indexHistoryService;
-    private Map<String, Object> params;
-    private Map<String, Object> indexing;
+    private Map<String, Object> params = new HashMap<>();
+    private Map<String, Object> indexing = new HashMap<>();
 
-    public IndexingJobService(ElasticsearchFactory elasticsearchFactory,
+    public IndexingJobService(ElasticsearchFactoryHighLevelWrapper elasticsearchFactoryWrapper,
                               @Value("${dsearch.jdbc.setting}") String jdbcSystemIndex,
                               HistoryService indexHistoryService,
                               AlertService alertService,
                               IndexerClient indexerClient) {
-        this.elasticsearchFactory = elasticsearchFactory;
+        this.elasticsearchFactoryWrapper = elasticsearchFactoryWrapper;
         this.jdbcSystemIndex = jdbcSystemIndex;
         this.indexerClient = indexerClient;
         this.indexHistoryService = indexHistoryService;
@@ -113,6 +106,9 @@ public class IndexingJobService {
     }
 
     private boolean isEmptyAlias(Collection collection){
+        if (collection.getIndexA() == null && collection.getIndexB() == null) return true;
+        else if (collection.getIndexA() != null && collection.getIndexA().getAliases().size() == 0) return true;
+        else if (collection.getIndexB() != null && collection.getIndexB().getAliases().size() == 0) return true;
         return (collection.getIndexA().getAliases().size() == 0 && collection.getIndexB().getAliases().size() == 0);
     }
 
@@ -127,13 +123,9 @@ public class IndexingJobService {
     }
 
     private String getAliasString(UUID clusterId) throws IndexingJobFailureException {
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            RestClient lowLevelClient = client.getLowLevelClient();
-            Request request = new Request("GET", "_cat/aliases");
-            request.addParameter("format", "json");
-            Response response = lowLevelClient.performRequest(request);
-            return EntityUtils.toString(response.getEntity());
-        } catch (IOException e) {
+        try {
+            return elasticsearchFactoryWrapper.getAliases(clusterId);
+        }catch (IOException e){
             logger.error("", e);
             throw new IndexingJobFailureException(e.getMessage());
         }
@@ -162,19 +154,20 @@ public class IndexingJobService {
     }
 
     private void configureIndexSettings(UUID clusterId, Collection.Index index) {
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+
+        try {
             // 인덱스 존재하지 않기 때문에 생성해주기.
             // 인덱스 템플릿이 존재하기 때문에 맵핑 설정 패스
             if (index.getUuid() == null) {
                 // refresh interval: -1로 셋팅
                 logger.info("ES 인덱스 없을 시, indexing settings >>> {}", indexing);
-                boolean isAcknowledged = client.indices().create(new CreateIndexRequest(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
+                boolean isAcknowledged = elasticsearchFactoryWrapper.createIndexSettings(clusterId, index.getIndex(), indexing);
                 logger.debug("create settings : {} ", isAcknowledged);
             } else {
                 // refresh interval: -1로 변경. 색인도중 검색노출하지 않음. 성능 향상 목적.
                 // 셋팅무시 설정이 있을시 indexing 맵에서 role 제거
                 logger.info("ES 인덱스 존재 시, indexing settings >>> {}", indexing);
-                boolean isAcknowledged = client.indices().putSettings(new UpdateSettingsRequest().indices(index.getIndex()).settings(indexing), RequestOptions.DEFAULT).isAcknowledged();
+                boolean isAcknowledged = elasticsearchFactoryWrapper.updateIndexSettings(clusterId, index.getIndex(), indexing);
                 logger.debug("edit settings : {} ", isAcknowledged);
             }
         }catch (IOException e){
@@ -223,10 +216,8 @@ public class IndexingJobService {
             return new HashMap<>();
         }
 
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            GetResponse getResponse = client.get(
-                    new GetRequest().index(jdbcSystemIndex).id(jdbcId), RequestOptions.DEFAULT);
-            Map<String, Object> jdbcSource = getResponse.getSourceAsMap();
+        try {
+            Map<String, Object> jdbcSource = elasticsearchFactoryWrapper.getIndexDocument(clusterId, jdbcSystemIndex, jdbcId);
             jdbcSource.put("driverClassName", jdbcSource.get("driver"));
             jdbcSource.put("url", jdbcSource.get("url"));
             jdbcSource.put("user", jdbcSource.get("user"));
@@ -298,25 +289,22 @@ public class IndexingJobService {
     }
 
     public void changeRefreshInterval(UUID clusterId, Collection collection, String target) throws IOException {
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            Map<String, Object> settings = new HashMap<>();
-            // 인덱스 설정에 있는 refresh interval
-            // refresh_interval : -1, 1s, 2s, ...
-            if (collection.getRefresh_interval() != null) {
-                // 0일때는 1로 셋팅.
-                int refresh_interval = collection.getRefresh_interval() == 0 ? 1 : collection.getRefresh_interval();
+        Map<String, Object> settings = new HashMap<>();
+        // 인덱스 설정에 있는 refresh interval
+        // refresh_interval : -1, 1s, 2s, ...
+        if (collection.getRefresh_interval() != null) {
+            // 0일때는 1로 셋팅.
+            int refresh_interval = collection.getRefresh_interval() == 0 ? 1 : collection.getRefresh_interval();
 
-                if (refresh_interval >= 0) {
-                    settings.put("refresh_interval", collection.getRefresh_interval() + "s");
-                } else {
-                    // -2 이하로 내려갈 때, -1로 고정.
-                    refresh_interval = -1;
-                    settings.put("refresh_interval", refresh_interval + "");
-                }
+            if (refresh_interval >= 0) {
+                settings.put("refresh_interval", collection.getRefresh_interval() + "s");
+            } else {
+                // -2 이하로 내려갈 때, -1로 고정.
+                refresh_interval = -1;
+                settings.put("refresh_interval", refresh_interval + "");
             }
-
-            client.indices().putSettings(new UpdateSettingsRequest().indices(target).settings(settings), RequestOptions.DEFAULT);
         }
+        elasticsearchFactoryWrapper.updateIndexSettings(clusterId, target, settings);
     }
 
     /**
@@ -362,24 +350,21 @@ public class IndexingJobService {
         String toAddIndex = getIndexToAddAlias(indexA.getIndex(), indexB.getIndex(), targetIndex);
         String toRemoveIndex = getIndexToRemoveAlias(indexA.getIndex(), indexB.getIndex(), targetIndex);
 
-        try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)){
-            try {
-                request.addAliasAction(new IndicesAliasesRequest.
-                        AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
-                        .index(toAddIndex).alias(baseId));
-                request.addAliasAction(new IndicesAliasesRequest.
-                        AliasActions(IndicesAliasesRequest.AliasActions.Type.REMOVE)
-                        .index(toRemoveIndex).alias(baseId));
-                // 교체
-                client.indices().updateAliases(request, RequestOptions.DEFAULT);
-            } catch (Exception e) {
-                request = new IndicesAliasesRequest();
-                request.addAliasAction(new IndicesAliasesRequest.
-                        AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
-                        .index(toAddIndex).alias(baseId));
-                // 교체
-                client.indices().updateAliases(request, RequestOptions.DEFAULT);
-            }
+        try {
+            request.addAliasAction(new IndicesAliasesRequest.
+                    AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
+                    .index(toAddIndex).alias(baseId));
+            request.addAliasAction(new IndicesAliasesRequest.
+                    AliasActions(IndicesAliasesRequest.AliasActions.Type.REMOVE)
+                    .index(toRemoveIndex).alias(baseId));
+            elasticsearchFactoryWrapper.updateAliases(clusterId, request);
+        } catch (Exception e) {
+            request = new IndicesAliasesRequest();
+            request.addAliasAction(new IndicesAliasesRequest.
+                    AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
+                    .index(toAddIndex).alias(baseId));
+            // 교체
+            elasticsearchFactoryWrapper.updateAliases(clusterId, request);
         }
     }
 
@@ -408,52 +393,49 @@ public class IndexingJobService {
         Collection.Index indexA = collection.getIndexA();
         Collection.Index indexB = collection.getIndexB();
 
-        try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)){
-            String targetIndex;
+        String targetIndex;
 
-            if (isExistsIfOnlyIndexB(collection)) {
-                // 1. -b 인덱스만 있을 경우
-                request.addAliasAction(new IndicesAliasesRequest.
-                        AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
-                        .index(indexB.getIndex()).alias(baseId));
-                targetIndex = indexB.getIndex();
-            } else if (isExistsIfOnlyIndexA(collection)) {
-                // 2. -a 인덱스만 있을 경우
+        if (isExistsIfOnlyIndexB(collection)) {
+            // 1. -b 인덱스만 있을 경우
+            request.addAliasAction(new IndicesAliasesRequest.
+                    AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
+                    .index(indexB.getIndex()).alias(baseId));
+            targetIndex = indexB.getIndex();
+        } else if (isExistsIfOnlyIndexA(collection)) {
+            // 2. -a 인덱스만 있을 경우
+            request.addAliasAction(new IndicesAliasesRequest.
+                    AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
+                    .index(indexA.getIndex()).alias(baseId));
+            targetIndex = indexA.getIndex();
+        } else {
+            // 3. -a, -b 인덱스가 있을 경우
+            // 인덱스 히스토리 로그를 찾아 최근에 성공한 인덱스를 찾는다
+            targetIndex = findRecentlyIndexingSuccessIndex(clusterId, indexA.getIndex(), indexB.getIndex());
+
+            if ("".equals(targetIndex)) {
+                // 3.1) -a, -b 인덱스 둘다 있지만 alias가 셋팅이 되지 않은 경우
                 request.addAliasAction(new IndicesAliasesRequest.
                         AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
                         .index(indexA.getIndex()).alias(baseId));
+
                 targetIndex = indexA.getIndex();
             } else {
-                // 3. -a, -b 인덱스가 있을 경우
-                // 인덱스 히스토리 로그를 찾아 최근에 성공한 인덱스를 찾는다
-                targetIndex = findRecentlyIndexingSuccessIndex(clusterId, indexA.getIndex(), indexB.getIndex());
+                // 3.2) -a, -b 인덱스 둘다 있지만 alias가 셋팅이 되어 있는 경우
+                String addIndex = getIndexToAddAlias(indexA.getIndex(), indexB.getIndex(), targetIndex);
+                String removeIndex = getIndexToRemoveAlias(indexA.getIndex(), indexB.getIndex(), targetIndex);
 
-                if("".equals(targetIndex)){
-                    // 3.1) -a, -b 인덱스 둘다 있지만 alias가 셋팅이 되지 않은 경우
-                    request.addAliasAction(new IndicesAliasesRequest.
-                            AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
-                            .index(indexA.getIndex()).alias(baseId));
-
-                    targetIndex = indexA.getIndex();
-                }else{
-                    // 3.2) -a, -b 인덱스 둘다 있지만 alias가 셋팅이 되어 있는 경우
-                    String addIndex = getIndexToAddAlias(indexA.getIndex(), indexB.getIndex(), targetIndex);
-                    String removeIndex = getIndexToRemoveAlias(indexA.getIndex(), indexB.getIndex(), targetIndex);
-
-                    request.addAliasAction(new IndicesAliasesRequest.
-                            AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
-                            .index(addIndex).alias(baseId));
-                    request.addAliasAction(new IndicesAliasesRequest.
-                            AliasActions(IndicesAliasesRequest.AliasActions.Type.REMOVE)
-                            .index(removeIndex).alias(baseId));
-                }
+                request.addAliasAction(new IndicesAliasesRequest.
+                        AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
+                        .index(addIndex).alias(baseId));
+                request.addAliasAction(new IndicesAliasesRequest.
+                        AliasActions(IndicesAliasesRequest.AliasActions.Type.REMOVE)
+                        .index(removeIndex).alias(baseId));
             }
-
-            // Alias 교체
-            client.indices().updateAliases(request, RequestOptions.DEFAULT);
-
-            return targetIndex;
         }
+
+        // Alias 교체
+        elasticsearchFactoryWrapper.updateAliases(clusterId, request);
+        return targetIndex;
     }
 
     private boolean isExistsIfOnlyIndexA(Collection collection){
@@ -469,32 +451,30 @@ public class IndexingJobService {
     }
 
     private String findRecentlyIndexingSuccessIndex(UUID clusterId, String indexA, String indexB) throws IOException {
-        try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)){
-            // index_history 조회하여 마지막 인덱스, 색인 완료한 인덱스 검색.
-            QueryBuilder queryBuilder = new BoolQueryBuilder()
-                    .must(new MatchQueryBuilder("jobType", "FULL_INDEX"))
-                    .must(new MatchQueryBuilder("status", "SUCCESS"))
-                    .should(new MatchQueryBuilder("index", indexA))
-                    .should(new MatchQueryBuilder("index", indexB))
-                    .minimumShouldMatch(1);
-            SearchRequest searchRequest = new SearchRequest()
-                    .indices(indexHistory)
-                    .source(new SearchSourceBuilder().query(queryBuilder)
-                            .size(1)
-                            .from(0)
-                            .sort("endTime", SortOrder.DESC)
-                    );
-            SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
-            SearchHit[] searchHits = searchResponse.getHits().getHits();
+        // index_history 조회하여 마지막 인덱스, 색인 완료한 인덱스 검색.
+        QueryBuilder queryBuilder = new BoolQueryBuilder()
+                .must(new MatchQueryBuilder("jobType", "FULL_INDEX"))
+                .must(new MatchQueryBuilder("status", "SUCCESS"))
+                .should(new MatchQueryBuilder("index", indexA))
+                .should(new MatchQueryBuilder("index", indexB))
+                .minimumShouldMatch(1);
+        SearchRequest searchRequest = new SearchRequest()
+                .indices(indexHistory)
+                .source(new SearchSourceBuilder().query(queryBuilder)
+                        .size(1)
+                        .from(0)
+                        .sort("endTime", SortOrder.DESC)
+                );
 
-            if(searchHits.length == 1){
-                // index_history 조회하여 대상 찾음.
-                Map<String, Object> source = searchHits[0].getSourceAsMap();
-                String targetIndex = (String) source.get("index");
-                return targetIndex;
-            }else{
-                return "";
-            }
+        SearchHit[] searchHits = elasticsearchFactoryWrapper.search(clusterId, searchRequest);
+
+        if(searchHits.length == 1){
+            // index_history 조회하여 대상 찾음.
+            Map<String, Object> source = searchHits[0].getSourceAsMap();
+            String targetIndex = (String) source.get("index");
+            return targetIndex;
+        }else{
+            return "";
         }
     }
 

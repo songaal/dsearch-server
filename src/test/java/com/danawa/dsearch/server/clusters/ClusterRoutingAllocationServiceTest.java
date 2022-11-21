@@ -1,21 +1,17 @@
 package com.danawa.dsearch.server.clusters;
 
-import com.danawa.dsearch.server.clusters.repository.ClusterRepository;
 import com.danawa.dsearch.server.clusters.service.ClusterRoutingAllocationService;
-import com.danawa.dsearch.server.clusters.service.ClusterService;
-import com.danawa.dsearch.server.config.ElasticsearchFactory;
+import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactory;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
 import org.elasticsearch.client.ClusterClient;
 import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 

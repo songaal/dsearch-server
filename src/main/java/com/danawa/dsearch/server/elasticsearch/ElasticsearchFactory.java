@@ -1,4 +1,4 @@
-package com.danawa.dsearch.server.config;
+package com.danawa.dsearch.server.elasticsearch;
 
 import com.danawa.dsearch.server.clusters.entity.Cluster;
 import com.danawa.dsearch.server.clusters.service.ClusterService;
@@ -13,9 +13,7 @@ import org.apache.http.util.EntityUtils;
 import org.elasticsearch.client.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.util.HashMap;

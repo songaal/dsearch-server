@@ -1,6 +1,6 @@
 package com.danawa.dsearch.server.temp;
 
-import com.danawa.dsearch.server.config.ElasticsearchFactory;
+import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactory;
 import com.danawa.dsearch.server.collections.service.CollectionService;
 import com.danawa.dsearch.server.collections.service.indexing.IndexingJobService;
 import org.junit.jupiter.api.Test;

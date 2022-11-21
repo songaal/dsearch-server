@@ -1,6 +1,6 @@
 package com.danawa.dsearch.server.tools;
 
-import com.danawa.dsearch.server.config.ElasticsearchFactory;
+import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactory;
 import com.danawa.dsearch.server.tools.entity.AnalysisToolRequest;
 import com.danawa.dsearch.server.tools.service.ToolsService;
 import org.hamcrest.Matchers;
@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.io.IOException;
 import java.util.HashSet;

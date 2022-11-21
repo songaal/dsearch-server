@@ -1,6 +1,6 @@
 package com.danawa.dsearch.server.indices.service;
 
-import com.danawa.dsearch.server.config.ElasticsearchFactory;
+import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactory;
 import com.danawa.dsearch.server.indices.entity.DocumentAnalyzer;
 import com.danawa.dsearch.server.indices.entity.DocumentPagination;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;

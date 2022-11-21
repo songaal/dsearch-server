@@ -2,8 +2,6 @@ package com.danawa.dsearch.server.collections.service.status;
 
 import com.danawa.dsearch.server.collections.entity.IndexingStatus;
 import com.danawa.dsearch.server.collections.entity.IndexStatus;
-import com.danawa.dsearch.server.config.ElasticsearchFactory;
-import com.danawa.dsearch.server.indices.service.IndicesService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

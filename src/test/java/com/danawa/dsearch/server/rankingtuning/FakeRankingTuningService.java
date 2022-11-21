@@ -1,14 +1,10 @@
 package com.danawa.dsearch.server.rankingtuning;
 
-import com.danawa.dsearch.server.config.ElasticsearchFactory;
+import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactory;
 import com.danawa.dsearch.server.excpetions.ElasticQueryException;
 import com.danawa.dsearch.server.rankingtuning.entity.RankingTuningRequest;
 import com.danawa.dsearch.server.rankingtuning.service.RankingTuningService;
 import org.apache.commons.lang.NullArgumentException;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.client.indices.AnalyzeRequest;
-import org.elasticsearch.client.indices.AnalyzeResponse;
 
 import java.io.IOException;
 import java.util.HashMap;

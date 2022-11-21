@@ -1,21 +1,10 @@
 package com.danawa.dsearch.server.collections;
 
 import com.danawa.dsearch.server.clusters.service.ClusterService;
-import com.danawa.dsearch.server.collections.entity.Collection;
 import com.danawa.dsearch.server.collections.service.CollectionService;
-import com.danawa.dsearch.server.collections.service.indexing.IndexingJobManager;
 import com.danawa.dsearch.server.collections.service.indexing.IndexingJobService;
-import com.danawa.dsearch.server.config.ElasticsearchFactory;
-import com.danawa.dsearch.server.excpetions.CronParseException;
+import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactory;
 import com.danawa.dsearch.server.indices.service.IndicesService;
-import org.apache.commons.lang.NullArgumentException;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.search.SearchHits;
-import org.hamcrest.Matchers;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -24,12 +13,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
-import static org.hamcrest.Matchers.greaterThan;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)

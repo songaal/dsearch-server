@@ -4,7 +4,7 @@ import com.danawa.dsearch.server.collections.dto.HistoryReadRequest;
 import com.danawa.dsearch.server.collections.entity.IndexActionStep;
 import com.danawa.dsearch.server.collections.entity.IndexHistory;
 import com.danawa.dsearch.server.collections.entity.IndexingStatus;
-import com.danawa.dsearch.server.config.ElasticsearchFactory;
+import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactory;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

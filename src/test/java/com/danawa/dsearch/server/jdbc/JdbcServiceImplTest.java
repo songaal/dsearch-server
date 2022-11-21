@@ -1,6 +1,6 @@
 package com.danawa.dsearch.server.jdbc;
 
-import com.danawa.dsearch.server.config.ElasticsearchFactory;
+import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactory;
 import com.danawa.dsearch.server.indices.service.IndicesService;
 import com.danawa.dsearch.server.jdbc.entity.JdbcRequest;
 import com.danawa.dsearch.server.jdbc.service.JdbcServiceImpl;

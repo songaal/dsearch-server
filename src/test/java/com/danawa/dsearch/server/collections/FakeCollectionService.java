@@ -5,7 +5,7 @@
 //import com.danawa.dsearch.server.collections.service.CollectionService;
 //import com.danawa.dsearch.server.collections.service.indexing.IndexingJobManager;
 //import com.danawa.dsearch.server.collections.service.indexing.IndexingJobService;
-//import com.danawa.dsearch.server.config.ElasticsearchFactory;
+//import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactory;
 //import com.danawa.dsearch.server.indices.service.IndicesService;
 //import org.apache.commons.lang.NullArgumentException;
 //

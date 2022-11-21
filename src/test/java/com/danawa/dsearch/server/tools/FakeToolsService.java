@@ -1,6 +1,6 @@
 package com.danawa.dsearch.server.tools;
 
-import com.danawa.dsearch.server.config.ElasticsearchFactory;
+import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactory;
 import com.danawa.dsearch.server.tools.entity.AnalysisToolRequest;
 import com.danawa.dsearch.server.tools.service.ToolsService;
 

@@ -2,7 +2,7 @@ package com.danawa.dsearch.server.collections.service;
 
 import com.danawa.dsearch.server.clusters.entity.Cluster;
 import com.danawa.dsearch.server.collections.service.indexing.IndexingJobService;
-import com.danawa.dsearch.server.config.ElasticsearchFactory;
+import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactory;
 import com.danawa.dsearch.server.collections.entity.Collection;
 import com.danawa.dsearch.server.excpetions.CronParseException;
 import com.danawa.dsearch.server.excpetions.DuplicatedUserException;

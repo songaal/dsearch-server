@@ -1,6 +1,6 @@
 package com.danawa.dsearch.server.migration;
 
-import com.danawa.dsearch.server.config.ElasticsearchFactory;
+import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactory;
 import com.danawa.dsearch.server.migration.service.MigrationService;
 import com.danawa.dsearch.server.pipeline.service.PipelineService;
 import org.junit.jupiter.api.Assertions;

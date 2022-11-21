@@ -1,6 +1,7 @@
 package com.danawa.dsearch.server.collections.entity;
 
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.Map;
 
 public class Collection implements Serializable {
@@ -75,7 +76,7 @@ public class Collection implements Serializable {
         private String storeSize;
         private String priStoreSize;
 
-        private Map<String, Object> aliases;
+        private Map<String, Object> aliases = new HashMap<>();
 
         public Map<String, Object> getAliases() {
             return aliases;

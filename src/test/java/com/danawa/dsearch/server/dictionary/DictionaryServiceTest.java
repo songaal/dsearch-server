@@ -2,7 +2,7 @@ package com.danawa.dsearch.server.dictionary;
 
 import com.danawa.dsearch.server.clusters.entity.Cluster;
 import com.danawa.dsearch.server.clusters.service.ClusterService;
-import com.danawa.dsearch.server.config.ElasticsearchFactory;
+import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactory;
 import com.danawa.dsearch.server.dictionary.entity.DictionarySetting;
 import com.danawa.dsearch.server.dictionary.service.DictionaryService;
 import com.danawa.dsearch.server.excpetions.ServiceException;

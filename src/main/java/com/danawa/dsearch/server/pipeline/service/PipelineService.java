@@ -1,6 +1,6 @@
 package com.danawa.dsearch.server.pipeline.service;
 
-import com.danawa.dsearch.server.config.ElasticsearchFactory;
+import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactory;
 import com.danawa.dsearch.server.utils.JsonUtils;
 import com.google.gson.Gson;
 import org.apache.commons.lang.NullArgumentException;
