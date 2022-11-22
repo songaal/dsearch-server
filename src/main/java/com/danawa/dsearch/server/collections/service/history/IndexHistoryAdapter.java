@@ -75,7 +75,8 @@ public class IndexHistoryAdapter {
         List<Map<String, Object>> result = new ArrayList<>();
 
         try{
-            list =  historyRepository.findByClusterIdAndIndexStartsWith(clusterId, collectionName, paging);
+            list = historyRepository.findByClusterIdAndIndexOrderByStartTimeDesc(clusterId, paging, collectionName);
+//            list =  historyRepository.findByClusterIdAndIndexStartsWith(clusterId, collectionName, paging);
         }catch (Exception e){
             logger.info("", e);
         }
