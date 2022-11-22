@@ -38,8 +38,6 @@ public class CollectionHistoryController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
-
-
     @DeleteMapping
     public ResponseEntity<?> deleteCollectionHistory(@RequestHeader(value = "cluster-id") UUID clusterId,
                                                      @RequestBody HistoryDeleteRequest deleteRequest) {

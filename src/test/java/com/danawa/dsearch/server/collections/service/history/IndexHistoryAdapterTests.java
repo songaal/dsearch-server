@@ -101,45 +101,45 @@ public class IndexHistoryAdapterTests {
         Assertions.assertEquals(0, count);
     }
 
-    @Test
-    @DisplayName("인덱스 히스토리 컬렉션 명으로 찾기")
-    public void findByCollectionTest(){
-        UUID clusterId = UUID.randomUUID();
-        String collectionName = "collectionName";
-        int size = 10;
-        int from = 0;
-        int page = 0;
-        if (from > 0) {
-            page = (from / size);
-        }
-        Pageable pageable = PageRequest.of(page, size);
-
-        HistoryReadRequest historyReadRequest = new HistoryReadRequest();
-        historyReadRequest.setIndexA(collectionName + "-a");
-        historyReadRequest.setIndexB(collectionName + "-b");
-        historyReadRequest.setSize(size);
-        historyReadRequest.setFrom(from);
-
-        List<IndexHistory> out = new ArrayList<>();
-        out.add(new IndexHistory());
-
-        when(historyRepository.findByClusterIdAndIndexStartsWith(clusterId, collectionName, pageable)).thenReturn(out);
-        List<Map<String, Object>> result = indexHistoryAdapter.findByCollection(clusterId, historyReadRequest);
-        verify(historyRepository, times(1)).findByClusterIdAndIndexStartsWith(clusterId, collectionName, pageable);
-        Assertions.assertEquals(1, result.size());
-
-        from = 10;
-        historyReadRequest.setFrom(from);
-        if (from > 0) {
-            page = (from / size);
-        }
-        pageable = PageRequest.of(page, size);
-
-        when(historyRepository.findByClusterIdAndIndexStartsWith(clusterId, collectionName, pageable)).thenReturn(out);
-        result = indexHistoryAdapter.findByCollection(clusterId, historyReadRequest);
-        verify(historyRepository, times(1)).findByClusterIdAndIndexStartsWith(clusterId, collectionName, pageable);
-        Assertions.assertEquals(1, result.size());
-    }
+//    @Test
+//    @DisplayName("인덱스 히스토리 컬렉션 명으로 찾기")
+//    public void findByCollectionTest(){
+//        UUID clusterId = UUID.randomUUID();
+//        String collectionName = "collectionName";
+//        int size = 10;
+//        int from = 0;
+//        int page = 0;
+//        if (from > 0) {
+//            page = (from / size);
+//        }
+//        Pageable pageable = PageRequest.of(page, size);
+//
+//        HistoryReadRequest historyReadRequest = new HistoryReadRequest();
+//        historyReadRequest.setIndexA(collectionName + "-a");
+//        historyReadRequest.setIndexB(collectionName + "-b");
+//        historyReadRequest.setSize(size);
+//        historyReadRequest.setFrom(from);
+//
+//        List<IndexHistory> out = new ArrayList<>();
+//        out.add(new IndexHistory());
+//
+//        when(historyRepository.findByClusterIdAndIndexStartsWith(clusterId, collectionName, pageable)).thenReturn(out);
+//        List<Map<String, Object>> result = indexHistoryAdapter.findByCollection(clusterId, historyReadRequest);
+//        verify(historyRepository, times(1)).findByClusterIdAndIndexStartsWith(clusterId, collectionName, pageable);
+//        Assertions.assertEquals(1, result.size());
+//
+//        from = 10;
+//        historyReadRequest.setFrom(from);
+//        if (from > 0) {
+//            page = (from / size);
+//        }
+//        pageable = PageRequest.of(page, size);
+//
+//        when(historyRepository.findByClusterIdAndIndexStartsWith(clusterId, collectionName, pageable)).thenReturn(out);
+//        result = indexHistoryAdapter.findByCollection(clusterId, historyReadRequest);
+//        verify(historyRepository, times(1)).findByClusterIdAndIndexStartsWith(clusterId, collectionName, pageable);
+//        Assertions.assertEquals(1, result.size());
+//    }
 
     @Test
     @DisplayName("인덱스 히스토리 클러스터Id와 업무 타입으로 찾기")
