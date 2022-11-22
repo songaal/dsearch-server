@@ -19,7 +19,7 @@ public interface HistoryRepository extends JpaRepository<IndexHistory, Long> {
             String jobType);
 
 //    List<IndexHistory> findByClusterIdAndIndexStartsWith(UUID clusterId, String index, Pageable pageable);
-    List<IndexHistory> findByClusterIdAndIndexOrderByStartTimeDesc(UUID clusterId, Pageable pageable, String... index);
+    List<IndexHistory> findByClusterIdAndIndexOrderByStartTimeDesc(UUID clusterId, List<String> index, Pageable pageable);
     List<IndexHistory> findByClusterIdAndJobType(UUID clusterId, String jobType, Pageable pageable);
     List<IndexHistory> findByClusterIdAndJobTypeAndIndexStartsWith(UUID clusterId, String jobType, String index, Pageable pageable);
 

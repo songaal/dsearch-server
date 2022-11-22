@@ -75,7 +75,10 @@ public class IndexHistoryAdapter {
         List<Map<String, Object>> result = new ArrayList<>();
 
         try{
-            list = historyRepository.findByClusterIdAndIndexOrderByStartTimeDesc(clusterId, paging, collectionName);
+            List<String> indexs = new ArrayList<>();
+            indexs.add(collectionName +"-a");
+            indexs.add(collectionName +"-b");
+            list = historyRepository.findByClusterIdAndIndexOrderByStartTimeDesc(clusterId, indexs,paging);
 //            list =  historyRepository.findByClusterIdAndIndexStartsWith(clusterId, collectionName, paging);
         }catch (Exception e){
             logger.info("", e);
