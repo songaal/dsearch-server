@@ -6,13 +6,9 @@ import com.danawa.dsearch.server.collections.entity.IndexActionStep;
 import com.danawa.dsearch.server.collections.entity.IndexingStatus;
 import com.danawa.dsearch.server.collections.service.history.HistoryService;
 import com.danawa.dsearch.server.collections.service.indexer.IndexerClient;
-import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactory;
 import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactoryHighLevelWrapper;
 import com.danawa.dsearch.server.notice.AlertService;
-import org.elasticsearch.client.Request;
-import org.elasticsearch.client.Response;
-import org.elasticsearch.client.RestClient;
-import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -23,9 +19,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.*;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class IndexingJobServiceTests {
@@ -169,6 +165,48 @@ public class IndexingJobServiceTests {
 
             IndexingStatus indexingStatus = this.indexingJobService.indexing(clusterId, collection, actionSteps );
             Assertions.assertEquals(indexingJobId, indexingStatus.getIndexingJobId());
+        });
+    }
+
+    @Test
+    @DisplayName("새로 고침 간격 변경 - 기본 셋팅")
+    public void change_refresh_interval_index_default(){
+        // 정상 작동
+        UUID clusterId = UUID.randomUUID();
+        Collection collection = new Collection();
+        collection.setBaseId("collection");
+        Collection.Index indexB = new Collection.Index();
+        indexB.setIndex("indexB");
+        collection.setIndexB(indexB);
+
+        String targetIndex = "target";
+
+        Assertions.assertDoesNotThrow(() -> {
+            given(elasticsearchFactoryHighLevelWrapper.updateIndexSettings(eq(clusterId), any(String.class), any(Map.class))).willReturn(true);
+            this.indexingJobService.changeRefreshInterval(clusterId, collection, targetIndex);
+            verify(elasticsearchFactoryHighLevelWrapper, times(1)).updateIndexSettings(eq(clusterId), eq(targetIndex), any(Map.class));
+        });
+    }
+
+    @Test
+    @DisplayName("교체 테스트")
+    public void exposeTest(){
+        // 정상 작동
+        UUID clusterId = UUID.randomUUID();
+        Collection collection = new Collection();
+        collection.setBaseId("collection");
+        Collection.Index indexA = new Collection.Index();
+        indexA.setIndex("indexA");
+        indexA.setUuid(UUID.randomUUID().toString());
+        collection.setIndexA(indexA);
+
+        String targetIndex = "indexA";
+
+        Assertions.assertDoesNotThrow(() -> {
+            doNothing().when(elasticsearchFactoryHighLevelWrapper).updateAliases(eq(clusterId), any(IndicesAliasesRequest.class));
+            given(elasticsearchFactoryHighLevelWrapper.updateIndexSettings(eq(clusterId), any(String.class), any(Map.class))).willReturn(true);
+            this.indexingJobService.expose(clusterId, collection, targetIndex);
+            verify(elasticsearchFactoryHighLevelWrapper, times(1)).updateIndexSettings(eq(clusterId), eq(targetIndex), any(Map.class));
         });
     }
 }

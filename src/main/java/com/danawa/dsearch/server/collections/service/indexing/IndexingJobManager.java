@@ -277,7 +277,6 @@ public class IndexingJobManager {
         setScheduleQueueStatus(collectionId, status);
         setLookupQueueStatus(collectionId, status);
     }
-
     private void setLookupQueueStatus(String collectionId, String status){
         if(lookupQueue.get(collectionId) != null){
             IndexingStatus indexingStatus = lookupQueue.get(collectionId);
@@ -285,7 +284,6 @@ public class IndexingJobManager {
             lookupQueue.replace(collectionId, indexingStatus);
         }
     }
-
     private void setScheduleQueueStatus(String collectionId, String status){
         if(manageQueue.get(collectionId) != null){
             IndexingStatus currentStatus = manageQueue.get(collectionId);

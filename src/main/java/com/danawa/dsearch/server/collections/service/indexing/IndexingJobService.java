@@ -347,8 +347,12 @@ public class IndexingJobService {
         Collection.Index indexA = collection.getIndexA();
         Collection.Index indexB = collection.getIndexB();
 
-        String toAddIndex = getIndexToAddAlias(indexA.getIndex(), indexB.getIndex(), targetIndex);
-        String toRemoveIndex = getIndexToRemoveAlias(indexA.getIndex(), indexB.getIndex(), targetIndex);
+
+        String nameOfindexA = indexA.getIndex() != null ? indexA.getIndex() : "" ;
+        String nameOfindexB = indexB.getIndex() != null ? indexB.getIndex() : "" ;
+
+        String toAddIndex = getIndexToAddAlias(nameOfindexA, nameOfindexB, targetIndex);
+        String toRemoveIndex = getIndexToRemoveAlias(nameOfindexA, nameOfindexB, targetIndex);
 
         try {
             request.addAliasAction(new IndicesAliasesRequest.
@@ -370,10 +374,8 @@ public class IndexingJobService {
 
     private String getIndexToAddAlias(String indexA, String indexB, String targetIndex){
         if (indexA.equals(targetIndex)) {
-
             return indexA;
         } else {
-
             return indexB;
         }
     }
