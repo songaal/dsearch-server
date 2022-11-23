@@ -1,6 +1,7 @@
 package com.danawa.dsearch.server.collections.service.history;
 
 import com.danawa.dsearch.server.collections.dto.HistoryReadRequest;
+import com.danawa.dsearch.server.collections.entity.Collection;
 import com.danawa.dsearch.server.collections.entity.IndexHistory;
 import com.danawa.dsearch.server.collections.entity.IndexingStatus;
 import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactory;
@@ -38,10 +39,13 @@ public class IndexHistoryService implements HistoryService {
 
     @Override
     public List<Map<String, Object>> findByCollection(UUID clusterId, HistoryReadRequest historyReadRequest) {
+        String indexA = historyReadRequest.getIndexA();
+        String indexB = historyReadRequest.getIndexB();
+        String jobType = historyReadRequest.getJobType();
 
-        if (historyReadRequest.getIndexA() == null && historyReadRequest.getIndexB() == null){
+        if (indexA == null && indexB == null){
             return indexHistoryAdapter.findByClusterIdAndJobType(clusterId, historyReadRequest);
-        } else if(historyReadRequest.getJobType() == null){
+        } else if(jobType == null){
             return indexHistoryAdapter.findByCollection(clusterId, historyReadRequest);
         }else{
             return indexHistoryAdapter.findByCollectionWithJobType(clusterId, historyReadRequest);
@@ -93,8 +97,8 @@ public class IndexHistoryService implements HistoryService {
     }
 
     @Override
-    public void delete(UUID clusterId, String collectionId){
-        indexHistoryAdapter.deleteAll(clusterId, collectionId);
+    public void delete(UUID clusterId, String collectionName){
+        indexHistoryAdapter.deleteAll(clusterId, collectionName);
     }
 
     private IndexHistory makeHistory(UUID clusterId, String index, String jobType, long startTime, long endTime, boolean autoRun, String status, String docSize, String store){

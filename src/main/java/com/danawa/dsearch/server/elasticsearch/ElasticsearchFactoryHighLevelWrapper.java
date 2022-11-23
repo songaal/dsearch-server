@@ -10,6 +10,7 @@ import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.*;
 import org.elasticsearch.client.indices.CreateIndexRequest;
+import org.elasticsearch.client.indices.GetIndexRequest;
 import org.elasticsearch.search.SearchHit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,6 +70,13 @@ public class ElasticsearchFactoryHighLevelWrapper {
         try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)){
             SearchResponse searchResponse = client.search(request, RequestOptions.DEFAULT);
             return searchResponse.getHits().getHits();
+        }
+    }
+
+    public boolean isExistIndex(UUID clusterId, String index) throws IOException {
+        try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)){
+            GetIndexRequest getIndexRequest = new GetIndexRequest(index);
+            return client.indices().exists(getIndexRequest, RequestOptions.DEFAULT);
         }
     }
 

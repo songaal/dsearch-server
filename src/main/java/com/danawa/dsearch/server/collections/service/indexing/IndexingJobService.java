@@ -95,22 +95,34 @@ public class IndexingJobService {
     }
 
     private Collection.Index getTargetIndex(UUID clusterId, Collection collection) throws IndexingJobFailureException {
-        if (isEmptyAlias(collection)){
+        // 1. alias 가져오기
+        String aliasString = getAliasString(clusterId);
+        // 2. alias Json 변환
+        // {
+        //     "alias": "...",
+        //     "index": "..."
+        // }
+        List<Map<String, Object>> aliasMap = new Gson().fromJson(aliasString, List.class);
+        // 3. 현재 컬렉션의 alias가 있는지 찾기
+        String collectionName = collection.getBaseId();
+        if (isExistCollectionNameInAliases(aliasMap, collectionName)){
+            // 3-1. 있다면 파싱해서 주기 
+            return parseTargetIndex(aliasMap, collection);
+        }else{
+            // 3-2. 없다면 디폴트(IndexA)로 주기
             return getDefaultIndex(collection);
         }
+    }
+    private boolean isExistCollectionNameInAliases(List<Map<String, Object>> aliasMap, String baseId){
+        for (Map<String, Object> item : aliasMap) {
+            if (item.get("alias").equals(baseId)) {
+                return true;
+            }
+        }
 
-        String aliasString = getAliasString(clusterId);
-        List<Map<String, Object>> aliasMap = new Gson().fromJson(aliasString, List.class);
-        Collection.Index index = parseTargetIndex(aliasMap, collection);
-        return index;
+        return false;
     }
 
-    private boolean isEmptyAlias(Collection collection){
-        if (collection.getIndexA() == null && collection.getIndexB() == null) return true;
-        else if (collection.getIndexA() != null && collection.getIndexA().getAliases().size() == 0) return true;
-        else if (collection.getIndexB() != null && collection.getIndexB().getAliases().size() == 0) return true;
-        return (collection.getIndexA().getAliases().size() == 0 && collection.getIndexB().getAliases().size() == 0);
-    }
 
     private Collection.Index getDefaultIndex(Collection collection){
         if (collection.getIndexA() != null){
@@ -315,7 +327,7 @@ public class IndexingJobService {
     }
 
     public void expose(UUID clusterId, Collection collection, String targetIndex) throws IOException {
-        if(!isCreatedIndexes(collection)){
+        if(!isCreatedIndexes(clusterId, collection)){
             logger.info("{} 컬렉션의 인덱스가 생성되지 않아 Expose 중지", collection.getBaseId());
             return;
         }
@@ -328,11 +340,11 @@ public class IndexingJobService {
 
         changeRefreshInterval(clusterId, collection, targetIndex);
     }
-    private boolean isCreatedIndexes(Collection collection){
-        Collection.Index indexA = collection.getIndexA();
-        Collection.Index indexB = collection.getIndexB();
+    private boolean isCreatedIndexes(UUID clusterId, Collection collection) throws IOException {
+        boolean isExistsIndexA = elasticsearchFactoryWrapper.isExistIndex(clusterId, collection.getIndexA().getIndex());
+        boolean isExistsIndexB = elasticsearchFactoryWrapper.isExistIndex(clusterId, collection.getIndexB().getIndex());
 
-        if (indexA.getUuid() == null && indexB.getUuid() == null) {
+        if (isExistsIndexA == false && isExistsIndexB == false) {
             logger.debug("현재 인덱스가 생성되지 않음");
             return false;
         }

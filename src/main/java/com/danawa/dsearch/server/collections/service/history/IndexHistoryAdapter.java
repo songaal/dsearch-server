@@ -3,10 +3,14 @@ package com.danawa.dsearch.server.collections.service.history;
 import com.danawa.dsearch.server.collections.dto.HistoryReadRequest;
 import com.danawa.dsearch.server.collections.entity.IndexHistory;
 import com.danawa.dsearch.server.collections.service.history.repository.HistoryRepository;
+import com.danawa.dsearch.server.collections.service.history.specification.IndexHistorySpecification;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,30 +28,33 @@ public class IndexHistoryAdapter {
 
     public void create(IndexHistory indexHistory){
         IndexHistory savedIndexHistory = historyRepository.save(indexHistory);
-        logger.info("saved History: {}, {}, {}", savedIndexHistory.getId(), savedIndexHistory.getClusterId(), savedIndexHistory.getIndex());
+        logger.info("historyId:{}, clusterId:{}, index:{}", savedIndexHistory.getId(), savedIndexHistory.getClusterId(), savedIndexHistory.getIndex());
     }
 
     @Transactional
-    public void deleteAll(UUID clusterId, String collectionId){
+    public void deleteAll(UUID clusterId, String collectionName){
         try{
-            historyRepository.deleteByClusterIdAndIndexStartsWith(clusterId, collectionId);
+            List<IndexHistory> list = historyRepository.findAll(IndexHistorySpecification.whereExactCollectionName(clusterId, collectionName));
+            historyRepository.deleteAll(list);
         }catch (Exception e){
             logger.info("", e);
         }
     }
 
-    public long count(UUID clusterId, String index, long startTime, String jobType){
-        List<IndexHistory> select = historyRepository.findByClusterIdAndIndexAndStartTimeAndJobType(clusterId, index, startTime, jobType);
-        logger.info("{} {} {} History count: {}", clusterId, index, startTime, select.size());
-        return select.size();
-    }
+//    public long count(UUID clusterId, String index, long startTime, String jobType){
+//        List<IndexHistory> select = historyRepository.findByClusterIdAndIndexAndStartTimeAndJobType(clusterId, index, startTime, jobType);
+//
+//        historyRepository.count()
+//        return select.size();
+//    }
 
     public long countByClusterIdAndIndex(UUID clusterId, HistoryReadRequest historyReadRequest){
         long count = 0;
         String collectionName = parseCollectionName(historyReadRequest);
 
         try{
-            count = historyRepository.countByClusterIdAndIndexStartsWith(clusterId, collectionName);
+            count = historyRepository.count(IndexHistorySpecification.whereExactCollectionName(clusterId, collectionName));
+            System.out.println("count:" + count);
         }catch (Exception e){
             logger.info("{}", e);
         }
@@ -73,17 +80,13 @@ public class IndexHistoryAdapter {
 
         List<IndexHistory> list = new ArrayList<>();
         List<Map<String, Object>> result = new ArrayList<>();
-
         try{
-            List<String> indexs = new ArrayList<>();
-            indexs.add(collectionName +"-a");
-            indexs.add(collectionName +"-b");
-            list = historyRepository.findByClusterIdAndIndexStartsWith(clusterId, collectionName, paging);
-//            list =  historyRepository.findByClusterIdAndIndexStartsWith(clusterId, collectionName, paging);
+            Specification spec = IndexHistorySpecification.whereExactCollectionName(clusterId, collectionName);
+            Page<IndexHistory> page = historyRepository.findAll(spec, paging);
+            page.forEach(history -> list.add(history));
         }catch (Exception e){
             logger.info("", e);
         }
-
         for (IndexHistory history: list){
             Map<String, Object> item = makeHistoryMap(history);
             result.add(item);
@@ -98,7 +101,9 @@ public class IndexHistoryAdapter {
         List<Map<String, Object>> result = new ArrayList<>();
 
         try{
-            list =  historyRepository.findByClusterIdAndJobType(clusterId, jobType, paging);
+            Specification spec = IndexHistorySpecification.whereExactJobType(clusterId, jobType);
+            Page<IndexHistory> page = historyRepository.findAll(spec, paging);
+            page.forEach(history -> list.add(history));
         }catch (Exception e){
             logger.info("", e);
         }
@@ -120,7 +125,9 @@ public class IndexHistoryAdapter {
         List<IndexHistory> list = new ArrayList<>();
         List<Map<String, Object>> result = new ArrayList<>();
         try{
-             list =  historyRepository.findByClusterIdAndJobTypeAndIndexStartsWith(clusterId, jobType, collectionName, paging);
+            Specification spec = IndexHistorySpecification.whereExactCollectionNameAndJobType(clusterId, jobType, collectionName);
+            Page<IndexHistory> page = historyRepository.findAll(spec, paging);
+            page.forEach(history -> list.add(history));
         }catch (Exception e){
             logger.info("", e);
         }
@@ -133,7 +140,6 @@ public class IndexHistoryAdapter {
     }
 
     private Map<String, Object> makeHistoryMap(IndexHistory history){
-        logger.info("{}", history);
         Map<String, Object> item = new HashMap<String, Object>();
         item.put("id", history.getId());
         item.put("index", history.getIndex());
@@ -152,7 +158,7 @@ public class IndexHistoryAdapter {
 
         if (from > 0 ) page = (from / size);
 
-        return PageRequest.of(page, size);
+        return PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "startTime"));
     }
 
     private String parseCollectionName(HistoryReadRequest historyReadRequest){
