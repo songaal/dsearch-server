@@ -41,13 +41,6 @@ public class IndexHistoryAdapter {
         }
     }
 
-//    public long count(UUID clusterId, String index, long startTime, String jobType){
-//        List<IndexHistory> select = historyRepository.findByClusterIdAndIndexAndStartTimeAndJobType(clusterId, index, startTime, jobType);
-//
-//        historyRepository.count()
-//        return select.size();
-//    }
-
     public long countByClusterIdAndIndex(UUID clusterId, HistoryReadRequest historyReadRequest){
         long count = 0;
         String collectionName = parseCollectionName(historyReadRequest);

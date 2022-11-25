@@ -51,9 +51,6 @@ public class ElasticsearchProxyService {
                     new String(body),
                     entity.toString());
             req.setEntity(new NStringEntity(new String(body), ContentType.APPLICATION_JSON));
-        }else{
-            logger.info("URI={}, method={}, remoteAddr={}, remoteHost={}",
-                    request.getRequestURI(), request.getMethod(), request.getRemoteAddr(), request.getRemoteHost());
         }
 
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)){
