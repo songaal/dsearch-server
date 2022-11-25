@@ -33,35 +33,32 @@ public class IndexingJobManager {
      */
 
     private static final Logger logger = LoggerFactory.getLogger(IndexingJobManager.class);
-    private final IndexingJobService indexingJobService;
 
-    // 색인 관리 큐에서 제거 용도 임시 저장소
-    private Set<String> deleteQueue = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
-
-    private StatusService indexStatusService;
-    private HistoryService indexHistoryService;
-    private AlertService alertService;
 
     // 색인 관리 큐
     // key: collection id,  value: Indexing status
     private ConcurrentHashMap<String, IndexingStatus> manageQueue = new ConcurrentHashMap<>();
-
     // 디서치 인덱서가 상태 조회 할 때 쓰는 큐
     private ConcurrentHashMap<String, IndexingStatus> lookupQueue = new ConcurrentHashMap<>();
+    // 색인 관리 큐에서 제거 용도 임시 저장소
+    private Set<String> deleteQueue = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 
+
+    private IndexingJobService indexingJobService;
+    private StatusService indexStatusService;
+    private HistoryService indexHistoryService;
     private IndexerClient indexerClient;
+
     private long timeout;
 
     public IndexingJobManager(IndexingJobService indexingJobService,
                               IndexerClient indexerClient,
                               StatusService indexStatusService,
                               HistoryService indexHistoryService,
-                              AlertService alertService,
                               @Value("${dsearch.timeout}") long timeout) {
         this.timeout = timeout;
         this.indexStatusService = indexStatusService;
         this.indexHistoryService = indexHistoryService;
-        this.alertService = alertService;
         this.indexingJobService = indexingJobService;
         this.indexerClient = indexerClient;
     }

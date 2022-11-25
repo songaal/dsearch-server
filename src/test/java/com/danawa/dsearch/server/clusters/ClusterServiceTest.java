@@ -78,10 +78,10 @@ public class ClusterServiceTest {
         int port = 1;
 
         //when
-        List<Cluster> clusterList =  this.clusterService.findByHostAndPort(host, port);
+        Cluster cluster =  this.clusterService.findByHostAndPort(host, port);
 
         //then
-        Assertions.assertEquals(0, clusterList.size());
+        Assertions.assertNull(cluster);
     }
 
     @Test
@@ -100,10 +100,10 @@ public class ClusterServiceTest {
         int port = 1;
 
         //when
-        List<Cluster> clusterList =  this.clusterService.findByHostAndPort(host, port);
+        Cluster cluster =  this.clusterService.findByHostAndPort(host, port);
 
         //then
-        Assertions.assertEquals(1, clusterList.size());
+        Assertions.assertNotNull(cluster);
     }
 
     @Test

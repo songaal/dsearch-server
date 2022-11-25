@@ -4,7 +4,6 @@ import com.danawa.dsearch.server.collections.entity.Collection;
 import com.danawa.dsearch.server.collections.entity.IndexActionStep;
 import com.danawa.dsearch.server.collections.entity.IndexingActionType;
 import com.danawa.dsearch.server.collections.entity.IndexingStatus;
-import com.danawa.dsearch.server.excpetions.IndexingJobFailureException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -13,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Map;
 import java.util.Queue;
 import java.util.UUID;
 
@@ -37,7 +37,7 @@ public class IndexingServiceTests {
     }
 
     @Test
-    @DisplayName("연속색인 테스트")
+    @DisplayName("연속 색인 테스트")
     public void startIndexingAllTest() {
         // 정상 동작
         Assertions.assertDoesNotThrow(() -> {
@@ -46,7 +46,8 @@ public class IndexingServiceTests {
             collection.setId("CollectionId");
             collection.setName("name");
             collection.setBaseId("baseId");
-            IndexingActionType type = IndexingActionType.ALL;
+            IndexingActionType actionType = IndexingActionType.ALL;
+            String groupSeq = ""; // all indexing 일 경우엔 빈 스트링
 
             IndexingStatus status = new IndexingStatus();
             status.setClusterId(clusterId);
@@ -55,26 +56,29 @@ public class IndexingServiceTests {
             given(indexingJobService.indexing(eq(clusterId), eq(collection), any(Queue.class))).willReturn(status);
             doNothing().when(indexingJobManager).add(collection.getId(), status);
 
-            IndexingStatus result = indexingService.startIndexingAll(clusterId, collection);
-            Assertions.assertEquals(result.getClusterId(), clusterId);
+            Map<String, Object> response = indexingService.processIndexingJob(clusterId, collection, actionType, groupSeq);
+            Assertions.assertEquals(response.get("result"), "success");
+            Assertions.assertEquals(response.get("indexingStatus"), status);
         });
+    }
+    @Test
+    @DisplayName("연속 색인 테스트 - Indexing 중 인 경우")
+    public void startIndexingAll_but_is_running(){
+        UUID clusterId = UUID.randomUUID();
+        Collection collection = new Collection();
+        collection.setId("CollectionId");
+        collection.setName("name");
+        collection.setBaseId("baseId");
+        IndexingActionType actionType = IndexingActionType.ALL;
+        String groupSeq = ""; // all indexing 일 경우엔 빈 스트링
 
-        // Indexing 중 인 경우
-        Assertions.assertThrows(IndexingJobFailureException.class, () -> {
-            UUID clusterId = UUID.randomUUID();
-            Collection collection = new Collection();
-            collection.setId("CollectionId");
-            collection.setName("name");
-            collection.setBaseId("baseId");
+        IndexingStatus status = new IndexingStatus();
+        status.setClusterId(clusterId);
 
-            IndexingStatus status = new IndexingStatus();
-            status.setClusterId(clusterId);
-
-            given(indexingJobManager.getManageQueue(collection.getId())).willReturn(status);
-
-            indexingService.startIndexingAll(clusterId, collection);
-        });
-
+        given(indexingJobManager.getManageQueue(collection.getId())).willReturn(status);
+        doNothing().when(indexingJobManager).setQueueStatus(collection.getId(), "ERROR");
+        Map<String, Object> response = indexingService.processIndexingJob(clusterId, collection, actionType, groupSeq);
+        Assertions.assertEquals(response.get("result"), "fail");
     }
 
     @Test
@@ -87,7 +91,8 @@ public class IndexingServiceTests {
             collection.setId("CollectionId");
             collection.setName("name");
             collection.setBaseId("baseId");
-            IndexingActionType type = IndexingActionType.INDEXING;
+            IndexingActionType actionType = IndexingActionType.INDEXING;
+            String groupSeq = "";
 
             IndexingStatus status = new IndexingStatus();
             status.setClusterId(clusterId);
@@ -96,31 +101,34 @@ public class IndexingServiceTests {
             given(indexingJobService.indexing(eq(clusterId), eq(collection), any(Queue.class))).willReturn(status);
             doNothing().when(indexingJobManager).add(collection.getId(), status);
 
-            IndexingStatus result = indexingService.startIndexing(clusterId, collection);
-            Assertions.assertEquals(result.getClusterId(), clusterId);
+            Map<String, Object> response = indexingService.processIndexingJob(clusterId, collection, actionType, groupSeq);
+            Assertions.assertEquals(response.get("result"), "success");
         });
-
-        // Indexing 중 인 경우
-        Assertions.assertThrows(IndexingJobFailureException.class, () -> {
-            UUID clusterId = UUID.randomUUID();
-            Collection collection = new Collection();
-            collection.setId("CollectionId");
-            collection.setName("name");
-            collection.setBaseId("baseId");
-
-            IndexingStatus status = new IndexingStatus();
-            status.setClusterId(clusterId);
-
-            given(indexingJobManager.getManageQueue(collection.getId())).willReturn(status);
-
-            indexingService.startIndexing(clusterId, collection);
-        });
-
     }
 
     @Test
-    @DisplayName("교체 테스트")
-    public void startExposeTest() {
+    @DisplayName("전체 색인 테스트- 색인 중 인 경우")
+    public void start_indexing_but_is_running() {
+        UUID clusterId = UUID.randomUUID();
+        Collection collection = new Collection();
+        collection.setId("CollectionId");
+        collection.setName("name");
+        collection.setBaseId("baseId");
+        IndexingActionType actionType = IndexingActionType.INDEXING;
+        String groupSeq = "";
+
+        IndexingStatus status = new IndexingStatus();
+        status.setClusterId(clusterId);
+
+        given(indexingJobManager.getManageQueue(collection.getId())).willReturn(status);
+        Map<String, Object> response = indexingService.processIndexingJob(clusterId, collection, actionType, groupSeq);
+        Assertions.assertEquals(response.get("result"), "fail");
+    }
+
+
+    @Test
+    @DisplayName("교체 테스트 - 색인이 끝난 이후")
+    public void start_expose_after_indexing() {
         // 정상 동작
         Assertions.assertDoesNotThrow(() -> {
             UUID clusterId = UUID.randomUUID();
@@ -128,37 +136,41 @@ public class IndexingServiceTests {
             collection.setId("CollectionId");
             collection.setName("name");
             collection.setBaseId("baseId");
+            IndexingActionType actionType = IndexingActionType.EXPOSE;
+            String groupSeq = "";
 
             IndexingStatus status = new IndexingStatus();
             status.setClusterId(clusterId);
 
             given(indexingJobManager.getManageQueue(collection.getId())).willReturn(null);
-            indexingService.startExpose(clusterId, collection);
-            verify(indexingJobService, times(1)).expose(clusterId, collection);
-        });
-
-        // Indexing 중 인 경우
-        Assertions.assertThrows(IndexingJobFailureException.class, () -> {
-            UUID clusterId = UUID.randomUUID();
-            Collection collection = new Collection();
-            collection.setId("CollectionId");
-            collection.setName("name");
-            collection.setBaseId("baseId");
-            IndexingActionType type = IndexingActionType.INDEXING;
-
-            IndexingStatus status = new IndexingStatus();
-            status.setClusterId(clusterId);
-
-            given(indexingJobManager.getManageQueue(collection.getId())).willReturn(status);
-
-            indexingService.startExpose(clusterId, collection);
+            Map<String, Object> response = indexingService.processIndexingJob(clusterId, collection, actionType, groupSeq);
+            Assertions.assertEquals(response.get("result"), "success");
         });
     }
+    @Test
+    @DisplayName("교체 테스트 - 색인 중 인 경우")
+    public void start_expose_when_running_indexing() {
+        // Indexing 중 인 경우
+        UUID clusterId = UUID.randomUUID();
+        Collection collection = new Collection();
+        collection.setId("CollectionId");
+        collection.setName("name");
+        collection.setBaseId("baseId");
+        IndexingActionType actionType = IndexingActionType.EXPOSE;
+        String groupSeq = "";
+
+        IndexingStatus status = new IndexingStatus();
+        status.setClusterId(clusterId);
+
+        given(indexingJobManager.getManageQueue(collection.getId())).willReturn(status);
+        Map<String, Object> response = indexingService.processIndexingJob(clusterId, collection, actionType, groupSeq);
+        Assertions.assertEquals(response.get("result"), "fail");
+    }
+
 
     @Test
     @DisplayName("색인 중지 테스트")
     public void stopIndexingTest() {
-        // 정상 동작
         UUID clusterId = UUID.randomUUID();
         Collection collection = new Collection();
         collection.setId("CollectionId");
@@ -169,28 +181,24 @@ public class IndexingServiceTests {
         status.setClusterId(clusterId);
         status.setCurrentStep(IndexActionStep.FULL_INDEX);
 
+        IndexingActionType actionType = IndexingActionType.STOP_INDEXING;
+        String groupSeq = "";
+
+        // 현재 인덱싱 진행 중
         given(indexingJobManager.getManageQueue(collection.getId())).willReturn(status);
         doNothing().when(indexingJobService).stopIndexing(status);
         doNothing().when(indexingJobManager).setQueueStatus(collection.getId(), "STOP");
-        indexingService.stopIndexing(collection);
+        Map<String, Object> response = indexingService.processIndexingJob(clusterId, collection, actionType, groupSeq);
+        Assertions.assertEquals(response.get("result"), "success");
 
         verify(indexingJobService, times(1)).stopIndexing(status);
         verify(indexingJobManager, times(1)).setQueueStatus(collection.getId(), "STOP");
         verify(indexingJobManager, times(2)).getManageQueue(collection.getId());
-
-        // 색인이 중지되었는데 한번 더 중지 한 경우
-        given(indexingJobManager.getManageQueue(collection.getId())).willReturn(null);
-        indexingService.stopIndexing(collection);
-        verify(indexingJobManager, times(4)).getManageQueue(collection.getId());
     }
 
     @Test
     @DisplayName("그룹 색인 테스트")
     public void startGroupIndexingTest() {
-        // 실제로 사용하는지 확인 필요
-
-
-        // 정상 동작
         UUID clusterId = UUID.randomUUID();
         Collection collection = new Collection();
         collection.setId("CollectionId");
@@ -202,18 +210,35 @@ public class IndexingServiceTests {
         status.setClusterId(clusterId);
         status.setCurrentStep(IndexActionStep.FULL_INDEX);
 
+        IndexingActionType actionType = IndexingActionType.SUB_START;
+
         given(indexingJobManager.getManageQueue(collection.getId())).willReturn(status);
         doNothing().when(indexingJobService).startGroupJob(status, collection, groupSeq);
-        IndexingStatus result = indexingService.startGroupIndexing(collection, groupSeq);
+        Map<String, Object> response = indexingService.processIndexingJob(clusterId, collection, actionType, groupSeq);
 
         verify(indexingJobService, times(1)).startGroupJob(status, collection, groupSeq);
-        Assertions.assertEquals(status, result);
+        Assertions.assertEquals(response.get("result"), "success");
 
-        // 정상적이지 않은 groupSeq일 경우
-        String invaildGroupSeq = "0,2,3";
+    }
+
+    @Test
+    @DisplayName("그룹 색인 테스트 - groupseq가 정상적이지 않을 경우")
+    public void start_group_indexing_when_invalid_groupseq() {
+        UUID clusterId = UUID.randomUUID();
+        Collection collection = new Collection();
+        collection.setId("CollectionId");
+        collection.setName("name");
+        collection.setBaseId("baseId");
+        String groupSeq = "0,2,3";
+
+        IndexingStatus status = new IndexingStatus();
+        status.setClusterId(clusterId);
+        status.setCurrentStep(IndexActionStep.FULL_INDEX);
+
+        IndexingActionType actionType = IndexingActionType.SUB_START;
+
         given(indexingJobManager.getManageQueue(collection.getId())).willReturn(status);
-        result = indexingService.startGroupIndexing(collection, invaildGroupSeq);
-        verify(indexingJobService, times(0)).startGroupJob(status, collection, invaildGroupSeq);
-        Assertions.assertNotEquals(status, result);
+        Map<String, Object> response = indexingService.processIndexingJob(clusterId, collection, actionType, groupSeq);
+        Assertions.assertEquals(response.get("result"), "fail");
     }
 }
