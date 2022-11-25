@@ -1,9 +1,7 @@
 package com.danawa.dsearch.server.collections.controller;
 
 import com.danawa.dsearch.server.clusters.service.ClusterService;
-import com.danawa.dsearch.server.collections.dto.HistoryReadRequest;
 import com.danawa.dsearch.server.collections.entity.IndexingActionType;
-import com.danawa.dsearch.server.collections.service.history.IndexHistoryService;
 import com.danawa.dsearch.server.collections.service.schedule.CollectionScheduleManager;
 import com.danawa.dsearch.server.collections.service.indexing.IndexingJobManager;
 import com.danawa.dsearch.server.collections.service.indexing.IndexingJobService;
@@ -14,6 +12,7 @@ import com.danawa.dsearch.server.collections.entity.IndexingStatus;
 import com.danawa.dsearch.server.collections.service.indexing.IndexingService;
 import com.danawa.dsearch.server.excpetions.DuplicatedUserException;
 import com.danawa.dsearch.server.excpetions.IndexingJobFailureException;
+import com.danawa.dsearch.server.excpetions.ParameterInvalidException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -128,12 +127,12 @@ public class CollectionController {
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
-
     @PutMapping("/{id}/action")
     public ResponseEntity<?> indexing(@RequestHeader(value = "cluster-id") UUID clusterId,
                                       @RequestHeader(value = "client-ip", required = false) String clientIP,
                                       @PathVariable String id,
                                       @RequestParam String action) throws IndexingJobFailureException, IOException {
+        logger.info("/{}/actrion", id);
         Map<String, Object> response = new HashMap<>();
         IndexingActionType actionType = getActionType(action);
         Collection collection = collectionService.findById(clusterId, id);
@@ -143,92 +142,97 @@ public class CollectionController {
 
     @GetMapping("/idxp")
     public ResponseEntity<?> idxp(@RequestParam(name = "host") String host,
-                                      @RequestParam(name = "port") int port,
-                                      @RequestParam(name = "collectionName") String collectionName,
-                                      @RequestParam(required = false) String groupSeq,
-                                      @RequestParam(name = "action") String action) throws IndexingJobFailureException, IOException {
+                                  @RequestParam(name = "port") int port,
+                                  @RequestParam(name = "collectionName") String collectionName,
+                                  @RequestParam(required = false) String groupSeq,
+                                  @RequestParam(name = "action") String action) throws IndexingJobFailureException, IOException, ParameterInvalidException {
         Map<String, Object> response = new HashMap<>();
-        handleError(host, port, collectionName, action, response);
+        validateParams(host, port, collectionName, action);
+        Cluster cluster = null;
+        Collection collection = null;
 
-        List<Cluster> clusterList = clusterService.findByHostAndPort(host, port);
-        if(clusterList.size() == 0){
-            response.put("message", "Not Found Cluster");
-            response.put("result", "fail");
-            return new ResponseEntity<>(response, HttpStatus.OK);
-        }
-
-        Cluster cluster = clusterList.get(0);
-        Collection collection = collectionService.findByName(cluster.getId(), collectionName);
-        if(collection == null){
-            response.put("message", "Not Found Collection Name");
-            response.put("result", "fail");
-            return new ResponseEntity<>(response, HttpStatus.OK);
+        try{
+            cluster = clusterService.findByHostAndPort(host, port);
+            collection = collectionService.findByName(cluster.getId(), collectionName);
+        }catch (NoSuchElementException e){
+            throw new IndexingJobFailureException(e.getMessage());
         }
 
         UUID clusterId = cluster.getId();
         String id = collection.getId();
         IndexingActionType actionType = getActionType(action);
 
-//        IDXP에서 groupSeq가 넘어오면서 전체 색인을 시작한다.
-//        일반적으로 관리도구 설정과 동일할거같지만... IDXP 파라미터가 있을 경우 groupSeq 를 변경한다.
-        if ((actionType == IndexingActionType.ALL || actionType == IndexingActionType.INDEXING) && groupSeq != null && !"".equals(groupSeq)) {
-            try {
-                Map<String ,Object> yamlToMap = indexingJobService.convertRequestParams(collection.getLauncher().getYaml());
-                if (yamlToMap.get("groupSeq") != null && !"".equals(yamlToMap.get("groupSeq"))) {
-                    yamlToMap.put("groupSeq", groupSeq);
-                    DumperOptions options = new DumperOptions();
-                    options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-                    options.setPrettyFlow(true);
-                    collection.getLauncher().setYaml(new Yaml(options).dump(yamlToMap));
-                }
-            } catch(Exception e) {
-                logger.error("", e);
-            }
+        // IDXP에서 groupSeq가 넘어오면서 전체 색인을 시작한다.
+        // 일반적으로 관리도구 설정과 동일할거같지만... IDXP 파라미터가 있을 경우 groupSeq 를 변경한다.
+        if (isValidGroupSeq(actionType, groupSeq)) {
+            changeGroupSeqWithinLauncher(collection, groupSeq);
         }
 
         indexingService.processIndexingJob(clusterId, "from-remote-indexer", id, collection, actionType, groupSeq, response);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
+    private boolean isValidGroupSeq(IndexingActionType actionType, String groupSeq){
+        return (actionType == IndexingActionType.ALL || actionType == IndexingActionType.INDEXING) && groupSeq != null && !"".equals(groupSeq);
+    }
+    private void changeGroupSeqWithinLauncher(Collection collection, String groupSeq){
+        try {
+            Map<String ,Object> yamlToMap = indexingJobService.convertRequestParams(collection.getLauncher().getYaml());
+            if (yamlToMap.get("groupSeq") != null && !"".equals(yamlToMap.get("groupSeq"))) {
+                yamlToMap.put("groupSeq", groupSeq);
+                makePrettyLauncher(collection, yamlToMap);
+            }
+        } catch(Exception e) {
+            logger.error("", e);
+        }
+    }
+
+    private void makePrettyLauncher(Collection collection, Map<String, Object> yamlToMap){
+        DumperOptions options = new DumperOptions();
+        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+        options.setPrettyFlow(true);
+        collection.getLauncher().setYaml(new Yaml(options).dump(yamlToMap));
+    }
+
 
     @GetMapping("/idxp/status")
     public ResponseEntity<?> getIdxpStatus(@RequestParam(name = "host") String host,
                                   @RequestParam(name = "port") int port,
-                                  @RequestParam(name = "collectionName") String collectionName) throws IOException {
-        Map<String, Object> response = new HashMap<>();
-        handleError(host, port, collectionName, "empty", response);
+                                  @RequestParam(name = "collectionName") String collectionName) throws IOException, IndexingJobFailureException, ParameterInvalidException {
+        validateParams(host, port, collectionName, "empty");
+        Cluster cluster = null;
+        Collection collection = null;
 
-        List<Cluster> clusterList = clusterService.findByHostAndPort(host, port);
-        if(clusterList.size() == 0){
-            response.put("message", "Not Found Cluster");
-            response.put("result", "fail");
-            return new ResponseEntity<>(response, HttpStatus.OK);
-        }
-
-        Cluster cluster = clusterList.get(0);
-        Collection collection = collectionService.findByName(cluster.getId(), collectionName);
-        if(collection == null){
-            response.put("message", "Not Found Collection Name");
-            response.put("result", "fail");
-            return new ResponseEntity<>(response, HttpStatus.OK);
+        try{
+            cluster = clusterService.findByHostAndPort(host, port);
+            collection = collectionService.findByName(cluster.getId(), collectionName);
+        }catch (NoSuchElementException e){
+            throw new IndexingJobFailureException(e.getMessage());
         }
 
         String collectionId = collection.getId();
         IndexingStatus indexingStatus = indexingJobManager.getCurrentIndexingStatus(collectionId);
+
+        Map<String, Object> response = makeIndexingStatusResponse(indexingStatus);
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    private Map<String, Object> makeIndexingStatusResponse(IndexingStatus indexingStatus){
+        Map<String, Object> response = new HashMap<>();
 
         if(indexingStatus == IndexingStatus.Empty){
             Map<String, String> map = new HashMap<>();
             map.put("status", "NOT_STARTED");
             response.put("message", "Not Found Status (색인을 시작하지 않았습니다)");
             response.put("info", map);
-            return new ResponseEntity<>(response, HttpStatus.OK);
+            return response;
         }
 
         response.put("result", "success");
         response.put("message", "");
         response.put("info",  indexingStatus);
         response.put("step",  indexingStatus.getCurrentStep());
-        return new ResponseEntity<>(response, HttpStatus.OK);
+        return response;
     }
 
     @GetMapping("/manageQueue")
@@ -292,29 +296,25 @@ public class CollectionController {
         }
     }
 
-    private void handleError(String host, int port, String collectionName, String action, Map<String, Object> response){
+    private void validateParams(String host, int port, String collectionName, String action) throws ParameterInvalidException {
         // Host 에러 처리
         if(host == null || host.equals("")){
-            response.put("message", "host is not correct");
-            response.put("result", "fail");
+            throw new ParameterInvalidException("host is empty");
         }
 
         // Port 에러 처리
         if (port <= 0) {
-            response.put("message", "port is not correct");
-            response.put("result", "fail");
+            throw new ParameterInvalidException("port is less than 0");
         }
 
         // CollectionName 에러 처리
         if(collectionName == null || collectionName.equals("")){
-            response.put("message", "collectionName is not correct");
-            response.put("result", "fail");
+            throw new ParameterInvalidException("collection name is null");
         }
 
         // action 에러 처리
         if (action == null || action.equals("")) {
-            response.put("message", "action is not correct");
-            response.put("result", "fail");
+            throw new ParameterInvalidException("action is null");
         }
     }
 }

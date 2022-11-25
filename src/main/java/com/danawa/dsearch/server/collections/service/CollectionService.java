@@ -498,6 +498,10 @@ public class CollectionService {
         if(clusterId == null || name == null || name.equals("") ) throw new NullArgumentException("");
 
         List<Collection> list = findAll(clusterId);
+        if(list.isEmpty()){
+            throw new NoSuchElementException("clusterId=" + clusterId + ", name=" + name + " is Not Found");
+        }
+
         Collection result = null;
         for(Collection collection : list){
             if(collection.getBaseId().equals(name)){
