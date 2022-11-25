@@ -133,10 +133,14 @@ public class CollectionController {
                                       @PathVariable String id,
                                       @RequestParam String action) throws IndexingJobFailureException, IOException {
         logger.info("/{}/actrion", id);
-        Map<String, Object> response = new HashMap<>();
+
         IndexingActionType actionType = getActionType(action);
         Collection collection = collectionService.findById(clusterId, id);
-        indexingService.processIndexingJob(clusterId, clientIP, id, collection, actionType, "", response);
+        logger.info("clusterId={}, clientIP=from-remote-indexer, collection={}, actionType={}",
+                clusterId,
+                collection,
+                actionType);
+        Map<String, Object> response = indexingService.processIndexingJob(clusterId, collection, actionType, "");
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
@@ -146,7 +150,6 @@ public class CollectionController {
                                   @RequestParam(name = "collectionName") String collectionName,
                                   @RequestParam(required = false) String groupSeq,
                                   @RequestParam(name = "action") String action) throws IndexingJobFailureException, IOException, ParameterInvalidException {
-        Map<String, Object> response = new HashMap<>();
         validateParams(host, port, collectionName, action);
         Cluster cluster = null;
         Collection collection = null;
@@ -167,8 +170,12 @@ public class CollectionController {
         if (isValidGroupSeq(actionType, groupSeq)) {
             changeGroupSeqWithinLauncher(collection, groupSeq);
         }
-
-        indexingService.processIndexingJob(clusterId, "from-remote-indexer", id, collection, actionType, groupSeq, response);
+        logger.info("clusterId={}, clientIP=from-remote-indexer, collection={}, actionType={}, groupSeq={}",
+                clusterId,
+                collection,
+                actionType,
+                groupSeq);
+        Map<String,Object> response = indexingService.processIndexingJob(clusterId, collection, actionType, groupSeq);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
