@@ -4,7 +4,6 @@ import com.danawa.dsearch.server.clusters.service.ClusterService;
 import com.danawa.dsearch.server.collections.entity.IndexingActionType;
 import com.danawa.dsearch.server.collections.service.schedule.CollectionScheduleManager;
 import com.danawa.dsearch.server.collections.service.indexing.IndexingJobManager;
-import com.danawa.dsearch.server.collections.service.indexing.IndexingJobService;
 import com.danawa.dsearch.server.collections.service.CollectionService;
 import com.danawa.dsearch.server.clusters.entity.Cluster;
 import com.danawa.dsearch.server.collections.entity.Collection;
@@ -35,7 +34,6 @@ public class CollectionController {
     private final String indexSuffixB;
     private final ClusterService clusterService;
     private final CollectionService collectionService;
-    private final IndexingJobService indexingJobService;
     private final IndexingJobManager indexingJobManager;
     private final CollectionScheduleManager scheduleManager;
     private final IndexingService indexingService;
@@ -44,20 +42,26 @@ public class CollectionController {
                                 @Value("${dsearch.collection.index-suffix-b}") String indexSuffixB,
                                 CollectionService collectionService,
                                 ClusterService clusterService,
-                                IndexingJobService indexingJobService,
                                 IndexingJobManager indexingJobManager,
                                 CollectionScheduleManager scheduleManager,
                                 IndexingService indexingService) {
         this.indexSuffixA = indexSuffixA;
         this.indexSuffixB = indexSuffixB;
         this.collectionService = collectionService;
-        this.indexingJobService = indexingJobService;
         this.indexingJobManager = indexingJobManager;
         this.clusterService = clusterService;
         this.scheduleManager = scheduleManager;
         this.indexingService = indexingService;
     }
 
+    /**
+     * 컬렉션 추가 메서드
+     * @param clusterId
+     * @param collection
+     * @return
+     * @throws IOException
+     * @throws DuplicatedUserException
+     */
     @PostMapping
     public ResponseEntity<?> addCollection(@RequestHeader(value = "cluster-id") UUID clusterId,
                                            @RequestBody Collection collection) throws IOException, DuplicatedUserException {
@@ -65,6 +69,27 @@ public class CollectionController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    /**
+     * 컬렉션 삭제 메서드
+     * @param clusterId
+     * @param id
+     * @return
+     * @throws IOException
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteById(@RequestHeader(value = "cluster-id") UUID clusterId,
+                                        @PathVariable String id) throws IOException {
+        collectionService.deleteById(clusterId, id);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    /**
+     * 컬렉션 전체 리스트 가져오기
+     * @param clusterId
+     * @param action
+     * @return
+     * @throws IOException
+     */
     @GetMapping
     public ResponseEntity<?> findAll(@RequestHeader(value = "cluster-id") UUID clusterId,
                                      @RequestParam(defaultValue = "collection") String action) throws IOException {
@@ -78,25 +103,28 @@ public class CollectionController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
+    /**
+     * 특정 컬렉션만 가져오기
+     * @param clusterId
+     * @param id
+     * @return
+     * @throws IOException
+     */
     @GetMapping("/{id}")
     public ResponseEntity<?> findById(@RequestHeader(value = "cluster-id") UUID clusterId,
                                       @PathVariable String id) throws IOException {
         return new ResponseEntity<>(collectionService.findById(clusterId, id), HttpStatus.OK);
     }
 
-    @GetMapping("/{id}/job")
-    public ResponseEntity<?> getJob(@RequestHeader(value = "cluster-id") UUID clusterId,
-                                    @PathVariable String id) {
-        return new ResponseEntity<>(indexingJobManager.getManageQueue(id), HttpStatus.OK);
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteById(@RequestHeader(value = "cluster-id") UUID clusterId,
-                                        @PathVariable String id) throws IOException {
-        collectionService.deleteById(clusterId, id);
-        return new ResponseEntity<>(HttpStatus.OK);
-    }
-
+    /**
+     * 특정 컬렉션 수정
+     * @param clusterId
+     * @param action
+     * @param collectionId
+     * @param collection
+     * @return
+     * @throws IOException
+     */
     @PutMapping("/{collectionId}")
     public ResponseEntity<?> editCollection(@RequestHeader(value = "cluster-id") UUID clusterId,
                                             @RequestParam String action,
@@ -128,6 +156,76 @@ public class CollectionController {
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
+
+
+    /**
+     * 현재 색인 중인 특정 컬렉션 내역 가져오기
+     * @param clusterId
+     * @param id
+     * @return
+     */
+    @GetMapping("/{id}/job")
+    public ResponseEntity<?> getIndexingJobList(@RequestHeader(value = "cluster-id") UUID clusterId,
+                                    @PathVariable String id) {
+        return new ResponseEntity<>(indexingJobManager.getManageQueue(id), HttpStatus.OK);
+    }
+
+    /**
+     * 현재 색인중인 전체 컬렉션 가져오기
+     * @return
+     */
+    @GetMapping("/manageQueue")
+    public ResponseEntity<?> getManageQueue(){
+        Map<String, Object> response = new HashMap<>();
+        List<IndexingStatus> statusList = indexingJobManager.getManageQueueList();
+        response.put("message", "");
+        response.put("data",  statusList);
+        response.put("result", "success");
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    /**
+     * 색인 중 혹은 색인이 끝난 전체 컬렉션 가져오기
+     * @return
+     */
+    @GetMapping("/lookupQueue")
+    public ResponseEntity<?> getLookupQueue(){
+        Map<String, Object> response = new HashMap<>();
+        List<IndexingStatus> statusList = indexingJobManager.getLookupQueueList();
+        response.put("message", "");
+        response.put("data",  statusList);
+        response.put("result", "success");
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+
+    @GetMapping("/scheduleQueue")
+    public ResponseEntity<?> getScheduleQueue(){
+        Map<String, Object> response = new HashMap<>();
+        List<String> statusList = scheduleManager.getScheduleList();
+        response.put("message", "");
+        response.put("data",  statusList);
+        response.put("result", "success");
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @GetMapping("/setTimeout")
+    public ResponseEntity<?> setRefreshInterval(@RequestParam String timeout) {
+        indexingJobManager.setTimeout(Long.parseLong(timeout));
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+
+    /**
+     * 색인 하기 - 색인, 교체, 그룹색인, 색인 중지
+     * @param clusterId
+     * @param clientIP
+     * @param id
+     * @param action
+     * @return
+     * @throws IndexingJobFailureException
+     * @throws IOException
+     */
     @PutMapping("/{id}/action")
     public ResponseEntity<?> indexing(@RequestHeader(value = "cluster-id") UUID clusterId,
                                       @RequestHeader(value = "client-ip", required = false) String clientIP,
@@ -144,6 +242,18 @@ public class CollectionController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
+    /**
+     * 색인 하기 
+     * @param host
+     * @param port
+     * @param collectionName
+     * @param groupSeq
+     * @param action
+     * @return
+     * @throws IndexingJobFailureException
+     * @throws IOException
+     * @throws ParameterInvalidException
+     */
     @GetMapping("/idxp")
     public ResponseEntity<?> idxp(@RequestParam(name = "host") String host,
                                   @RequestParam(name = "port") int port,
@@ -178,6 +288,40 @@ public class CollectionController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
+    /**
+     * 색인 내역 가져오기
+     * @param host
+     * @param port
+     * @param collectionName
+     * @return
+     * @throws IOException
+     * @throws IndexingJobFailureException
+     * @throws ParameterInvalidException
+     */
+    @GetMapping("/idxp/status")
+    public ResponseEntity<?> getIdxpStatus(@RequestParam(name = "host") String host,
+                                           @RequestParam(name = "port") int port,
+                                           @RequestParam(name = "collectionName") String collectionName) throws IOException, IndexingJobFailureException, ParameterInvalidException {
+
+        logger.info("/idxp/status");
+        validateParams(host, port, collectionName, "empty");
+        Cluster cluster = null;
+        Collection collection = null;
+
+        try{
+            cluster = clusterService.findByHostAndPort(host, port);
+            collection = collectionService.findByName(cluster.getId(), collectionName);
+        }catch (NoSuchElementException e){
+            throw new IndexingJobFailureException(e.getMessage());
+        }
+
+        String collectionId = collection.getId();
+        IndexingStatus indexingStatus = indexingJobManager.getCurrentIndexingStatus(collectionId);
+
+        Map<String, Object> response = makeIndexingStatusResponse(indexingStatus);
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
     private boolean isValidGroupSeq(IndexingActionType actionType, String groupSeq){
         return (actionType == IndexingActionType.ALL || actionType == IndexingActionType.INDEXING) && groupSeq != null && !"".equals(groupSeq);
     }
@@ -201,28 +345,6 @@ public class CollectionController {
     }
 
 
-    @GetMapping("/idxp/status")
-    public ResponseEntity<?> getIdxpStatus(@RequestParam(name = "host") String host,
-                                  @RequestParam(name = "port") int port,
-                                  @RequestParam(name = "collectionName") String collectionName) throws IOException, IndexingJobFailureException, ParameterInvalidException {
-        validateParams(host, port, collectionName, "empty");
-        Cluster cluster = null;
-        Collection collection = null;
-
-        try{
-            cluster = clusterService.findByHostAndPort(host, port);
-            collection = collectionService.findByName(cluster.getId(), collectionName);
-        }catch (NoSuchElementException e){
-            throw new IndexingJobFailureException(e.getMessage());
-        }
-
-        String collectionId = collection.getId();
-        IndexingStatus indexingStatus = indexingJobManager.getCurrentIndexingStatus(collectionId);
-
-        Map<String, Object> response = makeIndexingStatusResponse(indexingStatus);
-        return new ResponseEntity<>(response, HttpStatus.OK);
-    }
-
     private Map<String, Object> makeIndexingStatusResponse(IndexingStatus indexingStatus){
         Map<String, Object> response = new HashMap<>();
 
@@ -241,41 +363,7 @@ public class CollectionController {
         return response;
     }
 
-    @GetMapping("/manageQueue")
-    public ResponseEntity<?> getManageQueue(){
-        Map<String, Object> response = new HashMap<>();
-        List<IndexingStatus> statusList = indexingJobManager.getManageQueueList();
-        response.put("message", "");
-        response.put("data",  statusList);
-        response.put("result", "success");
-        return new ResponseEntity<>(response, HttpStatus.OK);
-    }
 
-    @GetMapping("/lookupQueue")
-    public ResponseEntity<?> getLookupQueue(){
-        Map<String, Object> response = new HashMap<>();
-        List<IndexingStatus> statusList = indexingJobManager.getLookupQueueList();
-        response.put("message", "");
-        response.put("data",  statusList);
-        response.put("result", "success");
-        return new ResponseEntity<>(response, HttpStatus.OK);
-    }
-
-    @GetMapping("/scheduleQueue")
-    public ResponseEntity<?> getScheduleQueue(){
-        Map<String, Object> response = new HashMap<>();
-        List<String> statusList = scheduleManager.getScheduleList();
-        response.put("message", "");
-        response.put("data",  statusList);
-        response.put("result", "success");
-        return new ResponseEntity<>(response, HttpStatus.OK);
-    }
-
-    @GetMapping("/setTimeout")
-    public ResponseEntity<?> setRefreshInterval(@RequestParam String timeout) {
-        indexingJobManager.setTimeout(Long.parseLong(timeout));
-        return new ResponseEntity<>(HttpStatus.OK);
-    }
 
     /**
      * 도우미 메서드 영역

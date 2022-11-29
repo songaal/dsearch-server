@@ -47,7 +47,7 @@ public class IndexingService {
             case ALL:
                 synchronized (obj) {
                     try{
-                        IndexingStatus status = startIndexingAll(clusterId, collection);
+                        IndexingStatus status = startIndexingAndExpose(clusterId, collection);
                         response.put("indexingStatus", status);
                         response.put("result", "success");
                     } catch (IndexingJobFailureException e) {
@@ -111,7 +111,7 @@ public class IndexingService {
         return response;
     }
 
-    private IndexingStatus startIndexingAll(UUID clusterId, Collection collection) throws IndexingJobFailureException {
+    private IndexingStatus startIndexingAndExpose(UUID clusterId, Collection collection) throws IndexingJobFailureException {
         String collectionId = collection.getId();
 
         IndexingStatus status = indexingJobManager.getManageQueue(collectionId);
