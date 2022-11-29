@@ -12,6 +12,5 @@ import java.util.UUID;
 @Repository
 public interface StatusRepository extends JpaRepository<IndexStatus, Long> {
     void deleteByClusterIdAndIndexAndStartTime(UUID clusterId, String index, long startTime);
-
     List<IndexStatus> findByClusterId(UUID clusterId, Pageable pageable);
 }

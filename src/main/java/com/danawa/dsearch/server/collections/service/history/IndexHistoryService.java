@@ -1,11 +1,9 @@
 package com.danawa.dsearch.server.collections.service.history;
 
 import com.danawa.dsearch.server.collections.dto.HistoryReadRequest;
-import com.danawa.dsearch.server.collections.entity.Collection;
 import com.danawa.dsearch.server.collections.entity.IndexHistory;
 import com.danawa.dsearch.server.collections.entity.IndexingStatus;
 import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactory;
-import com.danawa.dsearch.server.utils.TimeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -71,8 +69,7 @@ public class IndexHistoryService implements HistoryService {
         long endTime = indexingStatus.getEndTime();
         boolean autoRun = indexingStatus.isAutoRun();
 
-        // catIndex 시 bulk indexing이 끝난 경우에도 ES write queue에 적재만 되어 있는 경우가 있기 때문에 30초 대기
-        TimeUtils.sleep(30000);
+        // catIndex 시 bulk indexing이 끝난 경우에도 ES write queue에 적재만 되어 있는 경우가 있기 때문에 대기
         Map<String, Object> catIndex = elasticsearchFactory.catIndex(clusterId, index);
         String docSize = (String) catIndex.get("docs.count");
         String store = (String) catIndex.get("store.size");

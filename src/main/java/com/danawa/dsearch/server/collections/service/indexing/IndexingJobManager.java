@@ -222,6 +222,7 @@ public class IndexingJobManager {
         long endTime = System.currentTimeMillis();
 
         IndexerStatus status = indexerClient.getStatus(indexingStatus);
+
         if (status == IndexerStatus.SUCCESS){
             indexingStatus.setEndTime(endTime);
 
@@ -229,8 +230,9 @@ public class IndexingJobManager {
             IndexActionStep nextStep = indexingStatus.getNextStep().poll();
 
             logger.info("Indexing {} ==> clusterId: {}, index: {}, collectionId", status, clusterId, indexingStatus.getIndex(), collectionId);
+            indexingJobService.changeRefreshInterval(clusterId, collection, index); // 색인 끝나면 refresh_interval 변경
+
             if (nextStep != null) {
-                indexingJobService.changeRefreshInterval(clusterId, collection, index); // 색인 끝나면 refresh_interval 변경
                 indexStatusService.create(indexingStatus, "RUNNING"); // Expose가 남아 있기 때문에 status 추가
                 indexingStatus.setCurrentStep(nextStep); // 교체 단계 셋팅 (안하면 Null Pointer Exception)
                 manageQueue.put(collectionId, indexingStatus); // 교체 단계가 있으므로 다시 스케줄에 넣는다.
@@ -240,6 +242,9 @@ public class IndexingJobManager {
 
             updateLookupQueue(collectionId, status.toString());
             indexerClient.deleteJob(indexingStatus);
+            // refresh interval 을 수행한 뒤 60초 대기 시간 추가
+            // 다큐먼트 카운트가 전부 업데이트 되기 전에 cat/indices 조회 시 진행 중인 값으로 가져옴
+            TimeUtils.sleep(60000);  
         }else if (status == IndexerStatus.ERROR || status == IndexerStatus.STOP){
             logger.info("Indexing {} ==> clusterId: {}, index: {}, collectionId", status, clusterId, indexingStatus.getIndex(), collectionId);
             indexingStatus.setEndTime(endTime);

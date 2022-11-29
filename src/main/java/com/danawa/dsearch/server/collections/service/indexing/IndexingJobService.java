@@ -316,6 +316,7 @@ public class IndexingJobService {
                 settings.put("refresh_interval", refresh_interval + "");
             }
         }
+
         elasticsearchFactoryWrapper.updateIndexSettings(clusterId, target, settings);
     }
 
@@ -337,9 +338,9 @@ public class IndexingJobService {
         } else {
             targetIndex = changeAliasWithoutTargetIndex(clusterId, collection);
         }
-
-        changeRefreshInterval(clusterId, collection, targetIndex);
+        logger.info("expose step: {} >> {}", collection.getBaseId(), targetIndex);
     }
+
     private boolean isCreatedIndexes(UUID clusterId, Collection collection) throws IOException {
         boolean isExistsIndexA = elasticsearchFactoryWrapper.isExistIndex(clusterId, collection.getIndexA().getIndex());
         boolean isExistsIndexB = elasticsearchFactoryWrapper.isExistIndex(clusterId, collection.getIndexB().getIndex());
@@ -358,7 +359,6 @@ public class IndexingJobService {
         String baseId = collection.getBaseId();
         Collection.Index indexA = collection.getIndexA();
         Collection.Index indexB = collection.getIndexB();
-
 
         String nameOfindexA = indexA.getIndex() != null ? indexA.getIndex() : "" ;
         String nameOfindexB = indexB.getIndex() != null ? indexB.getIndex() : "" ;

@@ -53,7 +53,7 @@ public class ElasticsearchFactory {
         return getClient(username, password, httpHosts);
     }
 
-    public RestHighLevelClient getClient(String username, String password, HttpHost ...httpHost) {
+    public RestHighLevelClient getClient(String username, String password, HttpHost... httpHost) {
         RestClientBuilder builder = RestClient.builder(httpHost)
                 .setRequestConfigCallback(requestConfigBuilder -> requestConfigBuilder
                         .setConnectTimeout(10000)
@@ -99,18 +99,19 @@ public class ElasticsearchFactory {
 
         try {
             client = getClient(clusterId);
+
+
             Request request = new Request("GET", String.format("/_cat/indices/%s", index));
             request.addParameter("format", "json");
             Response response = client.getLowLevelClient().performRequest(request);
             String responseBodyString = EntityUtils.toString(response.getEntity());
             List<Map<String, Object>> catIndices = new Gson().fromJson(responseBodyString, List.class);
 
-            if ( catIndices != null && catIndices.size() > 0){
+            if (catIndices != null && catIndices.size() > 0)
                 return catIndices.get(0);
-            }
         } catch (IOException e) {
             logger.error("{}", e);
-        }finally {
+        } finally {
             close(client);
         }
 

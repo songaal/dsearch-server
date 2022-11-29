@@ -13,7 +13,6 @@ public interface HistoryService {
     void create(IndexingStatus indexingStatus, String status);
     void create(IndexingStatus indexingStatus, String docSize, String status, String store);
     void delete(UUID clusterId, String collectionId);
-
     List<Map<String,Object>> findByCollection(UUID clusterId, HistoryReadRequest historyReadRequest);
     long getTotalSize(UUID clusterId, HistoryReadRequest historyReadRequest);
 }

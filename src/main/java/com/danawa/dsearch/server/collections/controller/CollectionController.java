@@ -132,12 +132,11 @@ public class CollectionController {
                                       @RequestHeader(value = "client-ip", required = false) String clientIP,
                                       @PathVariable String id,
                                       @RequestParam String action) throws IndexingJobFailureException, IOException {
-        logger.info("/{}/actrion", id);
-
         IndexingActionType actionType = getActionType(action);
         Collection collection = collectionService.findById(clusterId, id);
-        logger.info("clusterId={}, clientIP=from-remote-indexer, collection={}, actionType={}",
+        logger.info("[action] clusterId={}, clientIP={}, collection={}, actionType={}",
                 clusterId,
+                clientIP,
                 collection,
                 actionType);
         Map<String, Object> response = indexingService.processIndexingJob(clusterId, collection, actionType, "");
@@ -162,7 +161,6 @@ public class CollectionController {
         }
 
         UUID clusterId = cluster.getId();
-        String id = collection.getId();
         IndexingActionType actionType = getActionType(action);
 
         // IDXP에서 groupSeq가 넘어오면서 전체 색인을 시작한다.
@@ -170,7 +168,7 @@ public class CollectionController {
         if (isValidGroupSeq(actionType, groupSeq)) {
             changeGroupSeqWithinLauncher(collection, groupSeq);
         }
-        logger.info("clusterId={}, clientIP=from-remote-indexer, collection={}, actionType={}, groupSeq={}",
+        logger.info("[idxp] clusterId={}, clientIP=from-remote-indexer, collection={}, actionType={}, groupSeq={}",
                 clusterId,
                 collection,
                 actionType,
