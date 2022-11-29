@@ -53,7 +53,7 @@ public class IndexingServiceTests {
             status.setClusterId(clusterId);
 
             given(indexingJobManager.getManageQueue(collection.getId())).willReturn(null);
-            given(indexingJobService.indexing(eq(clusterId), eq(collection), any(Queue.class))).willReturn(status);
+            given(indexingJobService.indexingAndExpose(eq(clusterId), eq(collection))).willReturn(status);
             doNothing().when(indexingJobManager).add(collection.getId(), status);
 
             Map<String, Object> response = indexingService.processIndexingJob(clusterId, collection, actionType, groupSeq);
@@ -98,7 +98,7 @@ public class IndexingServiceTests {
             status.setClusterId(clusterId);
 
             given(indexingJobManager.getManageQueue(collection.getId())).willReturn(null);
-            given(indexingJobService.indexing(eq(clusterId), eq(collection), any(Queue.class))).willReturn(status);
+            given(indexingJobService.indexing(eq(clusterId), eq(collection))).willReturn(status);
             doNothing().when(indexingJobManager).add(collection.getId(), status);
 
             Map<String, Object> response = indexingService.processIndexingJob(clusterId, collection, actionType, groupSeq);
