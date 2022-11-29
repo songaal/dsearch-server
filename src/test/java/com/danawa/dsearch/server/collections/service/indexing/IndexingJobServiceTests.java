@@ -76,7 +76,7 @@ public class IndexingJobServiceTests {
             given(elasticsearchFactoryHighLevelWrapper.getIndexDocument(eq(clusterId), any(String.class), any(String.class))).willReturn(jdbcContent);
             given(indexerClient.startJob(any(Map.class), any(Collection.class))).willReturn(indexingJobId);
 
-            IndexingStatus indexingStatus = this.indexingJobService.indexing(clusterId, collection, actionSteps );
+            IndexingStatus indexingStatus = this.indexingJobService.indexing(clusterId, collection);
             Assertions.assertEquals(indexingJobId, indexingStatus.getIndexingJobId());
         });
 
@@ -95,7 +95,7 @@ public class IndexingJobServiceTests {
             given(elasticsearchFactoryHighLevelWrapper.getIndexDocument(eq(clusterId), any(String.class), any(String.class))).willReturn(jdbcContent);
             given(indexerClient.startJob(any(Map.class), any(Collection.class))).willReturn(indexingJobId);
 
-            IndexingStatus indexingStatus = this.indexingJobService.indexing(clusterId, collection, actionSteps );
+            IndexingStatus indexingStatus = this.indexingJobService.indexing(clusterId, collection);
             Assertions.assertEquals(indexingJobId, indexingStatus.getIndexingJobId());
         });
     }
@@ -129,7 +129,7 @@ public class IndexingJobServiceTests {
             given(elasticsearchFactoryHighLevelWrapper.getIndexDocument(eq(clusterId), any(String.class), any(String.class))).willReturn(jdbcContent);
             given(indexerClient.startJob(any(Map.class), any(Collection.class))).willReturn(indexingJobId);
 
-            IndexingStatus indexingStatus = this.indexingJobService.indexing(clusterId, collection, actionSteps );
+            IndexingStatus indexingStatus = this.indexingJobService.indexing(clusterId, collection);
             Assertions.assertEquals(indexingJobId, indexingStatus.getIndexingJobId());
         });
     }
@@ -163,7 +163,7 @@ public class IndexingJobServiceTests {
             given(elasticsearchFactoryHighLevelWrapper.getIndexDocument(eq(clusterId), any(String.class), any(String.class))).willReturn(jdbcContent);
             given(indexerClient.startJob(any(Map.class), any(Collection.class))).willReturn(indexingJobId);
 
-            IndexingStatus indexingStatus = this.indexingJobService.indexing(clusterId, collection, actionSteps );
+            IndexingStatus indexingStatus = this.indexingJobService.indexing(clusterId, collection);
             Assertions.assertEquals(indexingJobId, indexingStatus.getIndexingJobId());
         });
     }

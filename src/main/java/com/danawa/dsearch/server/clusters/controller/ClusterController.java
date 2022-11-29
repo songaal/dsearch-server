@@ -5,7 +5,7 @@ import com.danawa.dsearch.server.clusters.service.ClusterService;
 import com.danawa.dsearch.server.clusters.entity.Cluster;
 import com.danawa.dsearch.server.clusters.entity.ClusterStatusResponse;
 import com.danawa.dsearch.server.collections.service.history.HistoryService;
-import com.danawa.dsearch.server.collections.service.schedule.CollectionScheduleManager;
+import com.danawa.dsearch.server.collections.service.schedule.IndexingScheduler;
 import com.danawa.dsearch.server.collections.service.CollectionService;
 import com.danawa.dsearch.server.collections.service.status.StatusService;
 import com.danawa.dsearch.server.dictionary.service.DictionaryService;
@@ -42,7 +42,7 @@ public class ClusterController {
 
     private final IndexTemplateService indexTemplateService;
     private final ClusterRoutingAllocationService clusterRoutingAllocationService;
-    private final CollectionScheduleManager collectionScheduleManager;
+    private final IndexingScheduler indexingScheduler;
 
     public ClusterController(@Value("${dsearch.delete}") String deletePrefix,
                              ClusterService clusterService,
@@ -53,7 +53,7 @@ public class ClusterController {
                              JdbcService jdbcService,
                              IndexTemplateService indexTemplateService,
                              ClusterRoutingAllocationService clusterRoutingAllocationService,
-                             CollectionScheduleManager collectionScheduleManager,
+                             IndexingScheduler indexingScheduler,
                              StatusService indexStatusService,
                              HistoryService historyService) {
         this.deletePrefix = deletePrefix;
@@ -65,7 +65,7 @@ public class ClusterController {
         this.jdbcService = jdbcService;
         this.indexTemplateService = indexTemplateService;
         this.clusterRoutingAllocationService = clusterRoutingAllocationService;
-        this.collectionScheduleManager = collectionScheduleManager;
+        this.indexingScheduler = indexingScheduler;
         this.indexStatusService = indexStatusService;
         this.historyService = historyService;
     }
@@ -127,7 +127,7 @@ public class ClusterController {
         historyService.initialize(registerCluster.getId());
         indexStatusService.initialize(registerCluster.getId());
 
-        collectionScheduleManager.init(); /* 이전에 등록되어 있던 클러스터라면 스케쥴 재 등록 */
+        indexingScheduler.init(); /* 이전에 등록되어 있던 클러스터라면 스케쥴 재 등록 */
         return new ResponseEntity<>(registerCluster, HttpStatus.OK);
     }
 
@@ -177,11 +177,11 @@ public class ClusterController {
         if(flag){
             // 해당 클러스터의 스케줄 제거
             logger.info("클러스터 점검 시작, clusterId: {}", clusterId);
-            collectionScheduleManager.unregisterAll(clusterId);
+            indexingScheduler.unregisterAll(clusterId);
         }else{
             // 해당 클러스터의 스케줄 재 등록
             logger.info("클러스터 점검 완료, clusterId: {}", clusterId);
-            collectionScheduleManager.registerAll(clusterId);
+            indexingScheduler.registerAll(clusterId);
         }
         return new ResponseEntity<>(HttpStatus.OK);
     }

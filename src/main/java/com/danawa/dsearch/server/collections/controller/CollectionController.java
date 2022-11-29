@@ -2,7 +2,7 @@ package com.danawa.dsearch.server.collections.controller;
 
 import com.danawa.dsearch.server.clusters.service.ClusterService;
 import com.danawa.dsearch.server.collections.entity.IndexingActionType;
-import com.danawa.dsearch.server.collections.service.schedule.CollectionScheduleManager;
+import com.danawa.dsearch.server.collections.service.schedule.IndexingScheduler;
 import com.danawa.dsearch.server.collections.service.indexing.IndexingJobManager;
 import com.danawa.dsearch.server.collections.service.CollectionService;
 import com.danawa.dsearch.server.clusters.entity.Cluster;
@@ -35,7 +35,7 @@ public class CollectionController {
     private final ClusterService clusterService;
     private final CollectionService collectionService;
     private final IndexingJobManager indexingJobManager;
-    private final CollectionScheduleManager scheduleManager;
+    private final IndexingScheduler scheduleManager;
     private final IndexingService indexingService;
 
     public CollectionController(@Value("${dsearch.collection.index-suffix-a}") String indexSuffixA,
@@ -43,7 +43,7 @@ public class CollectionController {
                                 CollectionService collectionService,
                                 ClusterService clusterService,
                                 IndexingJobManager indexingJobManager,
-                                CollectionScheduleManager scheduleManager,
+                                IndexingScheduler scheduleManager,
                                 IndexingService indexingService) {
         this.indexSuffixA = indexSuffixA;
         this.indexSuffixB = indexSuffixB;

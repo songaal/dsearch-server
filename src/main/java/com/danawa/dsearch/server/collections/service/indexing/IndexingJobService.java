@@ -1,5 +1,6 @@
 package com.danawa.dsearch.server.collections.service.indexing;
 
+import com.danawa.dsearch.server.collections.entity.IndexingActionType;
 import com.danawa.dsearch.server.collections.service.indexer.IndexerClient;
 import com.danawa.dsearch.server.collections.service.history.HistoryService;
 import com.danawa.dsearch.server.collections.entity.Collection;
@@ -59,13 +60,35 @@ public class IndexingJobService {
         this.alertService  = alertService;
     }
 
+    public IndexingStatus indexingAndExpose(UUID clusterId, Collection collection) throws IndexingJobFailureException {
+        Queue<IndexActionStep> actionSteps = new ArrayDeque<>();
+        actionSteps.add(IndexActionStep.FULL_INDEX);
+        actionSteps.add(IndexActionStep.EXPOSE);
+
+        IndexingStatus status = indexing(clusterId, collection, actionSteps);
+        status.setAction(IndexingActionType.ALL.getAction());
+        status.setStatus("RUNNING");
+        return status;
+    }
+
+    public IndexingStatus indexing(UUID clusterId, Collection collection) throws IndexingJobFailureException {
+        Queue<IndexActionStep> actionSteps = new ArrayDeque<>();
+        actionSteps.add(IndexActionStep.FULL_INDEX);
+        collection.setAutoRun(false);
+
+        IndexingStatus status = indexing(clusterId, collection, actionSteps);
+        status.setAction(IndexingActionType.INDEXING.getAction());
+        status.setStatus("RUNNING");
+        return status;
+    }
+
     /**
      * 소스를 읽어들여 ES 색인에 입력하는 작업.
      * indexer를 외부 프로세스로 실행한다.
      *
      * @return IndexingStatus
      */
-    public IndexingStatus indexing(UUID clusterId, Collection collection, Queue<IndexActionStep> actionSteps) throws IndexingJobFailureException {
+    private IndexingStatus indexing(UUID clusterId, Collection collection, Queue<IndexActionStep> actionSteps) throws IndexingJobFailureException {
         IndexingStatus status = null;
         Collection.Index targetIndex = null;
         IndexActionStep currentStep = actionSteps.poll();

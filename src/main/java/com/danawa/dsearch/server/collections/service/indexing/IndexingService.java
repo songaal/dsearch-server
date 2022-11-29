@@ -111,38 +111,30 @@ public class IndexingService {
         return response;
     }
 
+    private boolean isNowIndexing(String collectionId){
+        IndexingStatus status = indexingJobManager.getManageQueue(collectionId);
+        if (status == null) return false;
+        else return true;
+    }
+
     private IndexingStatus startIndexingAndExpose(UUID clusterId, Collection collection) throws IndexingJobFailureException {
         String collectionId = collection.getId();
-
-        IndexingStatus status = indexingJobManager.getManageQueue(collectionId);
-        if(status != null){
-            throw new IndexingJobFailureException("기존 데이터가 있음");
+        if(isNowIndexing(collectionId)){
+            throw new IndexingJobFailureException("현재 색인 중...");
         }
-        Queue<IndexActionStep> actionSteps = new ArrayDeque<>();
-        actionSteps.add(IndexActionStep.FULL_INDEX);
-        actionSteps.add(IndexActionStep.EXPOSE);
 
-        status = indexingJobService.indexing(clusterId, collection, actionSteps);
-        status.setAction(IndexingActionType.ALL.getAction());
-        status.setStatus("RUNNING");
+        IndexingStatus status = indexingJobService.indexingAndExpose(clusterId, collection);
         indexingJobManager.add(collectionId, status);
         return status;
     }
 
     private IndexingStatus startIndexing(UUID clusterId, Collection collection) throws IndexingJobFailureException {
         String collectionId = collection.getId();
-
-        IndexingStatus status = indexingJobManager.getManageQueue(collectionId);
-        if(status != null){
-            throw new IndexingJobFailureException("기존 데이터가 있음");
+        if(isNowIndexing(collectionId)){
+            throw new IndexingJobFailureException("현재 색인 중...");
         }
-        Queue<IndexActionStep> actionSteps = new ArrayDeque<>();
-        actionSteps.add(IndexActionStep.FULL_INDEX);
 
-        collection.setAutoRun(false);
-        status = indexingJobService.indexing(clusterId, collection, actionSteps);
-        status.setAction(IndexingActionType.INDEXING.getAction());
-        status.setStatus("RUNNING");
+        IndexingStatus status = indexingJobService.indexing(clusterId, collection);
         indexingJobManager.add(collectionId, status);
         logger.info("indexingJobManager: {}", indexingJobManager.getManageQueue(collectionId));
         return status;
@@ -150,11 +142,10 @@ public class IndexingService {
 
     private void startExpose(UUID clusterId, Collection collection) throws IndexingJobFailureException, IOException {
         String collectionId = collection.getId();
-
-        IndexingStatus status = indexingJobManager.getManageQueue(collectionId);
-        if(status != null){
-            throw new IndexingJobFailureException("기존 데이터가 있음");
+        if(isNowIndexing(collectionId)){
+            throw new IndexingJobFailureException("현재 색인 중...");
         }
+
         indexingJobService.expose(clusterId, collection);
     }
 

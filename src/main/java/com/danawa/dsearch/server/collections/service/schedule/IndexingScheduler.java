@@ -25,7 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 
 @Service
-public class CollectionScheduleManager {
+public class IndexingScheduler {
     /**
      * 색인 스케쥴을 관리하는 클래스 입니다.
      *
@@ -33,7 +33,7 @@ public class CollectionScheduleManager {
      * - schedulerMap: 스케쥴링을 관리하는 Map
      * - scheduler: 스케쥴링을 실제로 실행시키는 쓰레드
      */
-    private static Logger logger = LoggerFactory.getLogger(CollectionScheduleManager.class);
+    private static Logger logger = LoggerFactory.getLogger(IndexingScheduler.class);
     private ConcurrentHashMap<String, ScheduledFuture<?>> schedulerMap = new ConcurrentHashMap<>();
     private final ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
 
@@ -42,11 +42,11 @@ public class CollectionScheduleManager {
     private final IndexingJobService indexingJobService;
     private final IndexingJobManager indexingJobManager;
     private final StatusService statusService;
-    public CollectionScheduleManager(ClusterService clusterService,
-                                     CollectionService collectionService,
-                                     StatusService statusService,
-                                     IndexingJobService indexingJobService,
-                                     IndexingJobManager indexingJobManager){
+    public IndexingScheduler(ClusterService clusterService,
+                             CollectionService collectionService,
+                             StatusService statusService,
+                             IndexingJobService indexingJobService,
+                             IndexingJobManager indexingJobManager){
         this.indexingJobService = indexingJobService;
         this.indexingJobManager = indexingJobManager;
         this.collectionService = collectionService;
@@ -315,11 +315,8 @@ public class CollectionScheduleManager {
                         return;
                     }
 
-                    Deque<IndexActionStep> actionSteps = new ArrayDeque<>();
-                    actionSteps.add(IndexActionStep.FULL_INDEX);
-                    actionSteps.add(IndexActionStep.EXPOSE);
                     registerCollection.setAutoRun(true);
-                    IndexingStatus status = indexingJobService.indexing(clusterId, registerCollection, actionSteps);
+                    IndexingStatus status = indexingJobService.indexingAndExpose(clusterId, registerCollection);
                     indexingJobManager.add(registerCollection.getId(), status);
                 } catch (IndexingJobFailureException | IOException e) {
                     logger.error("[INIT ERROR] ", e);
