@@ -244,7 +244,7 @@ public class IndexingJobManager {
             indexerClient.deleteJob(indexingStatus);
             // refresh interval 을 수행한 뒤 60초 대기 시간 추가
             // 다큐먼트 카운트가 전부 업데이트 되기 전에 cat/indices 조회 시 진행 중인 값으로 가져옴
-            TimeUtils.sleep(60000);  
+            TimeUtils.sleep(60000);
         }else if (status == IndexerStatus.ERROR || status == IndexerStatus.STOP){
             logger.info("Indexing {} ==> clusterId: {}, index: {}, collectionId", status, clusterId, indexingStatus.getIndex(), collectionId);
             indexingStatus.setEndTime(endTime);

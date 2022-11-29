@@ -9,6 +9,7 @@ import com.danawa.dsearch.server.excpetions.DuplicatedUserException;
 import com.danawa.dsearch.server.clusters.service.ClusterService;
 import com.danawa.dsearch.server.indices.service.IndicesService;
 import com.danawa.dsearch.server.utils.JsonUtils;
+import com.danawa.dsearch.server.utils.YamlUtils;
 import com.google.gson.Gson;
 import org.apache.commons.lang.NullArgumentException;
 import org.apache.http.util.EntityUtils;
@@ -306,7 +307,7 @@ public class CollectionService {
             try {
                 collection.setExtIndexer(true);
                 collection.getLauncher().setScheme("http");
-                Map<String ,Object> yamlToMap = indexingJobService.convertRequestParams(collection.getLauncher().getYaml());
+                Map<String ,Object> yamlToMap = YamlUtils.convertYamlToMap(collection.getLauncher().getYaml());
                 collection.setEsScheme((String) yamlToMap.get("scheme"));
                 collection.setEsHost((String) yamlToMap.get("host"));
                 collection.setEsPort(String.valueOf(yamlToMap.get("port")));

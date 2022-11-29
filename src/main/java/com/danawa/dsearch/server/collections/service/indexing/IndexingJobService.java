@@ -6,8 +6,10 @@ import com.danawa.dsearch.server.collections.entity.Collection;
 import com.danawa.dsearch.server.collections.entity.IndexActionStep;
 import com.danawa.dsearch.server.collections.entity.IndexingStatus;
 import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactoryHighLevelWrapper;
+import com.danawa.dsearch.server.excpetions.ConvertYamlException;
 import com.danawa.dsearch.server.excpetions.IndexingJobFailureException;
 import com.danawa.dsearch.server.notice.AlertService;
+import com.danawa.dsearch.server.utils.YamlUtils;
 import com.google.gson.Gson;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.search.SearchRequest;
@@ -43,7 +45,6 @@ public class IndexingJobService {
 
     private AlertService alertService;
     private HistoryService indexHistoryService;
-    private Map<String, Object> params = new HashMap<>();
     private Map<String, Object> indexing = new HashMap<>();
 
     public IndexingJobService(ElasticsearchFactoryHighLevelWrapper elasticsearchFactoryWrapper,
@@ -86,7 +87,7 @@ public class IndexingJobService {
             status = makeIndexingStatus(clusterId, collection, targetIndex, indexingJobId, currentStep, actionSteps);
 
             logger.info("인덱싱 시작, clusterId={}, collection={}, index={}", clusterId, collection.getBaseId(), status.getIndex());
-        }catch (IndexingJobFailureException e) {
+        }catch (IndexingJobFailureException|ConvertYamlException e) {
             sendIndexingError(collection, targetIndex, e.getMessage());
             throw new IndexingJobFailureException(e.getMessage());
         }
@@ -187,13 +188,13 @@ public class IndexingJobService {
         }
     }
 
-    private Map<String, Object> makeRequestBodyToIndexer(UUID clusterId, Collection collection, Collection.Index index) throws IndexingJobFailureException {
+    private Map<String, Object> makeRequestBodyToIndexer(UUID clusterId, Collection collection, Collection.Index index) throws IndexingJobFailureException, ConvertYamlException {
         Collection.Launcher launcher = collection.getLauncher();
         if (launcher.getScheme() == null || "".equals(launcher.getScheme())) {
             launcher.setScheme("http");
         }
 
-        Map<String, Object> body = convertRequestParams(launcher.getYaml());
+        Map<String, Object> body = YamlUtils.convertYamlToMap(launcher.getYaml());
 
         String jdbcId = collection.getJdbcId();
         Map<String, Object> jdbcContent = getJdbcContent(clusterId, jdbcId);
@@ -492,23 +493,6 @@ public class IndexingJobService {
         }
     }
 
-
-    public Map<String, Object> convertRequestParams(String yamlStr) throws IndexingJobFailureException {
-        Map<String, Object> convert = new HashMap<>(params);
-        logger.debug("{} {}", convert, yamlStr);
-        try {
-            Map<String, Object> tmp = new Yaml().load(yamlStr);
-            if (tmp != null) {
-                convert.putAll(tmp);
-            }
-        } catch (ClassCastException | NullPointerException e) {
-            logger.error("{} {}", e.getMessage(), yamlStr);
-            throw new IndexingJobFailureException("invalid yaml");
-        }
-        logger.info("{}", convert);
-        return convert;
-    }
-
     public void stopIndexing(IndexingStatus status) {
         try {
             indexerClient.stopJob(status);
@@ -522,14 +506,6 @@ public class IndexingJobService {
         } catch (URISyntaxException ignore) {
 
         }
-    }
-
-    public Map<String, Object> getParams() {
-        return params;
-    }
-
-    public void setParams(Map<String, Object> params) {
-        this.params = params;
     }
 
     public Map<String, Object> getIndexing() {

@@ -13,6 +13,7 @@ import com.danawa.dsearch.server.collections.service.indexing.IndexingService;
 import com.danawa.dsearch.server.excpetions.DuplicatedUserException;
 import com.danawa.dsearch.server.excpetions.IndexingJobFailureException;
 import com.danawa.dsearch.server.excpetions.ParameterInvalidException;
+import com.danawa.dsearch.server.utils.YamlUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -182,7 +183,7 @@ public class CollectionController {
     }
     private void changeGroupSeqWithinLauncher(Collection collection, String groupSeq){
         try {
-            Map<String ,Object> yamlToMap = indexingJobService.convertRequestParams(collection.getLauncher().getYaml());
+            Map<String ,Object> yamlToMap = YamlUtils.convertYamlToMap(collection.getLauncher().getYaml());
             if (yamlToMap.get("groupSeq") != null && !"".equals(yamlToMap.get("groupSeq"))) {
                 yamlToMap.put("groupSeq", groupSeq);
                 makePrettyLauncher(collection, yamlToMap);
