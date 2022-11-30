@@ -39,7 +39,7 @@ public class JdbcController {
                                            @RequestBody JdbcCreateRequest jdbcCreateRequest) throws Exception {
         Map<String, Object> response = new HashMap<>();
         response.put("isSuccess", JdbcService.create(clusterId, jdbcCreateRequest));
-        return new ResponseEntity<>(JdbcService.create(clusterId, jdbcCreateRequest), HttpStatus.OK);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @DeleteMapping("/delete/{id}")
