@@ -34,7 +34,7 @@ public class AuthController {
         AuthUser authUser = authService.findAuthUserByToken(token);
 
         if (clusterId != null && !"".equalsIgnoreCase(clusterId)) {
-            authUser.setCluster(clusterService.find(UUID.fromString(clusterId)));
+            authUser.setCluster(clusterService.findById(UUID.fromString(clusterId)));
         }
         return new ResponseEntity<>(authUser, HttpStatus.OK);
     }

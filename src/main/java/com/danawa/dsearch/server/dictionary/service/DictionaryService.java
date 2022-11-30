@@ -371,7 +371,7 @@ public class DictionaryService {
     public Response compileDict(UUID clusterId, Map<String,Object> request) throws IOException{
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             RestClient restClient = client.getLowLevelClient();
-            Cluster remoteCluster = clusterService.find(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId));
+            Cluster remoteCluster = clusterService.findById(elasticsearchFactory.getDictionaryRemoteClusterId(clusterId));
 
             String type = (String) request.get("type");
             String method = "POST";
@@ -407,7 +407,7 @@ public class DictionaryService {
     public Map<String, Object> getRemoteInfo(UUID clusterId) {
         Map<String, Object> response = new HashMap<>();
         UUID remoteClusterId = elasticsearchFactory.getDictionaryRemoteClusterId(clusterId);
-        Cluster cluster = clusterService.find(remoteClusterId);
+        Cluster cluster = clusterService.findById(remoteClusterId);
         response.put("remote", !remoteClusterId.equals(clusterId));
         response.put("host", cluster.getHost());
         response.put("port", cluster.getPort());

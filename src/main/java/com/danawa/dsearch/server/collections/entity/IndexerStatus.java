@@ -4,6 +4,7 @@ public enum IndexerStatus {
     SUCCESS ("SUCCESS"),
     RUNNING ("RUNNING"),
     STOP ("STOP"),
+
     ERROR ("ERROR"),
     UNKNOWN ("UNKNOWN");
 

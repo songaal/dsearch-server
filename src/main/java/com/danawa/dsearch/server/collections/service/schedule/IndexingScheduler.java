@@ -3,8 +3,8 @@ package com.danawa.dsearch.server.collections.service.schedule;
 import com.danawa.dsearch.server.clusters.entity.Cluster;
 import com.danawa.dsearch.server.clusters.service.ClusterService;
 import com.danawa.dsearch.server.collections.entity.Collection;
-import com.danawa.dsearch.server.collections.entity.IndexActionStep;
-import com.danawa.dsearch.server.collections.entity.IndexingStatus;
+import com.danawa.dsearch.server.collections.entity.IndexingStep;
+import com.danawa.dsearch.server.collections.entity.IndexingInfo;
 import com.danawa.dsearch.server.collections.service.CollectionService;
 import com.danawa.dsearch.server.collections.service.indexing.IndexingJobManager;
 import com.danawa.dsearch.server.collections.service.indexing.IndexingJobService;
@@ -88,10 +88,10 @@ public class IndexingScheduler {
 
                                 if(!indexingJobManager.isExistInManageQueue(collectionId)) {
                                     Collection collection = collectionService.findById(clusterId, collectionId);
-                                    IndexingStatus indexingStatus = makeIndexingStatus(clusterId, source, collection);
-                                    indexingJobManager.add(collectionId, indexingStatus, false);
+                                    IndexingInfo indexingInfo = makeIndexingStatus(clusterId, source, collection);
+                                    indexingJobManager.add(collectionId, indexingInfo, false);
                                     logger.debug("collection register cluster: {}, job: {}, step: {}",
-                                            cluster.getName(), collectionId, IndexActionStep.valueOf(String.valueOf(source.get("step"))));
+                                            cluster.getName(), collectionId, IndexingStep.valueOf(String.valueOf(source.get("step"))));
                                 }
                             }
                         }
@@ -109,29 +109,29 @@ public class IndexingScheduler {
         }
     }
 
-    private IndexingStatus makeIndexingStatus(UUID clusterId, Map<String, Object> source, Collection collection){
+    private IndexingInfo makeIndexingStatus(UUID clusterId, Map<String, Object> source, Collection collection){
         Collection.Launcher launcher = collection.getLauncher();
         String jobId = String.valueOf(source.getOrDefault("jobId", ""));
         String index = (String) source.get("index");
         long startTime = (long) source.get("startTime");
-        IndexActionStep step = IndexActionStep.valueOf(String.valueOf(source.get("step")));
+        IndexingStep step = IndexingStep.valueOf(String.valueOf(source.get("step")));
 
-        IndexingStatus indexingStatus = new IndexingStatus();
-        indexingStatus.setClusterId(clusterId);
-        indexingStatus.setIndex(index);
-        indexingStatus.setStartTime(startTime);
+        IndexingInfo indexingInfo = new IndexingInfo();
+        indexingInfo.setClusterId(clusterId);
+        indexingInfo.setIndex(index);
+        indexingInfo.setStartTime(startTime);
         if (launcher != null) {
-            indexingStatus.setIndexingJobId(jobId);
-            indexingStatus.setScheme(launcher.getScheme());
-            indexingStatus.setHost(launcher.getHost());
-            indexingStatus.setPort(launcher.getPort());
+            indexingInfo.setIndexingJobId(jobId);
+            indexingInfo.setScheme(launcher.getScheme());
+            indexingInfo.setHost(launcher.getHost());
+            indexingInfo.setPort(launcher.getPort());
         }
-        indexingStatus.setAutoRun(true);
-        indexingStatus.setCurrentStep(step);
-        indexingStatus.setNextStep(new ArrayDeque<>());
-        indexingStatus.setRetry(50);
-        indexingStatus.setCollection(collection);
-        return indexingStatus;
+        indexingInfo.setAutoRun(true);
+        indexingInfo.setCurrentStep(step);
+        indexingInfo.setNextStep(new ArrayDeque<>());
+        indexingInfo.setRetry(50);
+        indexingInfo.setCollection(collection);
+        return indexingInfo;
     }
 
     /**
@@ -309,14 +309,14 @@ public class IndexingScheduler {
                 try {
                     // 변경사항이 있을수 있으므로, 컬렉션 정보를 새로 가져온다.
                     Collection registerCollection = collectionService.findById(clusterId, collectionId);
-                    IndexingStatus indexingStatus = indexingJobManager.getManageQueue(registerCollection.getId());
+                    IndexingInfo indexingInfo = indexingJobManager.getManageQueue(registerCollection.getId());
 
-                    if (indexingStatus != null) {
+                    if (indexingInfo != null) {
                         return;
                     }
 
                     registerCollection.setAutoRun(true);
-                    IndexingStatus status = indexingJobService.indexingAndExpose(clusterId, registerCollection);
+                    IndexingInfo status = indexingJobService.indexingAndExpose(clusterId, registerCollection);
                     indexingJobManager.add(registerCollection.getId(), status);
                 } catch (IndexingJobFailureException | IOException e) {
                     logger.error("[INIT ERROR] ", e);

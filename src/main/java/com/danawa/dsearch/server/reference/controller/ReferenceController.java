@@ -101,7 +101,7 @@ public class ReferenceController {
                                                  @RequestBody Map<String, Object> request) throws NotFoundException {
 
         String url = (String) Objects.requireNonNull(request.get("url"));
-        Cluster cluster = clusterService.find(clusterId);
+        Cluster cluster = clusterService.findById(clusterId);
         Cluster saveCluster = clusterService.saveUrl(clusterId, cluster, url);
         Map<String, Object> result = new HashMap<>();
 
@@ -116,7 +116,7 @@ public class ReferenceController {
     }
     @GetMapping("/get/autocomplete")
     public ResponseEntity<?> getAutoCompleteURL(@RequestHeader(value = "cluster-id") UUID clusterId) throws IOException, NotFoundException {
-        Cluster cluster = clusterService.find(clusterId);
+        Cluster cluster = clusterService.findById(clusterId);
 
         Map<String, Object> result = new HashMap<>();
             if(cluster.getAutocompleteUrl() == null || "".equals(cluster.getAutocompleteUrl())){
@@ -131,7 +131,7 @@ public class ReferenceController {
     public ResponseEntity<?> getAutoComplete(HttpServletRequest request,
                                              @RequestHeader(value = "cluster-id") UUID clusterId,
                                              @RequestParam Map<String,String> queryStringMap) throws IOException, NotFoundException {
-        Cluster cluster = clusterService.find(clusterId);
+        Cluster cluster = clusterService.findById(clusterId);
         String keyword = null;
         for(String key: queryStringMap.keySet()){
             keyword = key;

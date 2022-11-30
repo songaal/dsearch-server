@@ -1,9 +1,8 @@
 package com.danawa.dsearch.server.collections.service.history;
 
 import com.danawa.dsearch.server.collections.dto.HistoryReadRequest;
-import com.danawa.dsearch.server.collections.entity.IndexHistory;
+import com.danawa.dsearch.server.collections.service.history.entity.IndexHistory;
 import com.danawa.dsearch.server.collections.service.history.repository.HistoryRepository;
-import com.danawa.dsearch.server.collections.service.history.specification.IndexHistorySpecification;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -12,7 +11,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 

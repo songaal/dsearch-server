@@ -2,32 +2,11 @@ package com.danawa.dsearch.server.jdbc;
 
 import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactory;
 import com.danawa.dsearch.server.indices.service.IndicesService;
-import com.danawa.dsearch.server.jdbc.entity.JdbcRequest;
 import com.danawa.dsearch.server.jdbc.service.JdbcServiceImpl;
-import org.apache.commons.lang.NullArgumentException;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.SearchHits;
-import org.hamcrest.Matchers;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class JdbcServiceImplTest {
@@ -40,7 +19,7 @@ public class JdbcServiceImplTest {
     private String JDBC_JSON = "jdbc.json";
     @BeforeEach
     public void setup() {
-        this.jdbcServiceImpl = new JdbcServiceImpl(jdbcIndex, indicesService, elasticsearchFactory);
+//        this.jdbcServiceImpl = new JdbcServiceImpl(jdbcIndex, indicesService, elasticsearchFactory);
     }
 //
 //    @Test

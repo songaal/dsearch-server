@@ -1,9 +1,9 @@
 package com.danawa.dsearch.server.collections.service.indexing;
 
 import com.danawa.dsearch.server.collections.entity.Collection;
-import com.danawa.dsearch.server.collections.entity.IndexActionStep;
-import com.danawa.dsearch.server.collections.entity.IndexingActionType;
-import com.danawa.dsearch.server.collections.entity.IndexingStatus;
+import com.danawa.dsearch.server.collections.entity.IndexingStep;
+import com.danawa.dsearch.server.collections.entity.IndexingAction;
+import com.danawa.dsearch.server.collections.entity.IndexingInfo;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -13,7 +13,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Map;
-import java.util.Queue;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -46,10 +45,10 @@ public class IndexingServiceTests {
             collection.setId("CollectionId");
             collection.setName("name");
             collection.setBaseId("baseId");
-            IndexingActionType actionType = IndexingActionType.ALL;
+            IndexingAction actionType = IndexingAction.ALL;
             String groupSeq = ""; // all indexing 일 경우엔 빈 스트링
 
-            IndexingStatus status = new IndexingStatus();
+            IndexingInfo status = new IndexingInfo();
             status.setClusterId(clusterId);
 
             given(indexingJobManager.getManageQueue(collection.getId())).willReturn(null);
@@ -69,10 +68,10 @@ public class IndexingServiceTests {
         collection.setId("CollectionId");
         collection.setName("name");
         collection.setBaseId("baseId");
-        IndexingActionType actionType = IndexingActionType.ALL;
+        IndexingAction actionType = IndexingAction.ALL;
         String groupSeq = ""; // all indexing 일 경우엔 빈 스트링
 
-        IndexingStatus status = new IndexingStatus();
+        IndexingInfo status = new IndexingInfo();
         status.setClusterId(clusterId);
 
         given(indexingJobManager.getManageQueue(collection.getId())).willReturn(status);
@@ -91,10 +90,10 @@ public class IndexingServiceTests {
             collection.setId("CollectionId");
             collection.setName("name");
             collection.setBaseId("baseId");
-            IndexingActionType actionType = IndexingActionType.INDEXING;
+            IndexingAction actionType = IndexingAction.INDEXING;
             String groupSeq = "";
 
-            IndexingStatus status = new IndexingStatus();
+            IndexingInfo status = new IndexingInfo();
             status.setClusterId(clusterId);
 
             given(indexingJobManager.getManageQueue(collection.getId())).willReturn(null);
@@ -114,10 +113,10 @@ public class IndexingServiceTests {
         collection.setId("CollectionId");
         collection.setName("name");
         collection.setBaseId("baseId");
-        IndexingActionType actionType = IndexingActionType.INDEXING;
+        IndexingAction actionType = IndexingAction.INDEXING;
         String groupSeq = "";
 
-        IndexingStatus status = new IndexingStatus();
+        IndexingInfo status = new IndexingInfo();
         status.setClusterId(clusterId);
 
         given(indexingJobManager.getManageQueue(collection.getId())).willReturn(status);
@@ -136,10 +135,10 @@ public class IndexingServiceTests {
             collection.setId("CollectionId");
             collection.setName("name");
             collection.setBaseId("baseId");
-            IndexingActionType actionType = IndexingActionType.EXPOSE;
+            IndexingAction actionType = IndexingAction.EXPOSE;
             String groupSeq = "";
 
-            IndexingStatus status = new IndexingStatus();
+            IndexingInfo status = new IndexingInfo();
             status.setClusterId(clusterId);
 
             given(indexingJobManager.getManageQueue(collection.getId())).willReturn(null);
@@ -156,10 +155,10 @@ public class IndexingServiceTests {
         collection.setId("CollectionId");
         collection.setName("name");
         collection.setBaseId("baseId");
-        IndexingActionType actionType = IndexingActionType.EXPOSE;
+        IndexingAction actionType = IndexingAction.EXPOSE;
         String groupSeq = "";
 
-        IndexingStatus status = new IndexingStatus();
+        IndexingInfo status = new IndexingInfo();
         status.setClusterId(clusterId);
 
         given(indexingJobManager.getManageQueue(collection.getId())).willReturn(status);
@@ -177,11 +176,11 @@ public class IndexingServiceTests {
         collection.setName("name");
         collection.setBaseId("baseId");
 
-        IndexingStatus status = new IndexingStatus();
+        IndexingInfo status = new IndexingInfo();
         status.setClusterId(clusterId);
-        status.setCurrentStep(IndexActionStep.FULL_INDEX);
+        status.setCurrentStep(IndexingStep.FULL_INDEX);
 
-        IndexingActionType actionType = IndexingActionType.STOP_INDEXING;
+        IndexingAction actionType = IndexingAction.STOP_INDEXING;
         String groupSeq = "";
 
         // 현재 인덱싱 진행 중
@@ -206,11 +205,11 @@ public class IndexingServiceTests {
         collection.setBaseId("baseId");
         String groupSeq = "0";
 
-        IndexingStatus status = new IndexingStatus();
+        IndexingInfo status = new IndexingInfo();
         status.setClusterId(clusterId);
-        status.setCurrentStep(IndexActionStep.FULL_INDEX);
+        status.setCurrentStep(IndexingStep.FULL_INDEX);
 
-        IndexingActionType actionType = IndexingActionType.SUB_START;
+        IndexingAction actionType = IndexingAction.SUB_START;
 
         given(indexingJobManager.getManageQueue(collection.getId())).willReturn(status);
         doNothing().when(indexingJobService).startGroupJob(status, collection, groupSeq);
@@ -231,11 +230,11 @@ public class IndexingServiceTests {
         collection.setBaseId("baseId");
         String groupSeq = "0,2,3";
 
-        IndexingStatus status = new IndexingStatus();
+        IndexingInfo status = new IndexingInfo();
         status.setClusterId(clusterId);
-        status.setCurrentStep(IndexActionStep.FULL_INDEX);
+        status.setCurrentStep(IndexingStep.FULL_INDEX);
 
-        IndexingActionType actionType = IndexingActionType.SUB_START;
+        IndexingAction actionType = IndexingAction.SUB_START;
 
         given(indexingJobManager.getManageQueue(collection.getId())).willReturn(status);
         Map<String, Object> response = indexingService.processIndexingJob(clusterId, collection, actionType, groupSeq);

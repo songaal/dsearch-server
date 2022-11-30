@@ -1,9 +1,9 @@
 package com.danawa.dsearch.server.collections.service.history;
 
 import com.danawa.dsearch.server.collections.dto.HistoryReadRequest;
-import com.danawa.dsearch.server.collections.entity.IndexActionStep;
-import com.danawa.dsearch.server.collections.entity.IndexHistory;
-import com.danawa.dsearch.server.collections.entity.IndexingStatus;
+import com.danawa.dsearch.server.collections.entity.IndexingStep;
+import com.danawa.dsearch.server.collections.service.history.entity.IndexHistory;
+import com.danawa.dsearch.server.collections.entity.IndexingInfo;
 import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactory;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -120,14 +120,14 @@ public class IndexHistoryServiceTests {
         defaultMap.put("docs.count", "0");
         defaultMap.put("store.size", "0");
 
-        IndexingStatus indexingStatus = new IndexingStatus();
-        indexingStatus.setCurrentStep(IndexActionStep.FULL_INDEX);
-        indexingStatus.setClusterId(clusterId);
-        indexingStatus.setIndex("index");
+        IndexingInfo indexingInfo = new IndexingInfo();
+        indexingInfo.setCurrentStep(IndexingStep.FULL_INDEX);
+        indexingInfo.setClusterId(clusterId);
+        indexingInfo.setIndex("index");
 
         doNothing().when(indexHistoryAdapter).create(any(IndexHistory.class));
         given(elasticsearchFactory.catIndex(clusterId, "index")).willReturn(defaultMap); // elasticsearch 관련 메서드 모음
-        this.indexHistoryService.create(indexingStatus, status);
+        this.indexHistoryService.create(indexingInfo, status);
         verify(indexHistoryAdapter, times(1)).create(any(IndexHistory.class));
     }
 
@@ -140,14 +140,14 @@ public class IndexHistoryServiceTests {
         UUID clusterId = UUID.randomUUID();
         String status = "SUCCESS";
 
-        IndexingStatus indexingStatus = new IndexingStatus();
-        indexingStatus.setCurrentStep(IndexActionStep.FULL_INDEX);
-        indexingStatus.setClusterId(clusterId);
-        indexingStatus.setIndex("index");
+        IndexingInfo indexingInfo = new IndexingInfo();
+        indexingInfo.setCurrentStep(IndexingStep.FULL_INDEX);
+        indexingInfo.setClusterId(clusterId);
+        indexingInfo.setIndex("index");
 
         // 1. 인덱스가 없고 clusterId만 있는 경우
         doNothing().when(indexHistoryAdapter).create(any(IndexHistory.class));
-        this.indexHistoryService.create(indexingStatus, "0", status, "0");
+        this.indexHistoryService.create(indexingInfo, "0", status, "0");
         verify(indexHistoryAdapter, times(1)).create(any(IndexHistory.class));
     }
 

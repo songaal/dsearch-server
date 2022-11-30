@@ -19,6 +19,7 @@ import java.util.UUID;
 public class PipelineController {
     private static Logger logger = LoggerFactory.getLogger(PipelineController.class);
     private final PipelineService pipelineService;
+
     public PipelineController(PipelineService pipelineService) {
         this.pipelineService = pipelineService;
     }
@@ -31,7 +32,7 @@ public class PipelineController {
 
     @GetMapping("/{name}")
     public ResponseEntity<?> getPipeLine(@RequestHeader(value = "cluster-id") UUID clusterId,
-                                              @PathVariable String name) throws Exception {
+                                         @PathVariable String name) throws Exception {
         String response = pipelineService.getPipeLine(clusterId, name);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
@@ -47,9 +48,9 @@ public class PipelineController {
 
     @PostMapping(value = "/{name}")
     public ResponseEntity<?> testPipeLine(@RequestHeader(value = "cluster-id") UUID clusterId,
-                                         @PathVariable String name,
-                                         @RequestParam boolean isDetail,
-                                         @RequestBody HashMap<String, Object> body) throws Exception {
+                                          @PathVariable String name,
+                                          @RequestParam boolean isDetail,
+                                          @RequestBody HashMap<String, Object> body) throws Exception {
         ObjectMapper mapper = new ObjectMapper();
         String response = pipelineService.testPipeline(clusterId, name, mapper.writeValueAsString(body), isDetail);
         return new ResponseEntity<>(response, HttpStatus.OK);
@@ -57,7 +58,7 @@ public class PipelineController {
 
     @DeleteMapping("/{name}")
     public ResponseEntity<?> deletePipeLine(@RequestHeader(value = "cluster-id") UUID clusterId,
-                                         @PathVariable String name) throws Exception {
+                                            @PathVariable String name) throws Exception {
         String response = pipelineService.deletePipeLine(clusterId, name);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }

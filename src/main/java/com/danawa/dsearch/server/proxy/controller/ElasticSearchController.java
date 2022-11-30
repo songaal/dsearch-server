@@ -1,7 +1,7 @@
 package com.danawa.dsearch.server.proxy.controller;
 
-import com.danawa.dsearch.server.clusters.entity.ClusterStatusResponse;
-import com.danawa.dsearch.server.clusters.entity.ClusterStatusRequest;
+import com.danawa.dsearch.server.clusters.dto.ClusterStatusResponse;
+import com.danawa.dsearch.server.clusters.dto.ClusterStatusRequest;
 import com.danawa.dsearch.server.excpetions.ElasticQueryException;
 import com.danawa.dsearch.server.clusters.service.ClusterService;
 import com.danawa.dsearch.server.proxy.service.ElasticsearchProxyService;

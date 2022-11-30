@@ -2,7 +2,7 @@ package com.danawa.dsearch.server.collections.service.indexer;
 
 import com.danawa.dsearch.server.collections.entity.Collection;
 import com.danawa.dsearch.server.collections.entity.IndexerStatus;
-import com.danawa.dsearch.server.collections.entity.IndexingStatus;
+import com.danawa.dsearch.server.collections.entity.IndexingInfo;
 import com.danawa.dsearch.server.config.IndexerConfig;
 import com.danawa.fastcatx.indexer.IndexJobManager;
 import com.danawa.fastcatx.indexer.entity.Job;
@@ -46,11 +46,11 @@ public class IndexerClientTests {
         // 1. 기본 데이터 셋팅
         Collection collection = new Collection();
         collection.setExtIndexer(false);
-        IndexingStatus indexingStatus = new IndexingStatus();
-        indexingStatus.setCollection(collection);
+        IndexingInfo indexingInfo = new IndexingInfo();
+        indexingInfo.setCollection(collection);
 
         String jobId = UUID.randomUUID().toString();
-        indexingStatus.setIndexingJobId(jobId); // 테스트용 임시 UUID
+        indexingInfo.setIndexingJobId(jobId); // 테스트용 임시 UUID
 
         // 2. SUCCESS 테스트
         Job successJob = new Job();
@@ -58,7 +58,7 @@ public class IndexerClientTests {
 
         given(indexJobManager.status(UUID.fromString(jobId))).willReturn(successJob);
 
-        IndexerStatus indexerStatus = indexerClient.getStatus(indexingStatus);
+        IndexerStatus indexerStatus = indexerClient.getStatus(indexingInfo);
         Assertions.assertEquals(IndexerStatus.SUCCESS, indexerStatus);
 
         // 3. RUNNING 테스트
@@ -66,7 +66,7 @@ public class IndexerClientTests {
         runningJob.setStatus("RUNNING");
         given(indexJobManager.status(UUID.fromString(jobId))).willReturn(runningJob);
 
-        indexerStatus = indexerClient.getStatus(indexingStatus);
+        indexerStatus = indexerClient.getStatus(indexingInfo);
         Assertions.assertEquals(IndexerStatus.RUNNING, indexerStatus);
 
         // 4. STOP 테스트
@@ -74,7 +74,7 @@ public class IndexerClientTests {
         stopJob.setStatus("STOP");
         given(indexJobManager.status(UUID.fromString(jobId))).willReturn(stopJob);
 
-        indexerStatus = indexerClient.getStatus(indexingStatus);
+        indexerStatus = indexerClient.getStatus(indexingInfo);
         Assertions.assertEquals(IndexerStatus.STOP, indexerStatus);
 
         // 5. ERROR 테스트
@@ -82,7 +82,7 @@ public class IndexerClientTests {
         errorJob.setStatus("ERROR");
         given(indexJobManager.status(UUID.fromString(jobId))).willReturn(errorJob);
 
-        indexerStatus = indexerClient.getStatus(indexingStatus);
+        indexerStatus = indexerClient.getStatus(indexingInfo);
         Assertions.assertEquals(IndexerStatus.ERROR, indexerStatus);
 
         // 6. UNKNOWN 테스트
@@ -90,7 +90,7 @@ public class IndexerClientTests {
         unknwonJob.setStatus("");
         given(indexJobManager.status(UUID.fromString(jobId))).willReturn(unknwonJob);
 
-        indexerStatus = indexerClient.getStatus(indexingStatus);
+        indexerStatus = indexerClient.getStatus(indexingInfo);
         Assertions.assertEquals(IndexerStatus.UNKNOWN, indexerStatus);
     }
 
@@ -126,15 +126,15 @@ public class IndexerClientTests {
         Collection collection = new Collection();
         collection.setExtIndexer(false);
         collection.setLauncher(launcher);
-        IndexingStatus indexingStatus = new IndexingStatus();
-        indexingStatus.setCollection(collection);
+        IndexingInfo indexingInfo = new IndexingInfo();
+        indexingInfo.setCollection(collection);
 
 
         // 2. 테스트
         UUID jobId = UUID.randomUUID();
-        indexingStatus.setIndexingJobId(jobId.toString());
+        indexingInfo.setIndexingJobId(jobId.toString());
         Assertions.assertDoesNotThrow(() -> {
-            indexerClient.stopJob(indexingStatus);
+            indexerClient.stopJob(indexingInfo);
         });
     }
 
@@ -148,13 +148,13 @@ public class IndexerClientTests {
         Collection collection = new Collection();
         collection.setExtIndexer(false);
         collection.setLauncher(launcher);
-        IndexingStatus indexingStatus = new IndexingStatus();
-        indexingStatus.setCollection(collection);
-        indexingStatus.setIndexingJobId(jobId.toString());
+        IndexingInfo indexingInfo = new IndexingInfo();
+        indexingInfo.setCollection(collection);
+        indexingInfo.setIndexingJobId(jobId.toString());
 
         // 2. 테스트
         Assertions.assertDoesNotThrow(() -> {
-            indexerClient.deleteJob(indexingStatus);
+            indexerClient.deleteJob(indexingInfo);
         });
     }
 
@@ -175,15 +175,15 @@ public class IndexerClientTests {
         collection.setExtIndexer(false);
         collection.setLauncher(launcher);
 
-        IndexingStatus indexingStatus = new IndexingStatus();
-        indexingStatus.setCollection(collection);
-        indexingStatus.setIndexingJobId(jobId.toString());
+        IndexingInfo indexingInfo = new IndexingInfo();
+        indexingInfo.setCollection(collection);
+        indexingInfo.setIndexingJobId(jobId.toString());
 
         given(indexJobManager.status(jobId)).willReturn(job);
 
         // 2. 테스트
         Assertions.assertDoesNotThrow(() -> {
-            indexerClient.startGroupJob(indexingStatus, collection, "0");
+            indexerClient.startGroupJob(indexingInfo, collection, "0");
 
             Assertions.assertTrue(job.getGroupSeq().contains(0));
         });

@@ -1,4 +1,4 @@
-package com.danawa.dsearch.server.collections.entity;
+package com.danawa.dsearch.server.collections.service.history.entity;
 
 import javax.persistence.*;
 import java.util.UUID;

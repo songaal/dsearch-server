@@ -4,11 +4,9 @@ import java.io.Serializable;
 import java.util.Queue;
 import java.util.UUID;
 
-public class IndexingStatus implements Serializable {
-    public static IndexingStatus Empty = null;
-
+public class IndexingInfo implements Serializable {
+    public static IndexingInfo Empty = null;
     private Collection collection;
-
     private String scheme;
     private String host;
     private int port;
@@ -26,8 +24,8 @@ public class IndexingStatus implements Serializable {
     private String action;
 
     private int retry;
-    private IndexActionStep currentStep;
-    private Queue<IndexActionStep> nextStep;
+    private IndexingStep currentStep;
+    private Queue<IndexingStep> nextStep;
 
     public void setCollection(Collection collection) {
         this.collection = collection;
@@ -125,19 +123,19 @@ public class IndexingStatus implements Serializable {
         this.retry = retry;
     }
 
-    public IndexActionStep getCurrentStep() {
+    public IndexingStep getCurrentStep() {
         return currentStep;
     }
 
-    public void setCurrentStep(IndexActionStep currentStep) {
+    public void setCurrentStep(IndexingStep currentStep) {
         this.currentStep = currentStep;
     }
 
-    public Queue<IndexActionStep> getNextStep() {
+    public Queue<IndexingStep> getNextStep() {
         return nextStep;
     }
 
-    public void setNextStep(Queue<IndexActionStep> nextStep) {
+    public void setNextStep(Queue<IndexingStep> nextStep) {
         this.nextStep = nextStep;
     }
 

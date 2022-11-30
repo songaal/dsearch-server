@@ -1,6 +1,6 @@
 package com.danawa.dsearch.server.temp;
 
-import com.danawa.dsearch.server.clusters.entity.ClusterStatusResponse;
+import com.danawa.dsearch.server.clusters.dto.ClusterStatusResponse;
 import com.google.gson.Gson;
 import org.apache.http.HttpHost;
 import org.apache.http.util.EntityUtils;

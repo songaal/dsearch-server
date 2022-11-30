@@ -1,13 +1,13 @@
 package com.danawa.dsearch.server.collections.controller;
 
 import com.danawa.dsearch.server.clusters.service.ClusterService;
-import com.danawa.dsearch.server.collections.entity.IndexingActionType;
+import com.danawa.dsearch.server.collections.entity.IndexingAction;
 import com.danawa.dsearch.server.collections.service.schedule.IndexingScheduler;
 import com.danawa.dsearch.server.collections.service.indexing.IndexingJobManager;
 import com.danawa.dsearch.server.collections.service.CollectionService;
 import com.danawa.dsearch.server.clusters.entity.Cluster;
 import com.danawa.dsearch.server.collections.entity.Collection;
-import com.danawa.dsearch.server.collections.entity.IndexingStatus;
+import com.danawa.dsearch.server.collections.entity.IndexingInfo;
 import com.danawa.dsearch.server.collections.service.indexing.IndexingService;
 import com.danawa.dsearch.server.excpetions.DuplicatedUserException;
 import com.danawa.dsearch.server.excpetions.IndexingJobFailureException;
@@ -177,7 +177,7 @@ public class CollectionController {
     @GetMapping("/manageQueue")
     public ResponseEntity<?> getManageQueue(){
         Map<String, Object> response = new HashMap<>();
-        List<IndexingStatus> statusList = indexingJobManager.getManageQueueList();
+        List<IndexingInfo> statusList = indexingJobManager.getManageQueueList();
         response.put("message", "");
         response.put("data",  statusList);
         response.put("result", "success");
@@ -191,7 +191,7 @@ public class CollectionController {
     @GetMapping("/lookupQueue")
     public ResponseEntity<?> getLookupQueue(){
         Map<String, Object> response = new HashMap<>();
-        List<IndexingStatus> statusList = indexingJobManager.getLookupQueueList();
+        List<IndexingInfo> statusList = indexingJobManager.getLookupQueueList();
         response.put("message", "");
         response.put("data",  statusList);
         response.put("result", "success");
@@ -231,7 +231,7 @@ public class CollectionController {
                                       @RequestHeader(value = "client-ip", required = false) String clientIP,
                                       @PathVariable String id,
                                       @RequestParam String action) throws IndexingJobFailureException, IOException {
-        IndexingActionType actionType = getActionType(action);
+        IndexingAction actionType = getActionType(action);
         Collection collection = collectionService.findById(clusterId, id);
         logger.info("[action] clusterId={}, clientIP={}, collection={}, actionType={}",
                 clusterId,
@@ -272,7 +272,7 @@ public class CollectionController {
         }
 
         UUID clusterId = cluster.getId();
-        IndexingActionType actionType = getActionType(action);
+        IndexingAction actionType = getActionType(action);
 
         // IDXP에서 groupSeq가 넘어오면서 전체 색인을 시작한다.
         // 일반적으로 관리도구 설정과 동일할거같지만... IDXP 파라미터가 있을 경우 groupSeq 를 변경한다.
@@ -316,14 +316,14 @@ public class CollectionController {
         }
 
         String collectionId = collection.getId();
-        IndexingStatus indexingStatus = indexingJobManager.getCurrentIndexingStatus(collectionId);
+        IndexingInfo indexingInfo = indexingJobManager.getCurrentIndexingStatus(collectionId);
 
-        Map<String, Object> response = makeIndexingStatusResponse(indexingStatus);
+        Map<String, Object> response = makeIndexingStatusResponse(indexingInfo);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
-    private boolean isValidGroupSeq(IndexingActionType actionType, String groupSeq){
-        return (actionType == IndexingActionType.ALL || actionType == IndexingActionType.INDEXING) && groupSeq != null && !"".equals(groupSeq);
+    private boolean isValidGroupSeq(IndexingAction actionType, String groupSeq){
+        return (actionType == IndexingAction.ALL || actionType == IndexingAction.INDEXING) && groupSeq != null && !"".equals(groupSeq);
     }
     private void changeGroupSeqWithinLauncher(Collection collection, String groupSeq){
         try {
@@ -345,10 +345,10 @@ public class CollectionController {
     }
 
 
-    private Map<String, Object> makeIndexingStatusResponse(IndexingStatus indexingStatus){
+    private Map<String, Object> makeIndexingStatusResponse(IndexingInfo indexingInfo){
         Map<String, Object> response = new HashMap<>();
 
-        if(indexingStatus == IndexingStatus.Empty){
+        if(indexingInfo == IndexingInfo.Empty){
             Map<String, String> map = new HashMap<>();
             map.put("status", "NOT_STARTED");
             response.put("message", "Not Found Status (색인을 시작하지 않았습니다)");
@@ -358,8 +358,8 @@ public class CollectionController {
 
         response.put("result", "success");
         response.put("message", "");
-        response.put("info",  indexingStatus);
-        response.put("step",  indexingStatus.getCurrentStep());
+        response.put("info", indexingInfo);
+        response.put("step",  indexingInfo.getCurrentStep());
         return response;
     }
 
@@ -368,23 +368,23 @@ public class CollectionController {
     /**
      * 도우미 메서드 영역
      * */
-    private IndexingActionType getActionType(String action) throws IndexingJobFailureException{
+    private IndexingAction getActionType(String action) throws IndexingJobFailureException{
         action = action.toLowerCase();
         switch (action) {
             case "all":
-                return IndexingActionType.ALL;
+                return IndexingAction.ALL;
             case "indexing":
-                return IndexingActionType.INDEXING;
+                return IndexingAction.INDEXING;
             case "expose":
-                return IndexingActionType.EXPOSE;
+                return IndexingAction.EXPOSE;
             case "stop_propagation":
-                return IndexingActionType.STOP_PROPAGATION;
+                return IndexingAction.STOP_PROPAGATION;
             case "stop_indexing":
-                return IndexingActionType.STOP_INDEXING;
+                return IndexingAction.STOP_INDEXING;
             case "sub_start":
-                return IndexingActionType.SUB_START;
+                return IndexingAction.SUB_START;
             case "stop_reindexing":
-                return IndexingActionType.STOP_REINDEXING;
+                return IndexingAction.STOP_REINDEXING;
             default:
                 throw new IndexingJobFailureException("Not Found action Type : " + action);
         }

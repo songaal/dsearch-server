@@ -1,11 +1,11 @@
 package com.danawa.dsearch.server.collections.service.indexing;
 
-import com.danawa.dsearch.server.collections.entity.IndexingActionType;
+import com.danawa.dsearch.server.collections.entity.IndexingAction;
 import com.danawa.dsearch.server.collections.service.indexer.IndexerClient;
 import com.danawa.dsearch.server.collections.service.history.HistoryService;
 import com.danawa.dsearch.server.collections.entity.Collection;
-import com.danawa.dsearch.server.collections.entity.IndexActionStep;
-import com.danawa.dsearch.server.collections.entity.IndexingStatus;
+import com.danawa.dsearch.server.collections.entity.IndexingStep;
+import com.danawa.dsearch.server.collections.entity.IndexingInfo;
 import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactoryHighLevelWrapper;
 import com.danawa.dsearch.server.excpetions.ConvertYamlException;
 import com.danawa.dsearch.server.excpetions.IndexingJobFailureException;
@@ -25,7 +25,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Service;
-import org.yaml.snakeyaml.Yaml;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -60,24 +59,24 @@ public class IndexingJobService {
         this.alertService  = alertService;
     }
 
-    public IndexingStatus indexingAndExpose(UUID clusterId, Collection collection) throws IndexingJobFailureException {
-        Queue<IndexActionStep> actionSteps = new ArrayDeque<>();
-        actionSteps.add(IndexActionStep.FULL_INDEX);
-        actionSteps.add(IndexActionStep.EXPOSE);
+    public IndexingInfo indexingAndExpose(UUID clusterId, Collection collection) throws IndexingJobFailureException {
+        Queue<IndexingStep> actionSteps = new ArrayDeque<>();
+        actionSteps.add(IndexingStep.FULL_INDEX);
+        actionSteps.add(IndexingStep.EXPOSE);
 
-        IndexingStatus status = indexing(clusterId, collection, actionSteps);
-        status.setAction(IndexingActionType.ALL.getAction());
+        IndexingInfo status = indexing(clusterId, collection, actionSteps);
+        status.setAction(IndexingAction.ALL.getAction());
         status.setStatus("RUNNING");
         return status;
     }
 
-    public IndexingStatus indexing(UUID clusterId, Collection collection) throws IndexingJobFailureException {
-        Queue<IndexActionStep> actionSteps = new ArrayDeque<>();
-        actionSteps.add(IndexActionStep.FULL_INDEX);
+    public IndexingInfo indexing(UUID clusterId, Collection collection) throws IndexingJobFailureException {
+        Queue<IndexingStep> actionSteps = new ArrayDeque<>();
+        actionSteps.add(IndexingStep.FULL_INDEX);
         collection.setAutoRun(false);
 
-        IndexingStatus status = indexing(clusterId, collection, actionSteps);
-        status.setAction(IndexingActionType.INDEXING.getAction());
+        IndexingInfo status = indexing(clusterId, collection, actionSteps);
+        status.setAction(IndexingAction.INDEXING.getAction());
         status.setStatus("RUNNING");
         return status;
     }
@@ -88,10 +87,10 @@ public class IndexingJobService {
      *
      * @return IndexingStatus
      */
-    private IndexingStatus indexing(UUID clusterId, Collection collection, Queue<IndexActionStep> actionSteps) throws IndexingJobFailureException {
-        IndexingStatus status = null;
+    private IndexingInfo indexing(UUID clusterId, Collection collection, Queue<IndexingStep> actionSteps) throws IndexingJobFailureException {
+        IndexingInfo status = null;
         Collection.Index targetIndex = null;
-        IndexActionStep currentStep = actionSteps.poll();
+        IndexingStep currentStep = actionSteps.poll();
 
         try{
             // 1. 대상 인덱스 찾기.
@@ -274,54 +273,54 @@ public class IndexingJobService {
         }
     }
 
-    private IndexingStatus makeIndexingStatus(UUID clusterId,
-                                              Collection collection,
-                                              Collection.Index targetIndex,
-                                              String indexingJobId,
-                                              IndexActionStep currentStep,
-                                              Queue<IndexActionStep> actionSteps){
-        IndexingStatus indexingStatus = new IndexingStatus();
+    private IndexingInfo makeIndexingStatus(UUID clusterId,
+                                            Collection collection,
+                                            Collection.Index targetIndex,
+                                            String indexingJobId,
+                                            IndexingStep currentStep,
+                                            Queue<IndexingStep> actionSteps){
+        IndexingInfo indexingInfo = new IndexingInfo();
         Collection.Launcher launcher = collection.getLauncher();
         int retryCount = 50;
 
         // 외부 인덱서를 사용할 경우 추가 셋팅
         if (collection.isExtIndexer()) {
-            indexingStatus.setScheme(launcher.getScheme());
-            indexingStatus.setHost(launcher.getHost());
-            indexingStatus.setPort(launcher.getPort());
+            indexingInfo.setScheme(launcher.getScheme());
+            indexingInfo.setHost(launcher.getHost());
+            indexingInfo.setPort(launcher.getPort());
         }
 
-        indexingStatus.setClusterId(clusterId);
-        indexingStatus.setIndex(targetIndex.getIndex());
-        indexingStatus.setStartTime(System.currentTimeMillis());
-        indexingStatus.setIndexingJobId(indexingJobId);
-        indexingStatus.setAutoRun(collection.isAutoRun());
-        indexingStatus.setCurrentStep(currentStep);
-        indexingStatus.setNextStep(actionSteps);
-        indexingStatus.setRetry(retryCount);
-        indexingStatus.setCollection(collection);
-        return indexingStatus;
+        indexingInfo.setClusterId(clusterId);
+        indexingInfo.setIndex(targetIndex.getIndex());
+        indexingInfo.setStartTime(System.currentTimeMillis());
+        indexingInfo.setIndexingJobId(indexingJobId);
+        indexingInfo.setAutoRun(collection.isAutoRun());
+        indexingInfo.setCurrentStep(currentStep);
+        indexingInfo.setNextStep(actionSteps);
+        indexingInfo.setRetry(retryCount);
+        indexingInfo.setCollection(collection);
+        return indexingInfo;
     }
 
     private void sendIndexingError(Collection collection, Collection.Index targetIndex, String errMessage){
         long errTime = System.currentTimeMillis();
-        IndexingStatus indexingStatus = new IndexingStatus();
-        indexingStatus.setStatus("ERROR");
-        indexingStatus.setAutoRun(collection.isAutoRun());
-        indexingStatus.setStartTime(errTime);
-        indexingStatus.setEndTime(errTime);
-        indexingStatus.setCurrentStep(IndexActionStep.FULL_INDEX);
+        IndexingInfo indexingInfo = new IndexingInfo();
+        indexingInfo.setStatus("ERROR");
+        indexingInfo.setAutoRun(collection.isAutoRun());
+        indexingInfo.setStartTime(errTime);
+        indexingInfo.setEndTime(errTime);
+        indexingInfo.setCurrentStep(IndexingStep.FULL_INDEX);
 
         if (targetIndex != null){
-            indexingStatus.setIndex(targetIndex.getIndex());
+            indexingInfo.setIndex(targetIndex.getIndex());
         } else if(collection.getIndexA() != null){
-            indexingStatus.setIndex(collection.getIndexA().getIndex());
+            indexingInfo.setIndex(collection.getIndexA().getIndex());
         } else if(collection.getIndexB() != null){
-            indexingStatus.setIndex(collection.getIndexB().getIndex());
+            indexingInfo.setIndex(collection.getIndexB().getIndex());
         }
 
         alertService.send(String.format("%s 컬렉션의 색인이 실패하였습니다.\n%s", collection.getBaseId(), errMessage));
-        indexHistoryService.create(indexingStatus, "0", "ERROR", "0");
+        indexHistoryService.create(indexingInfo, "0", "ERROR", "0");
     }
 
     public void changeRefreshInterval(UUID clusterId, Collection collection, String target) throws IOException {
@@ -516,14 +515,14 @@ public class IndexingJobService {
         }
     }
 
-    public void stopIndexing(IndexingStatus status) {
+    public void stopIndexing(IndexingInfo status) {
         try {
             indexerClient.stopJob(status);
         } catch (Exception ignore) {
         }
     }
 
-    public void startGroupJob(IndexingStatus status, Collection collection, String groupSeq) {
+    public void startGroupJob(IndexingInfo status, Collection collection, String groupSeq) {
         try {
             indexerClient.startGroupJob(status, collection, groupSeq);
         } catch (URISyntaxException ignore) {

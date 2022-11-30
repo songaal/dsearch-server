@@ -2,7 +2,7 @@ package com.danawa.dsearch.server.collections.service.indexer;
 
 import com.danawa.dsearch.server.collections.entity.Collection;
 import com.danawa.dsearch.server.collections.entity.IndexerStatus;
-import com.danawa.dsearch.server.collections.entity.IndexingStatus;
+import com.danawa.dsearch.server.collections.entity.IndexingInfo;
 import com.danawa.dsearch.server.config.IndexerConfig;
 import com.danawa.fastcatx.indexer.IndexJobManager;
 import com.danawa.fastcatx.indexer.entity.Job;
@@ -42,21 +42,21 @@ public class IndexerClientImpl implements IndexerClient{
         restTemplate = new RestTemplate(factory);
     }
 
-    public IndexerStatus getStatus(IndexingStatus indexingStatus){
-        boolean isExtIndexer = indexingStatus.getCollection().isExtIndexer();
+    public IndexerStatus getStatus(IndexingInfo indexingInfo){
+        boolean isExtIndexer = indexingInfo.getCollection().isExtIndexer();
 
         if (isExtIndexer) {
-            return getStatusForExternal(indexingStatus);
+            return getStatusForExternal(indexingInfo);
         } else {
-            return getStatusForInternal(indexingStatus);
+            return getStatusForInternal(indexingInfo);
         }
     }
 
-    private IndexerStatus getStatusForExternal(IndexingStatus indexingStatus){
-        String scheme = indexingStatus.getScheme();
-        String host = indexingStatus.getHost();
-        int port = indexingStatus.getPort();
-        String jobId = indexingStatus.getIndexingJobId();
+    private IndexerStatus getStatusForExternal(IndexingInfo indexingInfo){
+        String scheme = indexingInfo.getScheme();
+        String host = indexingInfo.getHost();
+        int port = indexingInfo.getPort();
+        String jobId = indexingInfo.getIndexingJobId();
 
         URI url = URI.create(String.format("%s://%s:%d/async/status?id=%s", scheme, host, port, jobId));
         ResponseEntity<Map> responseEntity = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(new HashMap<>()), Map.class);
@@ -67,32 +67,32 @@ public class IndexerClientImpl implements IndexerClient{
         return IndexerStatus.UNKNOWN;
     }
 
-    private IndexerStatus getStatusForInternal(IndexingStatus indexingStatus){
-        String jobId = indexingStatus.getIndexingJobId();
+    private IndexerStatus getStatusForInternal(IndexingInfo indexingInfo){
+        String jobId = indexingInfo.getIndexingJobId();
         Job job = indexJobManager.status(UUID.fromString(jobId));
         if (job != null) return IndexerStatus.changeToStatus(job.getStatus());
 
         return IndexerStatus.UNKNOWN;
     }
 
-    public void deleteJob(IndexingStatus indexingStatus){
-        boolean isExtIndexer = indexingStatus.getCollection().isExtIndexer();
+    public void deleteJob(IndexingInfo indexingInfo){
+        boolean isExtIndexer = indexingInfo.getCollection().isExtIndexer();
 
         if (isExtIndexer) {
-            deleteJobForExternal(indexingStatus);
+            deleteJobForExternal(indexingInfo);
         } else {
-            deleteJobForInternal(indexingStatus);
+            deleteJobForInternal(indexingInfo);
         }
     }
-    private void deleteJobForExternal(IndexingStatus indexingStatus){
-        URI deleteUrl = URI.create(String.format("http://%s:%d/async/%s", indexingStatus.getHost(), indexingStatus.getPort(), indexingStatus.getIndexingJobId()));
+    private void deleteJobForExternal(IndexingInfo indexingInfo){
+        URI deleteUrl = URI.create(String.format("http://%s:%d/async/%s", indexingInfo.getHost(), indexingInfo.getPort(), indexingInfo.getIndexingJobId()));
         ResponseEntity<Map> responseEntity = restTemplate.exchange(deleteUrl, HttpMethod.DELETE, new HttpEntity<>(new HashMap<>()), Map.class);
         Map<String, Object> body = responseEntity.getBody();
-        logger.debug("deleteJob response ==> index={}, status={}", indexingStatus.getIndex(), body.get("status"));
+        logger.debug("deleteJob response ==> index={}, status={}", indexingInfo.getIndex(), body.get("status"));
     }
 
-    private void deleteJobForInternal(IndexingStatus indexingStatus){
-        String jobId = indexingStatus.getIndexingJobId();
+    private void deleteJobForInternal(IndexingInfo indexingInfo){
+        String jobId = indexingInfo.getIndexingJobId();
         indexJobManager.remove(UUID.fromString(jobId));
     }
 
@@ -124,7 +124,7 @@ public class IndexerClientImpl implements IndexerClient{
         Job job = indexJobManager.start(action, body);
         return job.getId().toString();
     }
-    public void stopJob(IndexingStatus status) throws URISyntaxException {
+    public void stopJob(IndexingInfo status) throws URISyntaxException {
         Collection collection = status.getCollection();
         Collection.Launcher launcher = collection.getLauncher();
         String scheme = status.getScheme();
@@ -150,7 +150,7 @@ public class IndexerClientImpl implements IndexerClient{
         indexJobManager.stop(UUID.fromString(jobId));
     }
 
-    public void startGroupJob(IndexingStatus status, Collection collection, String groupSeq) throws URISyntaxException {
+    public void startGroupJob(IndexingInfo status, Collection collection, String groupSeq) throws URISyntaxException {
         boolean isExtIndexer = collection.isExtIndexer();
         String jobId = status.getIndexingJobId();
         Collection.Launcher launcher = collection.getLauncher();

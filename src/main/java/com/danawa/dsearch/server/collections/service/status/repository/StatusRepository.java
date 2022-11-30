@@ -1,6 +1,6 @@
 package com.danawa.dsearch.server.collections.service.status.repository;
 
-import com.danawa.dsearch.server.collections.entity.IndexStatus;
+import com.danawa.dsearch.server.collections.service.status.entity.IndexStatus;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

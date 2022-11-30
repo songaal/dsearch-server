@@ -1,6 +1,6 @@
 package com.danawa.dsearch.server.collections.service.history.repository;
 
-import com.danawa.dsearch.server.collections.entity.IndexHistory;
+import com.danawa.dsearch.server.collections.service.history.entity.IndexHistory;
 import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactory;
 import com.danawa.dsearch.server.utils.TimeUtils;
 import org.elasticsearch.action.index.IndexRequest;

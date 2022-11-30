@@ -1,6 +1,6 @@
 package com.danawa.dsearch.server.jdbc;
 
-import com.danawa.dsearch.server.jdbc.entity.JdbcRequest;
+import com.danawa.dsearch.server.jdbc.dto.JdbcUpdateRequest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,7 +19,7 @@ public class JdbcConnectionTest {
         // docker run -d -p 3306:3306 --name mariadb --env MARIADB_DATABASE=test --env MARIADB_USER=danawa --env MARIADB_PASSWORD=ekskdhk --env MARIADB_ROOT_PASSWORD=ekskdhk1!  mariadb:latest
         try{
             /* Maria DB */
-            JdbcRequest jdbcRequest = new JdbcRequest();
+            JdbcUpdateRequest jdbcRequest = new JdbcUpdateRequest();
             jdbcRequest.setUrl("jdbc:mariadb://");
             jdbcRequest.setAddress("localhost");
             jdbcRequest.setPort("3306");
@@ -52,7 +52,7 @@ public class JdbcConnectionTest {
     public void mysql_Connection_Test() {
         try{
             /* MySql */
-            JdbcRequest jdbcRequest = new JdbcRequest();
+            JdbcUpdateRequest jdbcRequest = new JdbcUpdateRequest();
             jdbcRequest.setUrl("jdbc:mysql://");
             jdbcRequest.setAddress("dev.danawa.com");
             jdbcRequest.setPort("3306");
@@ -89,7 +89,7 @@ public class JdbcConnectionTest {
     public void altibase_Connection_Test() {
         try{
             /* AltiBase */
-            JdbcRequest jdbcRequest = new JdbcRequest();
+            JdbcUpdateRequest jdbcRequest = new JdbcUpdateRequest();
             jdbcRequest.setUrl("jdbc:Altibase://");
             jdbcRequest.setAddress("112.175.252.198");
             jdbcRequest.setPort("20200");
@@ -121,7 +121,7 @@ public class JdbcConnectionTest {
     public void oracleDB_Connection_Test() {
         try{
             /* Oracle */
-            JdbcRequest jdbcRequest3 = new JdbcRequest();
+            JdbcUpdateRequest jdbcRequest3 = new JdbcUpdateRequest();
             jdbcRequest3.setUrl("jdbc:mysql://");
             jdbcRequest3.setAddress("127.0.0.1");
             jdbcRequest3.setPort("3306");

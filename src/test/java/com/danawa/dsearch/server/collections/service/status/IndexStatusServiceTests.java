@@ -1,9 +1,9 @@
 package com.danawa.dsearch.server.collections.service.status;
 
 import com.danawa.dsearch.server.collections.entity.Collection;
-import com.danawa.dsearch.server.collections.entity.IndexActionStep;
-import com.danawa.dsearch.server.collections.entity.IndexStatus;
-import com.danawa.dsearch.server.collections.entity.IndexingStatus;
+import com.danawa.dsearch.server.collections.entity.IndexingStep;
+import com.danawa.dsearch.server.collections.service.status.entity.IndexStatus;
+import com.danawa.dsearch.server.collections.entity.IndexingInfo;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -48,16 +48,16 @@ public class IndexStatusServiceTests {
         UUID clusterId = UUID.randomUUID();
         String currentStatus = "SUCCESS";
 
-        IndexingStatus indexingStatus = new IndexingStatus();
+        IndexingInfo indexingInfo = new IndexingInfo();
         Collection collection = new Collection();
         collection.setId("collectionId");
-        indexingStatus.setCollection(collection);
-        indexingStatus.setCurrentStep(IndexActionStep.FULL_INDEX);
-        indexingStatus.setClusterId(clusterId);
-        indexingStatus.setIndex("index");
+        indexingInfo.setCollection(collection);
+        indexingInfo.setCurrentStep(IndexingStep.FULL_INDEX);
+        indexingInfo.setClusterId(clusterId);
+        indexingInfo.setIndex("index");
 
         doNothing().when(this.indexStatusAdapter).create(any(IndexStatus.class));
-        this.indexStatusService.create(indexingStatus, currentStatus);
+        this.indexStatusService.create(indexingInfo, currentStatus);
         verify(this.indexStatusAdapter, times(1)).create(any(IndexStatus.class));
     }
 
@@ -81,18 +81,18 @@ public class IndexStatusServiceTests {
         long startTime = 0;
         String status = "SUCCESS";
 
-        IndexingStatus indexingStatus = new IndexingStatus();
+        IndexingInfo indexingInfo = new IndexingInfo();
         Collection collection = new Collection();
         collection.setId("collectionId");
-        indexingStatus.setCollection(collection);
-        indexingStatus.setCurrentStep(IndexActionStep.FULL_INDEX);
-        indexingStatus.setClusterId(clusterId);
-        indexingStatus.setIndex(index);
-        indexingStatus.setStartTime(startTime);
+        indexingInfo.setCollection(collection);
+        indexingInfo.setCurrentStep(IndexingStep.FULL_INDEX);
+        indexingInfo.setClusterId(clusterId);
+        indexingInfo.setIndex(index);
+        indexingInfo.setStartTime(startTime);
 
         doNothing().when(this.indexStatusAdapter).create(any(IndexStatus.class));
         doNothing().when(this.indexStatusAdapter).delete(clusterId, index, startTime);
-        this.indexStatusService.update(indexingStatus, status);
+        this.indexStatusService.update(indexingInfo, status);
 
         verify(this.indexStatusAdapter, times(1)).delete(clusterId, index, startTime);
         verify(this.indexStatusAdapter, times(1)).create(any(IndexStatus.class));

@@ -31,7 +31,7 @@ public class ElasticsearchFactory {
     }
 
     public UUID getDictionaryRemoteClusterId(UUID id) {
-        Cluster cluster = clusterService.find(id);
+        Cluster cluster = clusterService.findById(id);
         if (cluster.getDictionaryRemoteClusterId() != null && !"".equals(cluster.getDictionaryRemoteClusterId().trim())) {
             return UUID.fromString(cluster.getDictionaryRemoteClusterId());
         } else {
@@ -40,7 +40,7 @@ public class ElasticsearchFactory {
     }
 
     public RestHighLevelClient getClient(UUID id) {
-        Cluster cluster = clusterService.find(id);
+        Cluster cluster = clusterService.findById(id);
 
         String scheme = cluster.getScheme();
         String host = cluster.getHost();

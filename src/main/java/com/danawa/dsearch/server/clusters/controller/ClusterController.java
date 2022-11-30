@@ -3,7 +3,7 @@ package com.danawa.dsearch.server.clusters.controller;
 import com.danawa.dsearch.server.clusters.service.ClusterRoutingAllocationService;
 import com.danawa.dsearch.server.clusters.service.ClusterService;
 import com.danawa.dsearch.server.clusters.entity.Cluster;
-import com.danawa.dsearch.server.clusters.entity.ClusterStatusResponse;
+import com.danawa.dsearch.server.clusters.dto.ClusterStatusResponse;
 import com.danawa.dsearch.server.collections.service.history.HistoryService;
 import com.danawa.dsearch.server.collections.service.schedule.IndexingScheduler;
 import com.danawa.dsearch.server.collections.service.CollectionService;
@@ -102,7 +102,7 @@ public class ClusterController {
 
     @GetMapping("/{id}")
     public ResponseEntity<?> find(@PathVariable String id) {
-        Cluster cluster = clusterService.find(UUID.fromString(id));
+        Cluster cluster = clusterService.findById(UUID.fromString(id));
         ClusterStatusResponse status = clusterService.scanClusterStatus(cluster.getScheme(),
                 cluster.getHost(),
                 cluster.getPort(),

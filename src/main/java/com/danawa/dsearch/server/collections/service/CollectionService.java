@@ -452,7 +452,7 @@ public class CollectionService {
                 sourceAsMap.put("esUser", collection.getEsUser());
                 sourceAsMap.put("esPassword", collection.getEsPassword());
             } else {
-                Cluster cluster = clusterService.find(clusterId);
+                Cluster cluster = clusterService.findById(clusterId);
                 sourceAsMap.put("esScheme", cluster.getScheme());
                 sourceAsMap.put("esHost", cluster.getHost());
                 sourceAsMap.put("esPort", cluster.getPort());

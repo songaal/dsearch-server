@@ -1,8 +1,8 @@
 package com.danawa.dsearch.server.clusters;
 
 import com.danawa.dsearch.server.clusters.entity.Cluster;
-import com.danawa.dsearch.server.clusters.entity.ClusterStatusRequest;
-import com.danawa.dsearch.server.clusters.entity.ClusterStatusResponse;
+import com.danawa.dsearch.server.clusters.dto.ClusterStatusRequest;
+import com.danawa.dsearch.server.clusters.dto.ClusterStatusResponse;
 import com.danawa.dsearch.server.clusters.repository.ClusterRepository;
 import com.danawa.dsearch.server.clusters.service.ClusterService;
 import com.danawa.dsearch.server.excpetions.NotFoundException;
@@ -12,8 +12,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.BDDMockito;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.hamcrest.MockitoHamcrest;
@@ -116,7 +114,7 @@ public class ClusterServiceTest {
         UUID uuid = UUID.randomUUID();
 
         //when
-        Cluster cluster = this.clusterService.find(uuid);
+        Cluster cluster = this.clusterService.findById(uuid);
 
         //then
         Assertions.assertNull(cluster);
@@ -132,7 +130,7 @@ public class ClusterServiceTest {
         UUID uuid = UUID.randomUUID();
 
         //when
-        Cluster cluster = this.clusterService.find(uuid);
+        Cluster cluster = this.clusterService.findById(uuid);
 
         //then
         Assertions.assertNotNull(cluster);

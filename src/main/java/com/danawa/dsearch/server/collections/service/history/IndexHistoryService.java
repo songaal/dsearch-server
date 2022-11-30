@@ -1,8 +1,8 @@
 package com.danawa.dsearch.server.collections.service.history;
 
 import com.danawa.dsearch.server.collections.dto.HistoryReadRequest;
-import com.danawa.dsearch.server.collections.entity.IndexHistory;
-import com.danawa.dsearch.server.collections.entity.IndexingStatus;
+import com.danawa.dsearch.server.collections.service.history.entity.IndexHistory;
+import com.danawa.dsearch.server.collections.entity.IndexingInfo;
 import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,13 +61,13 @@ public class IndexHistoryService implements HistoryService {
     }
 
     @Override
-    public void create(IndexingStatus indexingStatus, String status) {
-        UUID clusterId = indexingStatus.getClusterId();
-        String index = indexingStatus.getIndex();
-        String jobType = indexingStatus.getCurrentStep().name();
-        long startTime = indexingStatus.getStartTime();
-        long endTime = indexingStatus.getEndTime();
-        boolean autoRun = indexingStatus.isAutoRun();
+    public void create(IndexingInfo indexingInfo, String status) {
+        UUID clusterId = indexingInfo.getClusterId();
+        String index = indexingInfo.getIndex();
+        String jobType = indexingInfo.getCurrentStep().name();
+        long startTime = indexingInfo.getStartTime();
+        long endTime = indexingInfo.getEndTime();
+        boolean autoRun = indexingInfo.isAutoRun();
 
         // catIndex 시 bulk indexing이 끝난 경우에도 ES write queue에 적재만 되어 있는 경우가 있기 때문에 대기
         Map<String, Object> catIndex = elasticsearchFactory.catIndex(clusterId, index);
@@ -81,13 +81,13 @@ public class IndexHistoryService implements HistoryService {
 
 
     @Override
-    public void create(IndexingStatus indexingStatus, String docSize, String status, String store) {
-        UUID clusterId = indexingStatus.getClusterId();
-        String index = indexingStatus.getIndex();
-        String jobType = indexingStatus.getCurrentStep().name();
-        long startTime = indexingStatus.getStartTime();
-        long endTime = indexingStatus.getEndTime();
-        boolean autoRun = indexingStatus.isAutoRun();
+    public void create(IndexingInfo indexingInfo, String docSize, String status, String store) {
+        UUID clusterId = indexingInfo.getClusterId();
+        String index = indexingInfo.getIndex();
+        String jobType = indexingInfo.getCurrentStep().name();
+        long startTime = indexingInfo.getStartTime();
+        long endTime = indexingInfo.getEndTime();
+        boolean autoRun = indexingInfo.isAutoRun();
 
         IndexHistory indexHistory = makeHistory(clusterId, index, jobType, startTime, endTime, autoRun, status, docSize, store);
         indexHistoryAdapter.create(indexHistory);

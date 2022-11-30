@@ -1,7 +1,7 @@
 package com.danawa.dsearch.server.collections.service.status;
 
 
-import com.danawa.dsearch.server.collections.entity.IndexStatus;
+import com.danawa.dsearch.server.collections.service.status.entity.IndexStatus;
 import com.danawa.dsearch.server.collections.service.status.repository.StatusRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

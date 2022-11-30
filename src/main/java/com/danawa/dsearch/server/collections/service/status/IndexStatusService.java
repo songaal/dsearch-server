@@ -1,7 +1,7 @@
 package com.danawa.dsearch.server.collections.service.status;
 
-import com.danawa.dsearch.server.collections.entity.IndexingStatus;
-import com.danawa.dsearch.server.collections.entity.IndexStatus;
+import com.danawa.dsearch.server.collections.entity.IndexingInfo;
+import com.danawa.dsearch.server.collections.service.status.entity.IndexStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -30,7 +30,7 @@ public class IndexStatusService implements StatusService {
     }
 
     @Override
-    public void create(IndexingStatus status, String currentStatus) {
+    public void create(IndexingInfo status, String currentStatus) {
         UUID clusterId = status.getClusterId();
         String collectionId = status.getCollection().getId();
         long startTime = status.getStartTime();
@@ -60,13 +60,13 @@ public class IndexStatusService implements StatusService {
     }
 
     @Override
-    public void update(IndexingStatus indexingStatus, String status) {
-        UUID clusterId = indexingStatus.getClusterId();
-        String index = indexingStatus.getIndex();
-        long startTime = indexingStatus.getStartTime();
+    public void update(IndexingInfo indexingInfo, String status) {
+        UUID clusterId = indexingInfo.getClusterId();
+        String index = indexingInfo.getIndex();
+        long startTime = indexingInfo.getStartTime();
 
         delete(clusterId, index, startTime);
-        create(indexingStatus, status);
+        create(indexingInfo, status);
     }
 
     @Override

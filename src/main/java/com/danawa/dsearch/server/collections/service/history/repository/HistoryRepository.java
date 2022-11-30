@@ -1,6 +1,6 @@
 package com.danawa.dsearch.server.collections.service.history.repository;
 
-import com.danawa.dsearch.server.collections.entity.IndexHistory;
+import com.danawa.dsearch.server.collections.service.history.entity.IndexHistory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;

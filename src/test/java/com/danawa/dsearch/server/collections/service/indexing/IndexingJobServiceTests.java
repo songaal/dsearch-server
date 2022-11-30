@@ -2,8 +2,8 @@ package com.danawa.dsearch.server.collections.service.indexing;
 
 
 import com.danawa.dsearch.server.collections.entity.Collection;
-import com.danawa.dsearch.server.collections.entity.IndexActionStep;
-import com.danawa.dsearch.server.collections.entity.IndexingStatus;
+import com.danawa.dsearch.server.collections.entity.IndexingStep;
+import com.danawa.dsearch.server.collections.entity.IndexingInfo;
 import com.danawa.dsearch.server.collections.service.history.HistoryService;
 import com.danawa.dsearch.server.collections.service.indexer.IndexerClient;
 import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactoryHighLevelWrapper;
@@ -62,8 +62,8 @@ public class IndexingJobServiceTests {
         collection.setLauncher(launcher);
         collection.setJdbcId("1");
 
-        Queue<IndexActionStep> actionSteps = new ArrayDeque<>();
-        actionSteps.add(IndexActionStep.FULL_INDEX);
+        Queue<IndexingStep> actionSteps = new ArrayDeque<>();
+        actionSteps.add(IndexingStep.FULL_INDEX);
 
         String indexingJobId = "indexingJobId";
 
@@ -76,8 +76,8 @@ public class IndexingJobServiceTests {
             given(elasticsearchFactoryHighLevelWrapper.getIndexDocument(eq(clusterId), any(String.class), any(String.class))).willReturn(jdbcContent);
             given(indexerClient.startJob(any(Map.class), any(Collection.class))).willReturn(indexingJobId);
 
-            IndexingStatus indexingStatus = this.indexingJobService.indexing(clusterId, collection);
-            Assertions.assertEquals(indexingJobId, indexingStatus.getIndexingJobId());
+            IndexingInfo indexingInfo = this.indexingJobService.indexing(clusterId, collection);
+            Assertions.assertEquals(indexingJobId, indexingInfo.getIndexingJobId());
         });
 
         // indexA에 별칭이 있을 경우
@@ -95,8 +95,8 @@ public class IndexingJobServiceTests {
             given(elasticsearchFactoryHighLevelWrapper.getIndexDocument(eq(clusterId), any(String.class), any(String.class))).willReturn(jdbcContent);
             given(indexerClient.startJob(any(Map.class), any(Collection.class))).willReturn(indexingJobId);
 
-            IndexingStatus indexingStatus = this.indexingJobService.indexing(clusterId, collection);
-            Assertions.assertEquals(indexingJobId, indexingStatus.getIndexingJobId());
+            IndexingInfo indexingInfo = this.indexingJobService.indexing(clusterId, collection);
+            Assertions.assertEquals(indexingJobId, indexingInfo.getIndexingJobId());
         });
     }
 
@@ -115,8 +115,8 @@ public class IndexingJobServiceTests {
         collection.setLauncher(launcher);
         collection.setJdbcId("1");
 
-        Queue<IndexActionStep> actionSteps = new ArrayDeque<>();
-        actionSteps.add(IndexActionStep.FULL_INDEX);
+        Queue<IndexingStep> actionSteps = new ArrayDeque<>();
+        actionSteps.add(IndexingStep.FULL_INDEX);
 
         String indexingJobId = "indexingJobId";
         String aliases = "";
@@ -129,8 +129,8 @@ public class IndexingJobServiceTests {
             given(elasticsearchFactoryHighLevelWrapper.getIndexDocument(eq(clusterId), any(String.class), any(String.class))).willReturn(jdbcContent);
             given(indexerClient.startJob(any(Map.class), any(Collection.class))).willReturn(indexingJobId);
 
-            IndexingStatus indexingStatus = this.indexingJobService.indexing(clusterId, collection);
-            Assertions.assertEquals(indexingJobId, indexingStatus.getIndexingJobId());
+            IndexingInfo indexingInfo = this.indexingJobService.indexing(clusterId, collection);
+            Assertions.assertEquals(indexingJobId, indexingInfo.getIndexingJobId());
         });
     }
 
@@ -149,8 +149,8 @@ public class IndexingJobServiceTests {
         collection.setLauncher(launcher);
         collection.setJdbcId("1");
 
-        Queue<IndexActionStep> actionSteps = new ArrayDeque<>();
-        actionSteps.add(IndexActionStep.FULL_INDEX);
+        Queue<IndexingStep> actionSteps = new ArrayDeque<>();
+        actionSteps.add(IndexingStep.FULL_INDEX);
 
         String indexingJobId = "indexingJobId";
         String aliases = "";
@@ -163,8 +163,8 @@ public class IndexingJobServiceTests {
             given(elasticsearchFactoryHighLevelWrapper.getIndexDocument(eq(clusterId), any(String.class), any(String.class))).willReturn(jdbcContent);
             given(indexerClient.startJob(any(Map.class), any(Collection.class))).willReturn(indexingJobId);
 
-            IndexingStatus indexingStatus = this.indexingJobService.indexing(clusterId, collection);
-            Assertions.assertEquals(indexingJobId, indexingStatus.getIndexingJobId());
+            IndexingInfo indexingInfo = this.indexingJobService.indexing(clusterId, collection);
+            Assertions.assertEquals(indexingJobId, indexingInfo.getIndexingJobId());
         });
     }
 

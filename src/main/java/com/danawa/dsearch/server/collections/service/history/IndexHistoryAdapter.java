@@ -1,7 +1,7 @@
 package com.danawa.dsearch.server.collections.service.history;
 
 import com.danawa.dsearch.server.collections.dto.HistoryReadRequest;
-import com.danawa.dsearch.server.collections.entity.IndexHistory;
+import com.danawa.dsearch.server.collections.service.history.entity.IndexHistory;
 import com.danawa.dsearch.server.collections.service.history.repository.HistoryRepository;
 import com.danawa.dsearch.server.collections.service.history.specification.IndexHistorySpecification;
 import org.slf4j.Logger;

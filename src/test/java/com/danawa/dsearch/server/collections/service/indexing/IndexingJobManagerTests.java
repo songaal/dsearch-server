@@ -1,7 +1,7 @@
 package com.danawa.dsearch.server.collections.service.indexing;
 
-import com.danawa.dsearch.server.collections.entity.IndexActionStep;
-import com.danawa.dsearch.server.collections.entity.IndexingStatus;
+import com.danawa.dsearch.server.collections.entity.IndexingStep;
+import com.danawa.dsearch.server.collections.entity.IndexingInfo;
 import com.danawa.dsearch.server.collections.service.history.HistoryService;
 import com.danawa.dsearch.server.collections.service.indexer.IndexerClient;
 import com.danawa.dsearch.server.collections.service.status.StatusService;
@@ -16,7 +16,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.UUID;
 
-import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doNothing;
 
 @ExtendWith(MockitoExtension.class)
@@ -50,21 +49,21 @@ public class IndexingJobManagerTests {
 
         UUID clusterId = UUID.randomUUID();
         String collectionId = "collectionId";
-        IndexingStatus indexingStatus = new IndexingStatus();
-        indexingStatus.setClusterId(clusterId);
-        indexingStatus.setCurrentStep(IndexActionStep.FULL_INDEX); // 현재 색인 중 인걸로 추가
+        IndexingInfo indexingInfo = new IndexingInfo();
+        indexingInfo.setClusterId(clusterId);
+        indexingInfo.setCurrentStep(IndexingStep.FULL_INDEX); // 현재 색인 중 인걸로 추가
 
         Assertions.assertDoesNotThrow(() -> {
-            doNothing().when(statusService).create(indexingStatus, "READY");
-            indexingJobManager.add(collectionId, indexingStatus);
+            doNothing().when(statusService).create(indexingInfo, "READY");
+            indexingJobManager.add(collectionId, indexingInfo);
 
-            Assertions.assertEquals(indexingStatus, indexingJobManager.getManageQueue(collectionId));
+            Assertions.assertEquals(indexingInfo, indexingJobManager.getManageQueue(collectionId));
 
-            indexingJobManager.add(collectionId, indexingStatus, false);
-            Assertions.assertEquals(indexingStatus, indexingJobManager.getManageQueue(collectionId));
+            indexingJobManager.add(collectionId, indexingInfo, false);
+            Assertions.assertEquals(indexingInfo, indexingJobManager.getManageQueue(collectionId));
 
-            indexingJobManager.add(collectionId, indexingStatus, true);
-            Assertions.assertEquals(indexingStatus, indexingJobManager.getManageQueue(collectionId));
+            indexingJobManager.add(collectionId, indexingInfo, true);
+            Assertions.assertEquals(indexingInfo, indexingJobManager.getManageQueue(collectionId));
         });
     }
 
@@ -73,14 +72,14 @@ public class IndexingJobManagerTests {
     public void add_indexing_when_twice(){
         UUID clusterId = UUID.randomUUID();
         String collectionId = "collectionId";
-        IndexingStatus indexingStatus = new IndexingStatus();
-        indexingStatus.setClusterId(clusterId);
-        indexingStatus.setCurrentStep(IndexActionStep.FULL_INDEX); // 현재 색인 중 인걸로 추가
+        IndexingInfo indexingInfo = new IndexingInfo();
+        indexingInfo.setClusterId(clusterId);
+        indexingInfo.setCurrentStep(IndexingStep.FULL_INDEX); // 현재 색인 중 인걸로 추가
 
         Assertions.assertThrows(IndexingJobFailureException.class, () -> {
-            doNothing().when(statusService).create(indexingStatus, "READY");
-            indexingJobManager.add(collectionId, indexingStatus);
-            indexingJobManager.add(collectionId, indexingStatus);
+            doNothing().when(statusService).create(indexingInfo, "READY");
+            indexingJobManager.add(collectionId, indexingInfo);
+            indexingJobManager.add(collectionId, indexingInfo);
         });
     }
 
@@ -89,11 +88,11 @@ public class IndexingJobManagerTests {
     @DisplayName("클러스터 아이디가 없이 색인 추가 시 에러 발생")
     public void add_indexing_when_cluster_id_is_null(){
         String collectionId = "collectionId";
-        IndexingStatus indexingStatus = new IndexingStatus();
-        indexingStatus.setCurrentStep(IndexActionStep.FULL_INDEX); // 현재 색인 중 인걸로 추가
+        IndexingInfo indexingInfo = new IndexingInfo();
+        indexingInfo.setCurrentStep(IndexingStep.FULL_INDEX); // 현재 색인 중 인걸로 추가
 
         Assertions.assertThrows(IndexingJobFailureException.class, () -> {
-            indexingJobManager.add(collectionId, indexingStatus);
+            indexingJobManager.add(collectionId, indexingInfo);
         });
     }
 
@@ -102,11 +101,11 @@ public class IndexingJobManagerTests {
     public void add_indexing_when_current_step_is_null(){
         String collectionId = "collectionId";
         UUID clusterId = UUID.randomUUID();
-        IndexingStatus indexingStatus = new IndexingStatus();
-        indexingStatus.setClusterId(clusterId);
+        IndexingInfo indexingInfo = new IndexingInfo();
+        indexingInfo.setClusterId(clusterId);
 
         Assertions.assertThrows(IndexingJobFailureException.class, () -> {
-            indexingJobManager.add(collectionId, indexingStatus);
+            indexingJobManager.add(collectionId, indexingInfo);
         });
     }
 }

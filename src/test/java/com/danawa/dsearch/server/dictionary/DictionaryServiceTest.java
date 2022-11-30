@@ -256,7 +256,7 @@ public class DictionaryServiceTest {
         remoteCluster.setPort(port);
         remoteCluster.setUsername(username);
         remoteCluster.setPassword(password);
-        when(clusterService.find(clusterId)).thenReturn(remoteCluster);
+        when(clusterService.findById(clusterId)).thenReturn(remoteCluster);
 
         // when
         Map<String, Object> result = dictionaryService.getRemoteInfo(clusterId);
@@ -294,7 +294,7 @@ public class DictionaryServiceTest {
 
         Cluster remoteCluster = new Cluster();
         remoteCluster.setId(clusterId);
-        when(clusterService.find(clusterId)).thenReturn(remoteCluster);
+        when(clusterService.findById(clusterId)).thenReturn(remoteCluster);
 
         // when
         Response result = dictionaryService.compileDict(clusterId, request);
