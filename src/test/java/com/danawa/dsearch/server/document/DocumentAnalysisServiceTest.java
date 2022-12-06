@@ -1,9 +1,9 @@
-package com.danawa.dsearch.server.rankingtuning;
+package com.danawa.dsearch.server.document;
 
 import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactory;
 import com.danawa.dsearch.server.excpetions.ElasticQueryException;
-import com.danawa.dsearch.server.rankingtuning.entity.RankingTuningRequest;
-import com.danawa.dsearch.server.rankingtuning.service.RankingTuningService;
+import com.danawa.dsearch.server.document.entity.RankingTuningRequest;
+import com.danawa.dsearch.server.document.service.DocumentAnalysisService;
 import org.apache.commons.lang.NullArgumentException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,14 +22,14 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
-public class RankingTuningServiceTest {
+public class DocumentAnalysisServiceTest {
     @Mock
     private ElasticsearchFactory elasticsearchFactory;
-    private RankingTuningService rankingTuningService;
+    private DocumentAnalysisService documentAnalysisService;
 
     @BeforeEach
     public void setup(){
-        this.rankingTuningService = new FakeRankingTuningService(elasticsearchFactory);
+        this.documentAnalysisService = new FakeDocumentAnalysisService(elasticsearchFactory);
     }
 
     @Test
@@ -40,7 +40,7 @@ public class RankingTuningServiceTest {
 
         //when
         RankingTuningRequest request = new RankingTuningRequest();
-        Map<String, Object> result = rankingTuningService.getAnalyze(clusterId, request);
+        Map<String, Object> result = documentAnalysisService.getAnalyze(clusterId, request);
 
         //then
         Assertions.assertFalse(result.isEmpty());
@@ -53,7 +53,7 @@ public class RankingTuningServiceTest {
         Assertions.assertThrows(NullArgumentException.class, () -> {
             UUID clusterId = UUID.randomUUID();
             RankingTuningRequest request = new RankingTuningRequest();
-            Map<String, Object> result = rankingTuningService.getAnalyze(null, request);
+            Map<String, Object> result = documentAnalysisService.getAnalyze(null, request);
         });
     }
 
@@ -64,7 +64,7 @@ public class RankingTuningServiceTest {
         Assertions.assertThrows(NullArgumentException.class, () -> {
             UUID clusterId = UUID.randomUUID();
             RankingTuningRequest request = new RankingTuningRequest();
-            Map<String, Object> result = rankingTuningService.getAnalyze(clusterId, null);
+            Map<String, Object> result = documentAnalysisService.getAnalyze(clusterId, null);
         });
     }
 

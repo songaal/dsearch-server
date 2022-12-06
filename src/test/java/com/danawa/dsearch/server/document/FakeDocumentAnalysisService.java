@@ -1,9 +1,9 @@
-package com.danawa.dsearch.server.rankingtuning;
+package com.danawa.dsearch.server.document;
 
 import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactory;
 import com.danawa.dsearch.server.excpetions.ElasticQueryException;
-import com.danawa.dsearch.server.rankingtuning.entity.RankingTuningRequest;
-import com.danawa.dsearch.server.rankingtuning.service.RankingTuningService;
+import com.danawa.dsearch.server.document.entity.RankingTuningRequest;
+import com.danawa.dsearch.server.document.service.DocumentAnalysisService;
 import org.apache.commons.lang.NullArgumentException;
 
 import java.io.IOException;
@@ -11,8 +11,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public class FakeRankingTuningService extends RankingTuningService {
-    public FakeRankingTuningService(ElasticsearchFactory elasticsearchFactory) {
+public class FakeDocumentAnalysisService extends DocumentAnalysisService {
+    public FakeDocumentAnalysisService(ElasticsearchFactory elasticsearchFactory) {
         super(elasticsearchFactory);
     }
 

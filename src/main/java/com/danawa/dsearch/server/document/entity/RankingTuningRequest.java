@@ -1,4 +1,4 @@
-package com.danawa.dsearch.server.rankingtuning.entity;
+package com.danawa.dsearch.server.document.entity;
 
 import java.io.Serializable;
 
