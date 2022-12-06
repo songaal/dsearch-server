@@ -158,7 +158,7 @@ public class IndexingService {
             indexingJobManager.setQueueStatus(collectionId, "STOP");
         }
 
-        return indexingJobManager.getManageQueue(collectionId);
+        return indexingJobManager.deleteManageQueue(collectionId);
     }
     private boolean isRightStatusForStopIndexing(IndexingInfo status){
         return status != null

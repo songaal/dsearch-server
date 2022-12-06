@@ -209,6 +209,10 @@ public class IndexingJobManager {
         return manageQueue.get(collectionId);
     }
 
+    public IndexingInfo deleteManageQueue(String collectionId) {
+        return manageQueue.remove(collectionId);
+    }
+
     public boolean isExistInManageQueue(String collectionId){
         if(manageQueue.get(collectionId) == null) return false;
         return true;
