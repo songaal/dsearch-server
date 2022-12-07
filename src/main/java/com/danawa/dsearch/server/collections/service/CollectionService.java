@@ -2,13 +2,14 @@ package com.danawa.dsearch.server.collections.service;
 
 import com.danawa.dsearch.server.clusters.entity.Cluster;
 import com.danawa.dsearch.server.collections.service.indexing.IndexingJobService;
-import com.danawa.dsearch.server.config.ElasticsearchFactory;
+import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactory;
 import com.danawa.dsearch.server.collections.entity.Collection;
 import com.danawa.dsearch.server.excpetions.CronParseException;
 import com.danawa.dsearch.server.excpetions.DuplicatedUserException;
 import com.danawa.dsearch.server.clusters.service.ClusterService;
 import com.danawa.dsearch.server.indices.service.IndicesService;
 import com.danawa.dsearch.server.utils.JsonUtils;
+import com.danawa.dsearch.server.utils.YamlUtils;
 import com.google.gson.Gson;
 import org.apache.commons.lang.NullArgumentException;
 import org.apache.http.util.EntityUtils;
@@ -306,7 +307,7 @@ public class CollectionService {
             try {
                 collection.setExtIndexer(true);
                 collection.getLauncher().setScheme("http");
-                Map<String ,Object> yamlToMap = indexingJobService.convertRequestParams(collection.getLauncher().getYaml());
+                Map<String ,Object> yamlToMap = YamlUtils.convertYamlToMap(collection.getLauncher().getYaml());
                 collection.setEsScheme((String) yamlToMap.get("scheme"));
                 collection.setEsHost((String) yamlToMap.get("host"));
                 collection.setEsPort(String.valueOf(yamlToMap.get("port")));
@@ -451,7 +452,7 @@ public class CollectionService {
                 sourceAsMap.put("esUser", collection.getEsUser());
                 sourceAsMap.put("esPassword", collection.getEsPassword());
             } else {
-                Cluster cluster = clusterService.find(clusterId);
+                Cluster cluster = clusterService.findById(clusterId);
                 sourceAsMap.put("esScheme", cluster.getScheme());
                 sourceAsMap.put("esHost", cluster.getHost());
                 sourceAsMap.put("esPort", cluster.getPort());
@@ -498,6 +499,10 @@ public class CollectionService {
         if(clusterId == null || name == null || name.equals("") ) throw new NullArgumentException("");
 
         List<Collection> list = findAll(clusterId);
+        if(list.isEmpty()){
+            throw new NoSuchElementException("clusterId=" + clusterId + ", name=" + name + " is Not Found");
+        }
+
         Collection result = null;
         for(Collection collection : list){
             if(collection.getBaseId().equals(name)){

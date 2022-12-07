@@ -2,7 +2,7 @@ package com.danawa.dsearch.server.dictionary;
 
 import com.danawa.dsearch.server.clusters.entity.Cluster;
 import com.danawa.dsearch.server.clusters.service.ClusterService;
-import com.danawa.dsearch.server.config.ElasticsearchFactory;
+import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactory;
 import com.danawa.dsearch.server.dictionary.entity.DictionarySetting;
 import com.danawa.dsearch.server.dictionary.service.DictionaryService;
 import com.danawa.dsearch.server.excpetions.ServiceException;
@@ -256,7 +256,7 @@ public class DictionaryServiceTest {
         remoteCluster.setPort(port);
         remoteCluster.setUsername(username);
         remoteCluster.setPassword(password);
-        when(clusterService.find(clusterId)).thenReturn(remoteCluster);
+        when(clusterService.findById(clusterId)).thenReturn(remoteCluster);
 
         // when
         Map<String, Object> result = dictionaryService.getRemoteInfo(clusterId);
@@ -294,7 +294,7 @@ public class DictionaryServiceTest {
 
         Cluster remoteCluster = new Cluster();
         remoteCluster.setId(clusterId);
-        when(clusterService.find(clusterId)).thenReturn(remoteCluster);
+        when(clusterService.findById(clusterId)).thenReturn(remoteCluster);
 
         // when
         Response result = dictionaryService.compileDict(clusterId, request);

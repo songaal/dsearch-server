@@ -1,6 +1,6 @@
 package com.danawa.dsearch.server.migration.service;
 
-import com.danawa.dsearch.server.config.ElasticsearchFactory;
+import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactory;
 import com.danawa.dsearch.server.pipeline.service.PipelineService;
 import com.danawa.dsearch.server.utils.JsonUtils;
 import com.google.gson.Gson;

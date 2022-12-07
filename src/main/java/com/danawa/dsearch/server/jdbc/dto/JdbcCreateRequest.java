@@ -1,8 +1,8 @@
-package com.danawa.dsearch.server.jdbc.entity;
+package com.danawa.dsearch.server.jdbc.dto;
 
 import java.io.Serializable;
 
-public class JdbcRequest implements Serializable {
+public class JdbcCreateRequest implements Serializable {
     private String id;
     private String name;
     private String provider;

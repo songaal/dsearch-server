@@ -1,4 +1,4 @@
-package com.danawa.dsearch.server.dictionary.entity;
+package com.danawa.dsearch.server.dictionary.dto;
 
 public class CreateDictionaryRequest {
     private String id;

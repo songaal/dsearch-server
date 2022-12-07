@@ -1,33 +1,13 @@
 package com.danawa.dsearch.server.collections.service.status;
 
-import com.danawa.dsearch.server.collections.entity.IndexingStatus;
-import com.danawa.dsearch.server.config.ElasticsearchFactory;
-import com.danawa.dsearch.server.indices.service.IndicesService;
-import com.danawa.dsearch.server.utils.TimeUtils;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.client.indices.CreateIndexRequest;
-import org.elasticsearch.client.indices.GetIndexRequest;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.MatchQueryBuilder;
-import org.elasticsearch.index.reindex.BulkByScrollResponse;
-import org.elasticsearch.index.reindex.DeleteByQueryRequest;
-import org.elasticsearch.search.builder.SearchSourceBuilder;
+import com.danawa.dsearch.server.collections.entity.IndexingInfo;
+import com.danawa.dsearch.server.collections.service.status.entity.IndexStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StreamUtils;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 public class IndexStatusService implements StatusService {
@@ -37,26 +17,20 @@ public class IndexStatusService implements StatusService {
 
     private static final Logger logger = LoggerFactory.getLogger(IndexStatusService.class);
 
-    private final ElasticsearchFactory elasticsearchFactory;
-    private final String lastIndexStatusIndex = ".dsearch_last_index_status";
+    private IndexStatusAdapter indexStatusAdapter;
 
-    private final String lastIndexStatusIndexJson = "last_index_status.json";
-
-    private IndicesService indicesService;
-
-    public IndexStatusService(ElasticsearchFactory elasticsearchFactory,
-                              IndicesService indicesService) {
-        this.elasticsearchFactory = elasticsearchFactory;
-        this.indicesService = indicesService;
+    public IndexStatusService(
+                              IndexStatusAdapter indexStatusAdapter) {
+        this.indexStatusAdapter = indexStatusAdapter;
     }
 
     @Override
     public void initialize(UUID clusterId) throws IOException {
-        indicesService.createSystemIndex(clusterId, lastIndexStatusIndex, lastIndexStatusIndexJson);
+//        indicesService.createSystemIndex(clusterId, lastIndexStatusIndex, lastIndexStatusIndexJson);
     }
 
     @Override
-    public void create(IndexingStatus status, String currentStatus) {
+    public void create(IndexingInfo status, String currentStatus) {
         UUID clusterId = status.getClusterId();
         String collectionId = status.getCollection().getId();
         long startTime = status.getStartTime();
@@ -64,84 +38,56 @@ public class IndexStatusService implements StatusService {
         String step = status.getCurrentStep().name();
         String jobId = status.getIndexingJobId();
 
-        while (true) {
-            try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-                createIndexStatus(client, collectionId, index, startTime, currentStatus, step, jobId);
-            } catch (IOException e) {
-                TimeUtils.sleep(1000);
-                continue;
-            }
-            break;
-        }
-
+        IndexStatus indexStatus = makeStatusEntity(clusterId, collectionId, index, startTime, currentStatus, step, jobId);
+        indexStatusAdapter.create(indexStatus);
     }
 
-    private void createIndexStatus(RestHighLevelClient client, String collectionId, String index, long startTime, String status, String step, String jobId) throws IOException {
-        Map<String, Object> source = new HashMap<>();
-        source.put("collectionId", collectionId);
-        source.put("index", index);
-        source.put("startTime", startTime);
-        source.put("status", status);
-        source.put("step", step);
-        source.put("jobId", jobId);
-        client.index(new IndexRequest().index(lastIndexStatusIndex).source(source), RequestOptions.DEFAULT);
+    private IndexStatus makeStatusEntity(UUID clusterId, String collectionId, String index, long startTime, String status, String step, String jobId){
+        IndexStatus indexStatus = new IndexStatus();
+        indexStatus.setClusterId(clusterId);
+        indexStatus.setCollectionId(collectionId);
+        indexStatus.setIndex(index);
+        indexStatus.setStartTime(startTime);
+        indexStatus.setStatus(status);
+        indexStatus.setStep(step);
+        indexStatus.setJobId(jobId);
+        return indexStatus;
     }
 
     @Override
-    public void delete(UUID clusterId, String index, long startTime) throws IOException, InterruptedException {
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            logger.debug("deleteLastIndexStatus index: {} , startTime: {}", index, startTime);
-            for (int i = 0; i < 3; i++) {
-                BulkByScrollResponse response;
-                if (startTime > 0) {
-                    response = client.deleteByQuery(new DeleteByQueryRequest(lastIndexStatusIndex)
-                                    .setQuery(new BoolQueryBuilder()
-                                            .must(new MatchQueryBuilder("index", index))
-                                            .must(new MatchQueryBuilder("startTime", startTime)))
-                            , RequestOptions.DEFAULT);
-                } else {
-                    response = client.deleteByQuery(new DeleteByQueryRequest(lastIndexStatusIndex)
-                                    .setQuery(new BoolQueryBuilder()
-                                            .must(new MatchQueryBuilder("index", index)))
-                            , RequestOptions.DEFAULT);
-                }
-                if (response != null && response.getDeleted() == 0) {
-                    TimeUtils.sleep(1000);
-                } else {
-                    break;
-                }
-            }
-        }
+    public void delete(UUID clusterId, String index, long startTime) {
+        indexStatusAdapter.delete(clusterId, index, startTime);
     }
 
     @Override
-    public void update(IndexingStatus indexingStatus, String status) {
-        UUID clusterId = indexingStatus.getClusterId();
-        String index = indexingStatus.getIndex();
-        long startTime = indexingStatus.getStartTime();
 
-        while (true) {
-            try {
-                delete(clusterId, index, startTime);
-            } catch (IOException | InterruptedException e) {
-                logger.error("delete last index status failed... {}", e);
-                TimeUtils.sleep(1000);
-                continue;
-            }
-            break;
-        }
+    public void update(IndexingInfo indexingInfo, String status) {
+        UUID clusterId = indexingInfo.getClusterId();
+        String index = indexingInfo.getIndex();
+        long startTime = indexingInfo.getStartTime();
 
-        create(indexingStatus, status);
+        delete(clusterId, index, startTime);
+        create(indexingInfo, status);
     }
 
     @Override
-    public SearchResponse findAll(UUID clusterId, int size, int from) throws IOException {
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            return client.search(new SearchRequest(lastIndexStatusIndex)
-                            .source(new SearchSourceBuilder()
-                                    .size(size)
-                                    .from(from))
-                    , RequestOptions.DEFAULT);
+    public List<Map<String, Object>> findAll(UUID clusterId, int size, int from) {
+        List<IndexStatus> list = indexStatusAdapter.findAll(clusterId, size, from);
+        return convertToList(list);
+    }
+
+    private List<Map<String, Object>> convertToList(List<IndexStatus> list){
+        List<Map<String, Object>> result = new ArrayList<>();
+
+        for (IndexStatus entity: list){
+            Map<String, Object> item = new HashMap<>();
+            item.put("jobId", entity.getJobId());
+            item.put("index", entity.getIndex());
+            item.put("startTime", entity.getStartTime());
+            item.put("step", entity.getStep());
+            result.add(item);
         }
+
+        return result;
     }
 }

@@ -1,6 +1,6 @@
 package com.danawa.dsearch.server.pipeline;
 
-import com.danawa.dsearch.server.config.ElasticsearchFactory;
+import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactory;
 import com.danawa.dsearch.server.pipeline.service.PipelineService;
 import org.apache.commons.lang.NullArgumentException;
 import org.hamcrest.Matchers;

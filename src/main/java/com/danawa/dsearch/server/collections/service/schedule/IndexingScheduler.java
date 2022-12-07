@@ -3,21 +3,15 @@ package com.danawa.dsearch.server.collections.service.schedule;
 import com.danawa.dsearch.server.clusters.entity.Cluster;
 import com.danawa.dsearch.server.clusters.service.ClusterService;
 import com.danawa.dsearch.server.collections.entity.Collection;
-import com.danawa.dsearch.server.collections.entity.IndexActionStep;
-import com.danawa.dsearch.server.collections.entity.IndexingStatus;
+import com.danawa.dsearch.server.collections.entity.IndexingStep;
+import com.danawa.dsearch.server.collections.entity.IndexingInfo;
 import com.danawa.dsearch.server.collections.service.CollectionService;
 import com.danawa.dsearch.server.collections.service.indexing.IndexingJobManager;
 import com.danawa.dsearch.server.collections.service.indexing.IndexingJobService;
 import com.danawa.dsearch.server.collections.service.status.StatusService;
-import com.danawa.dsearch.server.config.ElasticsearchFactory;
 import com.danawa.dsearch.server.excpetions.CronParseException;
 import com.danawa.dsearch.server.excpetions.IndexingJobFailureException;
 import org.apache.commons.lang.NullArgumentException;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
@@ -31,7 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 
 @Service
-public class CollectionScheduleManager {
+public class IndexingScheduler {
     /**
      * 색인 스케쥴을 관리하는 클래스 입니다.
      *
@@ -39,7 +33,7 @@ public class CollectionScheduleManager {
      * - schedulerMap: 스케쥴링을 관리하는 Map
      * - scheduler: 스케쥴링을 실제로 실행시키는 쓰레드
      */
-    private static Logger logger = LoggerFactory.getLogger(CollectionScheduleManager.class);
+    private static Logger logger = LoggerFactory.getLogger(IndexingScheduler.class);
     private ConcurrentHashMap<String, ScheduledFuture<?>> schedulerMap = new ConcurrentHashMap<>();
     private final ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
 
@@ -48,11 +42,11 @@ public class CollectionScheduleManager {
     private final IndexingJobService indexingJobService;
     private final IndexingJobManager indexingJobManager;
     private final StatusService statusService;
-    public CollectionScheduleManager(ClusterService clusterService,
-                                     CollectionService collectionService,
-                                     StatusService statusService,
-                                     IndexingJobService indexingJobService,
-                                     IndexingJobManager indexingJobManager){
+    public IndexingScheduler(ClusterService clusterService,
+                             CollectionService collectionService,
+                             StatusService statusService,
+                             IndexingJobService indexingJobService,
+                             IndexingJobManager indexingJobManager){
         this.indexingJobService = indexingJobService;
         this.indexingJobManager = indexingJobManager;
         this.collectionService = collectionService;
@@ -72,7 +66,7 @@ public class CollectionScheduleManager {
             Cluster cluster = clusterList.get(i);
             try {
                 // 1. 클러스터별로 기존 작업 중인 잡을 다시 등록한다.
-                SearchResponse lastIndexResponse = statusService.findAll(cluster.getId(), 10000, 0);
+                List<Map<String, Object>> documents = statusService.findAll(cluster.getId(), 10000, 0);
 
                 // 2. 진행 중 문서 중 jobID가 null 인경우와 7일 지난 문서는 무시.
                 Calendar calendar = Calendar.getInstance();
@@ -80,9 +74,10 @@ public class CollectionScheduleManager {
                 long expireStartTime = calendar.getTimeInMillis();
 
                 // 3. 마지막 인덱싱 내역 확인 후 컬렉션 관리 스케쥴링 등록
-                lastIndexResponse.getHits().forEach(documentFields -> {
+                documents.forEach(documentFields -> {
                     try {
-                        Map<String, Object> source = documentFields.getSourceAsMap();
+                        Map<String, Object> source = documentFields;
+
                         // 잡아이디가 없는 문서가 많음... 로컬 실행하여 테스트 데이터 의심...
                         if (source.get("jobId") != null && !"".equals(source.get("jobId"))) {
                             long startTime = (long) source.get("startTime");
@@ -93,10 +88,10 @@ public class CollectionScheduleManager {
 
                                 if(!indexingJobManager.isExistInManageQueue(collectionId)) {
                                     Collection collection = collectionService.findById(clusterId, collectionId);
-                                    IndexingStatus indexingStatus = makeIndexingStatus(clusterId, source, collection);
-                                    indexingJobManager.add(collectionId, indexingStatus, false);
+                                    IndexingInfo indexingInfo = makeIndexingStatus(clusterId, source, collection);
+                                    indexingJobManager.add(collectionId, indexingInfo, false);
                                     logger.debug("collection register cluster: {}, job: {}, step: {}",
-                                            cluster.getName(), collectionId, IndexActionStep.valueOf(String.valueOf(source.get("step"))));
+                                            cluster.getName(), collectionId, IndexingStep.valueOf(String.valueOf(source.get("step"))));
                                 }
                             }
                         }
@@ -114,29 +109,29 @@ public class CollectionScheduleManager {
         }
     }
 
-    private IndexingStatus makeIndexingStatus(UUID clusterId, Map<String, Object> source, Collection collection){
+    private IndexingInfo makeIndexingStatus(UUID clusterId, Map<String, Object> source, Collection collection){
         Collection.Launcher launcher = collection.getLauncher();
         String jobId = String.valueOf(source.getOrDefault("jobId", ""));
         String index = (String) source.get("index");
         long startTime = (long) source.get("startTime");
-        IndexActionStep step = IndexActionStep.valueOf(String.valueOf(source.get("step")));
+        IndexingStep step = IndexingStep.valueOf(String.valueOf(source.get("step")));
 
-        IndexingStatus indexingStatus = new IndexingStatus();
-        indexingStatus.setClusterId(clusterId);
-        indexingStatus.setIndex(index);
-        indexingStatus.setStartTime(startTime);
+        IndexingInfo indexingInfo = new IndexingInfo();
+        indexingInfo.setClusterId(clusterId);
+        indexingInfo.setIndex(index);
+        indexingInfo.setStartTime(startTime);
         if (launcher != null) {
-            indexingStatus.setIndexingJobId(jobId);
-            indexingStatus.setScheme(launcher.getScheme());
-            indexingStatus.setHost(launcher.getHost());
-            indexingStatus.setPort(launcher.getPort());
+            indexingInfo.setIndexingJobId(jobId);
+            indexingInfo.setScheme(launcher.getScheme());
+            indexingInfo.setHost(launcher.getHost());
+            indexingInfo.setPort(launcher.getPort());
         }
-        indexingStatus.setAutoRun(true);
-        indexingStatus.setCurrentStep(step);
-        indexingStatus.setNextStep(new ArrayDeque<>());
-        indexingStatus.setRetry(50);
-        indexingStatus.setCollection(collection);
-        return indexingStatus;
+        indexingInfo.setAutoRun(true);
+        indexingInfo.setCurrentStep(step);
+        indexingInfo.setNextStep(new ArrayDeque<>());
+        indexingInfo.setRetry(50);
+        indexingInfo.setCollection(collection);
+        return indexingInfo;
     }
 
     /**
@@ -314,15 +309,14 @@ public class CollectionScheduleManager {
                 try {
                     // 변경사항이 있을수 있으므로, 컬렉션 정보를 새로 가져온다.
                     Collection registerCollection = collectionService.findById(clusterId, collectionId);
-                    IndexingStatus indexingStatus = indexingJobManager.getManageQueue(registerCollection.getId());
+                    IndexingInfo indexingInfo = indexingJobManager.getManageQueue(registerCollection.getId());
 
-                    if (indexingStatus != null) {
+                    if (indexingInfo != null) {
                         return;
                     }
 
-                    Deque<IndexActionStep> nextStep = new ArrayDeque<>();
-                    nextStep.add(IndexActionStep.EXPOSE);
-                    IndexingStatus status = indexingJobService.indexing(clusterId, registerCollection, true, IndexActionStep.FULL_INDEX, nextStep);
+                    registerCollection.setAutoRun(true);
+                    IndexingInfo status = indexingJobService.indexingAndExpose(clusterId, registerCollection);
                     indexingJobManager.add(registerCollection.getId(), status);
                 } catch (IndexingJobFailureException | IOException e) {
                     logger.error("[INIT ERROR] ", e);

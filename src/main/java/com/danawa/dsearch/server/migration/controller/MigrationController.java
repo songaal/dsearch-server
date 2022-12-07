@@ -55,7 +55,7 @@ public class MigrationController {
                                       @RequestParam("templates") boolean templates) throws IOException {
 
         logger.info("clusterId: {}, pipeline: {}, collections: {}, jdbc: {}, templates: {}, comments: {}", clusterId, pipeline, collection, jdbc, templates);
-        Cluster cluster = clusterService.find(clusterId);
+        Cluster cluster = clusterService.findById(clusterId);
 
         Map<String, Object> message = new HashMap<>();
         HttpHeaders headers = new HttpHeaders();

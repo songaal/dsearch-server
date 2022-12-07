@@ -1,10 +1,9 @@
 package com.danawa.dsearch.server.clusters.service;
 
 import com.danawa.dsearch.server.clusters.entity.Cluster;
-import com.danawa.dsearch.server.clusters.entity.ClusterStatusRequest;
-import com.danawa.dsearch.server.clusters.entity.ClusterStatusResponse;
+import com.danawa.dsearch.server.clusters.dto.ClusterStatusRequest;
+import com.danawa.dsearch.server.clusters.dto.ClusterStatusResponse;
 import com.danawa.dsearch.server.clusters.repository.ClusterRepository;
-import com.danawa.dsearch.server.clusters.repository.ClusterRepositorySupport;
 import com.danawa.dsearch.server.excpetions.NotFoundException;
 import com.google.gson.*;
 import com.google.gson.internal.LinkedTreeMap;
@@ -16,17 +15,12 @@ import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.impl.nio.reactor.IOReactorConfig;
 import org.apache.http.util.EntityUtils;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.client.*;
 
-import org.elasticsearch.common.xcontent.XContentType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
 import java.time.LocalDateTime;
@@ -46,12 +40,16 @@ public class ClusterService {
         return clusterList == null ? new ArrayList<>() : clusterList;
     }
 
-    public List<Cluster> findByHostAndPort(String host, int port) {
+    public Cluster findByHostAndPort(String host, int port) {
         List<Cluster> clusterList = clusterRepository.findByHostAndPort(host, port);
-        return clusterList == null ? new ArrayList<>() : clusterList;
+        if(clusterList.isEmpty()){
+            throw new NoSuchElementException("host=" + host + ", port=" + port + " cluster is Not Found");
+        }else{
+            return clusterList.get(0);
+        }
     }
 
-    public Cluster find(UUID id) {
+    public Cluster findById(UUID id) {
         try{
             return clusterRepository.findById(id).get();
         }catch (NoSuchElementException e){

@@ -1,6 +1,6 @@
 package com.danawa.dsearch.server.collections.entity;
 
-public enum IndexActionStep {
+public enum IndexingStep {
     FULL_INDEX,
     DYNAMIC_INDEX,
     EXPOSE,

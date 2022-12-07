@@ -1,6 +1,6 @@
 package com.danawa.dsearch.server.proxy.service;
 
-import com.danawa.dsearch.server.config.ElasticsearchFactory;
+import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactory;
 import org.apache.http.entity.ContentType;
 import org.apache.http.nio.entity.NStringEntity;
 import org.elasticsearch.client.Request;
@@ -51,9 +51,6 @@ public class ElasticsearchProxyService {
                     new String(body),
                     entity.toString());
             req.setEntity(new NStringEntity(new String(body), ContentType.APPLICATION_JSON));
-        }else{
-            logger.info("URI={}, method={}, remoteAddr={}, remoteHost={}",
-                    request.getRequestURI(), request.getMethod(), request.getRemoteAddr(), request.getRemoteHost());
         }
 
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)){
