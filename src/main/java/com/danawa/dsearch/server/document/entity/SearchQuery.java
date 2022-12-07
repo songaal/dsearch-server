@@ -1,8 +1,9 @@
 package com.danawa.dsearch.server.document.entity;
 
-public class SearchQuery {
-    private String id;
+import java.io.Serializable;
 
+public class SearchQuery implements Serializable {
+    private String id;
     private String name;
     private String index;
     private String query;
