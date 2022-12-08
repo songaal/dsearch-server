@@ -1,8 +1,10 @@
 package com.danawa.dsearch.server.document.service;
 
+import com.danawa.dsearch.server.document.dto.DocumentAnalysisDetailRequest;
 import com.danawa.dsearch.server.document.dto.DocumentAnalysisReqeust;
 import com.danawa.dsearch.server.document.entity.SearchQuery;
 import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactoryHighLevelWrapper;
+import com.danawa.dsearch.server.excpetions.NoSuchAnalyzerException;
 import com.danawa.dsearch.server.utils.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,75 +24,69 @@ public class DocumentAnalysisService {
         this.esFactoryHighLevelWrapper = esFactoryHighLevelWrapper;
     }
 
-    public Map<String, Object> analyzeDocument(UUID clusterId, DocumentAnalysisReqeust documentAnalysisReqeust){
-        if(documentAnalysisReqeust.isViewDetails()){
-            return analyzeDocumentViewDetails(clusterId, documentAnalysisReqeust);
-        }else{
-            return analyzeDocumentViewBrief(clusterId, documentAnalysisReqeust);
-        }
-    }
+    public Map<String, Object> analyzeDocument(UUID clusterId, DocumentAnalysisReqeust documentAnalysisReqeust) {
+        String index = documentAnalysisReqeust.getIndex();
+        String query = documentAnalysisReqeust.getQuery();
 
-    private Map<String, Object> analyzeDocumentViewBrief(UUID clusterId, DocumentAnalysisReqeust documentAnalysisReqeust) {
         Map<String, Object> result = new HashMap<>();
-        SearchQuery searchQuery = documentAnalysisReqeust.getSearchQuery();
-        String index = searchQuery.getIndex();
-        String query = searchQuery.getQuery();
+        Map<String, Object> data = new HashMap<>();
+        result.put("index", index);
 
         try {
             // 1. Index Mapping 가져오기
             Map<String, Object> mappings = esFactoryHighLevelWrapper.getIndexMappings(clusterId, index);
 
             // 2. 분석기가 셋팅된 필드만 파싱
-            Map<String, Object> extractedMappings = extractAnalyzerFields(mappings);
+            Map<String, Object> extractedMappings = extractAnalyzerFields(index, mappings);
 
             // 3. 만약 분석기가 셋팅되어 있지 않다면 종료
-            if (extractedMappings.size() == 0) return result;
+            if (extractedMappings.size() == 0) {
+                throw new NoSuchAnalyzerException("Not Found Analyzer In Index: "+ index);
+            }
 
             // 4. 분석기가 셋팅되어 있다면 해당 필드만 검색
             String[] extractedFields = extractedMappings.keySet().toArray(new String[0]);
 
             // 5. 쿼리와 field 리스트를 합치기
             Map<String, Object> queryMap = JsonUtils.convertStringToMap(query);
-            queryMap.put("_source", "[" + String.join(",", extractedFields) + "]");
+            queryMap.put("_source", extractedFields);
 
             // 6. 문자열 형태로 변환 후 검색
             String mergedQuery = JsonUtils.convertMapToString(queryMap);
+            logger.info("{}", mergedQuery);
             List<Map<String, Object>> searchList = esFactoryHighLevelWrapper.search(clusterId, index, mergedQuery);
 
             // 7. termvector로 해당 필드의 내용 분석
             for(Map<String, Object> item: searchList){
                 String docId= (String) item.get("_id");
                 Map<String, Object> source = (Map<String, Object>) item.get("_source");
-                Map<String, Object> termVectors = esFactoryHighLevelWrapper.getTermVectors(clusterId, index, docId, extractedFields);
-                makePrettyFormat(result, termVectors, source);
 
-                // 8. 포맷팅 작업
-                // {
-                //   "필드이름": {
-                //     "document": "문자열",
-                //     "documentTermVectors": [ "문자열1", "문자열2", ... ],
-                //   }
-                // }
-//                for(String fieldName : termVectors.keySet()){
-//                    Map<String, Object> data = new HashMap<>();
-//                    data.put("document", source.get(fieldName));
-//                    data.put("documentTermVectors", termVectors.get(fieldName));
-//                    result.put(fieldName, data);
-//                }
+                Map<String, Object> termVectors = esFactoryHighLevelWrapper.getTermVectors(clusterId, index, docId, extractedFields);
+                if (data.get(docId) == null){
+                    data.put(docId, new HashMap<>());
+                }
+
+                makePrettyFormat((Map<String, Object>) data.get(docId), source, termVectors);
             }
         } catch (IOException e) {
+            logger.error("", e);
+        }catch (NoSuchAnalyzerException e){
             logger.error("", e);
         }
 
         // 9. 셋팅 후 리턴
+        result.put("analysis", data);
         return result;
     }
 
-    private Map<String, Object> extractAnalyzerFields(Map<String, Object> mappings){
+    private Map<String, Object> extractAnalyzerFields(String index, Map<String, Object> mappings){
         Map<String, Object> result = new HashMap<>();
 
-        for (String field: mappings.keySet()){
-            Map<String, Object> metadata = (Map<String, Object>) mappings.get(field);
+        Map<String, Object> properties = (Map<String, Object>) mappings.get(index);
+        Map<String, Object> fieldsMapping = (Map<String, Object>) properties.get("properties");
+
+        for (String field: fieldsMapping.keySet()){
+            Map<String, Object> metadata = (Map<String, Object>) fieldsMapping.get(field);
             if(isAnalyzerSet(metadata)){
                 result.put(field, metadata);
             }
@@ -109,69 +105,48 @@ public class DocumentAnalysisService {
     }
 
 
-    private Map<String, Object> analyzeDocumentViewDetails(UUID clusterId, DocumentAnalysisReqeust documentAnalysisReqeust){
+    public Map<String, Object> analyzeDocumentDetails(UUID clusterId, DocumentAnalysisDetailRequest documentAnalysisDetailRequest){
+        String index = documentAnalysisDetailRequest.getIndex();
+        String docId = documentAnalysisDetailRequest.getDocId();
+
         Map<String, Object> result = new HashMap<>();
-        SearchQuery searchQuery = documentAnalysisReqeust.getSearchQuery();
-        String index = searchQuery.getIndex();
-        String query = searchQuery.getQuery();
 
         try {
             // 1. Index Mapping 가져오기
             Map<String, Object> mappings = esFactoryHighLevelWrapper.getIndexMappings(clusterId, index);
 
-            // 2. 해당 필드만 검색
-            String[] fields = mappings.keySet().toArray(new String[0]);
+            // 2. 분석기가 셋팅된 필드만 파싱
+            Map<String, Object> extractedMappings = extractAnalyzerFields(index, mappings);
+            String[] extractedFields = extractedMappings.keySet().toArray(new String[0]);
 
-            // 3. 쿼리와 field 리스트를 합치기
-            Map<String, Object> queryMap = JsonUtils.convertStringToMap(query);
-            queryMap.put("_source", "[" + String.join(",", fields) + "]");
+            // 3. 문서 한개만 검색
+            Map<String, Object> source = esFactoryHighLevelWrapper.searchForOneDocument(clusterId, index, docId);
 
-            // 4. 문자열 형태로 변환 후 검색
-            String mergedQuery = JsonUtils.convertMapToString(queryMap);
-            List<Map<String, Object>> searchList = esFactoryHighLevelWrapper.search(clusterId, index, mergedQuery);
+            // 4. termvector로 해당 필드의 내용 분석
+            Map<String, Object> termVectors = esFactoryHighLevelWrapper.getTermVectors(clusterId, index, docId, extractedFields);
 
-            // 5. termvector로 해당 필드의 내용 분석
-            for(Map<String, Object> item: searchList){
-                String docId = (String) item.get("_id");
-                Map<String, Object> source = (Map<String, Object>) item.get("_source");
-                Map<String, Object> termVectors = esFactoryHighLevelWrapper.getTermVectors(clusterId, index, docId, fields);
-                makePrettyFormat(result, source, termVectors);
-
-                // 6. 포맷팅 작업
-                // {
-                //   "필드이름": {
-                //     "document": "문자열",
-                //     "documentTermVectors": [ "문자열1", "문자열2", ... ],
-                //   }
-                // }
-//                for(String fieldName : source.keySet()){
-//                    Map<String, Object> data = new HashMap<>();
-//                    data.put("document", source.get(fieldName));
-//                    data.put("documentTermVectors", termVectors.get(fieldName) == null ? "" : termVectors.get(fieldName));
-//                    result.put(fieldName, data);
-//                }
-            }
+            makePrettyFormat(result, source, termVectors);
         } catch (IOException e) {
             logger.error("", e);
         }
 
-        // 9. 셋팅 후 리턴
+        // 5. 셋팅 후 리턴
         return result;
     }
 
-    private void makePrettyFormat(Map<String, Object> result, Map<String, Object> originSource, Map<String, Object> joinSource){
+    private void makePrettyFormat(Map<String, Object> data, Map<String, Object> originSource, Map<String, Object> joinSource){
         // 포맷팅 작업
         // {
         //   "필드이름": {
         //     "document": "문자열",
-        //     "documentTermVectors": [ "문자열1", "문자열2", ... ],
+        //     " ": [ "문자열1", "문자열2", ... ],
         //   }
         // }
         for(String fieldName : originSource.keySet()){
-            Map<String, Object> data = new HashMap<>();
-            data.put("document", originSource.get(fieldName));
-            data.put("documentTermVectors", joinSource.get(fieldName) == null ? "" : joinSource.get(fieldName));
-            result.put(fieldName, data);
+            Map<String, Object> fields = new HashMap<>();
+            fields.put("document", originSource.get(fieldName));
+            fields.put("documentTermVectors", joinSource.get(fieldName) == null ? "" : joinSource.get(fieldName));
+            data.put(fieldName, fields);
         }
     }
 

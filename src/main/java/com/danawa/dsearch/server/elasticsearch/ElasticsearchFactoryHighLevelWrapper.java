@@ -106,9 +106,18 @@ public class ElasticsearchFactoryHighLevelWrapper {
             request.setJsonEntity(body);
 
             Response response = client.getLowLevelClient().performRequest(request);
-            Map<String, Object> fullSearchMap = JsonUtils.convertStringToMap(response.toString());
+            Map<String, Object> fullSearchMap = JsonUtils.convertStringToMap(EntityUtils.toString(response.getEntity()));
             Map<String, Object> searchHits = (Map<String, Object>) fullSearchMap.get("hits");
             return (List<Map<String, Object>>) searchHits.get("hits");
+        }
+    }
+
+    public Map<String, Object> searchForOneDocument(UUID clusterId, String index, String docId) throws IOException {
+        try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)){
+            Request request = new Request("GET", index + "/_doc/" + docId);
+            Response response = client.getLowLevelClient().performRequest(request);
+            Map<String, Object> fullSearchMap = JsonUtils.convertStringToMap(EntityUtils.toString(response.getEntity()));
+            return (Map<String, Object>) fullSearchMap.get("_source");
         }
     }
 
@@ -137,7 +146,7 @@ public class ElasticsearchFactoryHighLevelWrapper {
                     termsList.add(term.getTerm());
                 }
 
-                result.put(fieldName, termsList);
+                result.put(fieldName, String.join(", ", termsList));
             }
 
             return result;

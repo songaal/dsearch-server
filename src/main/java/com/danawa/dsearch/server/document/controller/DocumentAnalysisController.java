@@ -1,5 +1,6 @@
 package com.danawa.dsearch.server.document.controller;
 
+import com.danawa.dsearch.server.document.dto.DocumentAnalysisDetailRequest;
 import com.danawa.dsearch.server.document.dto.DocumentAnalysisReqeust;
 import com.danawa.dsearch.server.document.dto.SearchQueryCreateRequest;
 import com.danawa.dsearch.server.document.dto.SearchQueryUpdateRequest;
@@ -30,6 +31,16 @@ public class DocumentAnalysisController {
     @PostMapping
     public ResponseEntity<?> analyzeDocument(@RequestHeader(value = "cluster-id") UUID clusterId,
                                               @RequestBody DocumentAnalysisReqeust documentAnalysisReqeust) {
-        return new ResponseEntity<>(documentAnalysisService.analyzeDocument(clusterId, documentAnalysisReqeust), HttpStatus.OK);
+        Map<String, Object> data = documentAnalysisService.analyzeDocument(clusterId, documentAnalysisReqeust);
+        return new ResponseEntity<>(data, HttpStatus.OK);
     }
+
+    @PostMapping("/detail")
+    public ResponseEntity<?> analyzeDocumentDetail(@RequestHeader(value = "cluster-id") UUID clusterId,
+                                                    @RequestBody DocumentAnalysisDetailRequest documentAnalysisDetailRequest) {
+        Map<String, Object> data = documentAnalysisService.analyzeDocumentDetails(clusterId, documentAnalysisDetailRequest);
+        logger.info("{}", data);
+        return new ResponseEntity<>(data, HttpStatus.OK);
+    }
+
 }
