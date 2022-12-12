@@ -16,9 +16,15 @@ import java.util.*;
 
 @Service
 public class DocumentAnalysisService {
+    /**
+     * 이 서비스 레이어에서 Repository를 사용하지 않는 이유 ?
+     * 1. 직접적으로 저장을 하는 부분이 없음
+     * 2. ElasticsearchFactoryHighLevelWrapper 클래스 자체가 ES에 대해 래핑한 Util 클래스 이기 때문에 핵심 비지니스를 지킬 수 있어서
+     */
     private static Logger logger = LoggerFactory.getLogger(DocumentAnalysisService.class);
 
     private ElasticsearchFactoryHighLevelWrapper esFactoryHighLevelWrapper;
+
     public DocumentAnalysisService(
             ElasticsearchFactoryHighLevelWrapper esFactoryHighLevelWrapper) {
         this.esFactoryHighLevelWrapper = esFactoryHighLevelWrapper;
@@ -58,7 +64,7 @@ public class DocumentAnalysisService {
 
             // 7. termvector로 해당 필드의 내용 분석
             for(Map<String, Object> item: searchList){
-                String docId= (String) item.get("_id");
+                String docId = (String) item.get("_id");
                 Map<String, Object> source = (Map<String, Object>) item.get("_source");
 
                 Map<String, Object> termVectors = esFactoryHighLevelWrapper.getTermVectors(clusterId, index, docId, extractedFields);

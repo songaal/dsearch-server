@@ -19,7 +19,6 @@ public class SearchQueryService {
 
     private SearchQueryRepository searchQueryRepository;
 
-
     public SearchQueryService(SearchQueryRepository searchQueryRepository) {
         this.searchQueryRepository = searchQueryRepository;
     }
