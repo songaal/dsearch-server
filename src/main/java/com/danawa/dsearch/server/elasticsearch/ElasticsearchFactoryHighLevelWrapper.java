@@ -31,8 +31,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StreamUtils;
 
 import java.io.IOException;
+
 import java.nio.charset.Charset;
 import java.util.*;
+
 
 
 /**
@@ -179,6 +181,48 @@ public class ElasticsearchFactoryHighLevelWrapper {
         }
     }
 
+    public List getClusterShardSettings(UUID clusterId) throws IOException {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            Request request = new Request("GET", "/_cat/shards");
+            request.addParameter("h", "index,state");
+            request.addParameter("format", "json");
+            Response response = client.getLowLevelClient().performRequest(request);
+
+            return (List) JsonUtils.createCustomGson().fromJson(EntityUtils.toString(response.getEntity()), List.class);
+        }
+    }
+
+    public List getClusterShardDetailSettings(UUID clusterId, String indexes) throws IOException {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            Request request = new Request("GET", "/_cat/recovery/" + String.join(",", indexes));
+            request.addParameter("format", "json");
+            Response response = client.getLowLevelClient().performRequest(request);
+
+            return (List) JsonUtils.createCustomGson().fromJson(EntityUtils.toString(response.getEntity()), List.class);
+        }
+    }
+
+    public Map<String, Object> getClusterSettings(UUID clusterId) throws IOException {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            Request request = new Request("GET", "/_cluster/settings");
+            request.addParameter("flat_settings", "true");
+            request.addParameter("filter_path", "transient");
+            Response response = client.getLowLevelClient().performRequest(request);
+
+            return (Map<String, Object>) JsonUtils.createCustomGson().fromJson(EntityUtils.toString(response.getEntity()), Map.class);
+        }
+    }
+
+    public String removeNode(UUID clusterId, String body) throws IOException {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            Request request = new Request("PUT", "/_cluster/settings");
+            request.setJsonEntity(body);
+            Response response = client.getLowLevelClient().performRequest(request);
+
+            return EntityUtils.toString(response.getEntity());
+        }
+    }
+    
     public Map<String, Object> getTermVectors(UUID clusterId, String index, String docId, String[] fields) throws IOException {
         try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)){
             Map<String, Object> result = new HashMap<>();
@@ -203,5 +247,4 @@ public class ElasticsearchFactoryHighLevelWrapper {
             return result;
         }
     }
-
 }
