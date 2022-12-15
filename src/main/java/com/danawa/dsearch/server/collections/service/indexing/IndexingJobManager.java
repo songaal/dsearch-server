@@ -236,14 +236,16 @@ public class IndexingJobManager {
             indexingJobService.changeRefreshInterval(clusterId, collection, index); // 색인 끝나면 refresh_interval 변경
 
             if (nextStep != null) {
+                // 연속 색인 일 경우, 교체 시 인덱싱 상태 success 변경
                 indexStatusService.create(indexingInfo, "RUNNING"); // Expose가 남아 있기 때문에 status 추가
                 indexingInfo.setCurrentStep(nextStep); // 교체 단계 셋팅 (안하면 Null Pointer Exception)
                 manageQueue.put(collectionId, indexingInfo); // 교체 단계가 있으므로 다시 스케줄에 넣는다.
             }else{
+                // 단순 색인 일 경우
                 deleteQueue.add(collectionId);
+                updateLookupQueue(collectionId, "SUCCESS");
             }
 
-            updateLookupQueue(collectionId, status.toString());
             indexerClient.deleteJob(indexingInfo);
             // refresh interval 을 수행한 뒤 60초 대기 시간 추가
             // 다큐먼트 카운트가 전부 업데이트 되기 전에 cat/indices 조회 시 진행 중인 값으로 가져옴
