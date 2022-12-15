@@ -10,6 +10,7 @@ import com.danawa.dsearch.server.collections.service.CollectionService;
 import com.danawa.dsearch.server.collections.service.status.StatusService;
 import com.danawa.dsearch.server.dictionary.service.DictionaryService;
 import com.danawa.dsearch.server.collections.entity.Collection;
+import com.danawa.dsearch.server.document.service.SearchQueryService;
 import com.danawa.dsearch.server.excpetions.NotFoundException;
 import com.danawa.dsearch.server.indices.service.IndicesService;
 import com.danawa.dsearch.server.jdbc.service.JdbcService;
@@ -44,6 +45,8 @@ public class ClusterController {
     private final ClusterRoutingAllocationService clusterRoutingAllocationService;
     private final IndexingScheduler indexingScheduler;
 
+    private SearchQueryService searchQueryService;
+
     public ClusterController(@Value("${dsearch.delete}") String deletePrefix,
                              ClusterService clusterService,
                              DictionaryService dictionaryService,
@@ -55,7 +58,8 @@ public class ClusterController {
                              ClusterRoutingAllocationService clusterRoutingAllocationService,
                              IndexingScheduler indexingScheduler,
                              StatusService indexStatusService,
-                             HistoryService historyService) {
+                             HistoryService historyService,
+                             SearchQueryService searchQueryService) {
         this.deletePrefix = deletePrefix;
         this.clusterService = clusterService;
         this.dictionaryService = dictionaryService;
@@ -68,6 +72,7 @@ public class ClusterController {
         this.indexingScheduler = indexingScheduler;
         this.indexStatusService = indexStatusService;
         this.historyService = historyService;
+        this.searchQueryService = searchQueryService;
     }
 
     @GetMapping
@@ -126,6 +131,7 @@ public class ClusterController {
         jdbcService.initialize(registerCluster.getId()); /* JDBC 인덱스 추가 */
         historyService.initialize(registerCluster.getId());
         indexStatusService.initialize(registerCluster.getId());
+        searchQueryService.initialize(registerCluster.getId());
 
         indexingScheduler.init(); /* 이전에 등록되어 있던 클러스터라면 스케쥴 재 등록 */
         return new ResponseEntity<>(registerCluster, HttpStatus.OK);
