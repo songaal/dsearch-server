@@ -1,10 +1,10 @@
-package com.danawa.dsearch.server.dynamic.entity;
+package com.danawa.dsearch.server.dynamicIndex.entity;
 
 import javax.persistence.*;
 
 @Entity
-@Table(name = "DYNAMIC")
-public class DynamicInfo {
+@Table(name = "DYNAMIC_INDEX")
+public class DynamicIndexInfo {
     @Id
     private Long id;
 
