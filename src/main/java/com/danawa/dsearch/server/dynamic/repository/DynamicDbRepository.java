@@ -1,4 +1,7 @@
 package com.danawa.dsearch.server.dynamic.repository;
 
-public interface DynamicDbRepository /*extends JpaRepository<DynamicInfo2, Long> */{
+import com.danawa.dsearch.server.dynamic.entity.DynamicInfo;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface DynamicDbRepository extends JpaRepository<DynamicInfo, Long> {
 }

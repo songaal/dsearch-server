@@ -1,12 +1,20 @@
 package com.danawa.dsearch.server.dynamic.entity;
 
+import javax.persistence.*;
+
+@Entity
+@Table(name = "DYNAMIC")
 public class DynamicInfo {
+    @Id
     private Long id;
 
-    private String bundle;
+    private String bundleQueue;
+    private String bundleServer;
+    private String scheme;
     private String ip;
     private String port;
-    private String endPoint;
+    private String stateEndPoint;
+    private String consumeEndPoint;
 
     public Long getId() {
         return id;
@@ -16,12 +24,28 @@ public class DynamicInfo {
         this.id = id;
     }
 
-    public String getBundle() {
-        return bundle;
+    public String getBundleQueue() {
+        return bundleQueue;
     }
 
-    public void setBundle(String bundle) {
-        this.bundle = bundle;
+    public void setBundleQueue(String bundleQueue) {
+        this.bundleQueue = bundleQueue;
+    }
+
+    public String getBundleServer() {
+        return bundleServer;
+    }
+
+    public void setBundleServer(String bundleServer) {
+        this.bundleServer = bundleServer;
+    }
+
+    public String getScheme() {
+        return scheme;
+    }
+
+    public void setScheme(String scheme) {
+        this.scheme = scheme;
     }
 
     public String getIp() {
@@ -40,11 +64,19 @@ public class DynamicInfo {
         this.port = port;
     }
 
-    public String getEndPoint() {
-        return endPoint;
+    public String getStateEndPoint() {
+        return stateEndPoint;
     }
 
-    public void setEndPoint(String endPoint) {
-        this.endPoint = endPoint;
+    public void setStateEndPoint(String stateEndPoint) {
+        this.stateEndPoint = stateEndPoint;
+    }
+
+    public String getConsumeEndPoint() {
+        return consumeEndPoint;
+    }
+
+    public void setConsumeEndPoint(String consumeEndPoint) {
+        this.consumeEndPoint = consumeEndPoint;
     }
 }

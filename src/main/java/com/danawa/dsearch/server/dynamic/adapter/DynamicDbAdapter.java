@@ -1,18 +1,23 @@
 package com.danawa.dsearch.server.dynamic.adapter;
 
+import com.danawa.dsearch.server.dynamic.entity.DynamicInfo;
+import com.danawa.dsearch.server.dynamic.repository.DynamicDbRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.NoSuchElementException;
+
 @Service
 public class DynamicDbAdapter implements DynamicAdapter {
     private static Logger logger = LoggerFactory.getLogger(DynamicDbAdapter.class);
-    //private DynamicDbRepository dynamicDbRepository;
+    private DynamicDbRepository dynamicDbRepository;
 
-    //public DynamicDbAdapter(DynamicDbRepository dynamicDbRepository){
-    //    this.dynamicDbRepository = dynamicDbRepository;
-    //}
-/*
+    public DynamicDbAdapter(DynamicDbRepository dynamicDbRepository){
+        this.dynamicDbRepository = dynamicDbRepository;
+    }
+
     @Override
     public List<DynamicInfo> findAll() {
         return dynamicDbRepository.findAll();
@@ -35,5 +40,5 @@ public class DynamicDbAdapter implements DynamicAdapter {
     @Override
     public void deleteAll(List<DynamicInfo> dynamicInfoList) {
         dynamicDbRepository.deleteAll(dynamicInfoList);
-    }*/
+    }
 }
