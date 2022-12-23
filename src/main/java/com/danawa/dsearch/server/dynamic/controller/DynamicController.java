@@ -36,6 +36,11 @@ public class DynamicController {
         return new ResponseEntity<>(dynamicService.state(id), HttpStatus.OK);
     }
 
+    @GetMapping("/state/all")
+    public ResponseEntity<?> getStateAll() {
+        return new ResponseEntity<>(dynamicService.stateAll(), HttpStatus.OK);
+    }
+
     @PutMapping("/upload")
     public ResponseEntity<?> getFileUpload(@RequestBody HashMap<String, Object> body) {
         return new ResponseEntity<>(dynamicService.fileUpload(body), HttpStatus.OK);

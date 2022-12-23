@@ -166,10 +166,19 @@ public class DynamicService {
         return result;
     }
 
+    public Map<Long, Object> stateAll() {
+        Map<Long, Object> result = new HashMap<>();
+        List<DynamicInfo> dynamicInfoList = dynamicAdapter.findAll();
+
+        for (DynamicInfo dynamicInfo : dynamicInfoList) {
+            result.put(dynamicInfo.getId(), indexerState(dynamicInfo));
+        }
+
+        return result;
+    }
+
     public Map<String, Integer> indexerState(DynamicInfo dynamicInfo) {
         Map<String, Integer> result = new HashMap<>();
-        int id = Integer.parseInt(String.valueOf(dynamicInfo.getId()));
-        result.put("id", id);
 
         try {
 
