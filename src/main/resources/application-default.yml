@@ -79,3 +79,5 @@ dsearch:
   timeout: 64800000
   comments:
     setting: .dsearch_mapping_comments
+  dynamic:
+    path: "C:\\dynamic.json"
