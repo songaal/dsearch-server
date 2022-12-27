@@ -29,7 +29,7 @@ public class NodeService {
             for(Map<String, Object> moveInfo: moveInfoList){
                 String indexState = (String) moveInfo.get("state");
                 String indexName = (String) moveInfo.get("index");
-                if (indexState.equals("STARTED")) {
+                if (!indexState.equals("STARTED")) {
                     indexes.add(indexName);
                 }
             }
@@ -51,7 +51,7 @@ public class NodeService {
 
         for(Map<String, Object> moveInfo: moveInfoList ){
             String currentStage = (String) moveInfo.get("stage");
-            if (currentStage.equals("done")) {
+            if (!currentStage.equals("done")) {
                 NodeMoveInfoResponse nodeMoveInfoResponse = new NodeMoveInfoResponse();
 
                 nodeMoveInfoResponse.setIndex((String) moveInfo.get("index"));
