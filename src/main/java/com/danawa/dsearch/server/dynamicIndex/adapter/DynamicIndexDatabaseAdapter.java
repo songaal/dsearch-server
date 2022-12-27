@@ -41,4 +41,11 @@ public class DynamicIndexDatabaseAdapter implements DynamicIndexAdapter {
     public void deleteAll(List<DynamicIndexInfo> dynamicIndexInfoList) {
         dynamicIndexDatabaseRepository.deleteAll(dynamicIndexInfoList);
     }
+
+    @Override
+    public void flush() {
+        dynamicIndexDatabaseRepository.flush();
+    }
+
+
 }

@@ -12,4 +12,6 @@ public interface DynamicIndexAdapter {
     List<DynamicIndexInfo> saveAll(List<DynamicIndexInfo> readerList);
 
     void deleteAll(List<DynamicIndexInfo> dynamicIndexInfoList);
+
+    void flush();
 }

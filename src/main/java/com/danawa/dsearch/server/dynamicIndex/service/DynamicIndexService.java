@@ -1,14 +1,16 @@
 package com.danawa.dsearch.server.dynamicIndex.service;
 
 import com.danawa.dsearch.server.dynamicIndex.adapter.DynamicIndexAdapter;
-import com.danawa.dsearch.server.dynamicIndex.adapter.DynamicIndexDatabaseAdapter;
 import com.danawa.dsearch.server.dynamicIndex.dto.DynamicIndexInfoResponse;
 import com.danawa.dsearch.server.dynamicIndex.entity.BundleDescription;
 import com.danawa.dsearch.server.dynamicIndex.entity.DynamicIndexInfo;
+import com.danawa.dsearch.server.utils.JsonUtils;
+import com.google.common.reflect.TypeToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -66,91 +68,34 @@ public class DynamicIndexService {
         return result;
     }
 
-//    public int fileUpload(HashMap<String, Object> body) {
-//        int result = 0;
-//
-//        try {
-//            String bodyStr = "";
-//
-//            if (body.containsKey("dynamic")) {
-//                bodyStr = String.valueOf(body.get("dynamic"));
-//            } else {
-//                return result;
-//            }
-//
-//            List<DynamicIndexInfo> bodyList = JsonUtils.createCustomGson().fromJson(bodyStr, new TypeToken<List<DynamicIndexInfo>>(){}.getType());
-//
-//            if (bodyList.size() > 0) {
-//                BufferedWriter writer = null;
-//
-//                try {
-//                    writer = new BufferedWriter(new FileWriter(new File(dynamicInfoPath)));
-//                    writer.write(bodyStr);
-//                    writer.flush();
-//                } catch (FileNotFoundException e) {
-//                    e.printStackTrace();
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                } finally {
-//                    if(writer != null) writer.close();
-//                }
-//
-//                List<DynamicIndexInfo> newReadList = fileRead();
-//
-//                List<DynamicIndexInfo> readList = new ArrayList<>();
-//
-//                for (int i=0; i<newReadList.size(); i++) {
-//                    DynamicIndexInfo dynamicIndexInfo = new DynamicIndexInfo();
-//                    dynamicIndexInfo.setId(Double.valueOf(String.valueOf(((Map) newReadList.get(i)).get("id"))).longValue());
-//                    dynamicIndexInfo.setBundleQueue(String.valueOf(((Map) newReadList.get(i)).get("bundleQueue")));
-//                    dynamicIndexInfo.setBundleServer(String.valueOf(((Map) newReadList.get(i)).get("bundleServer")));
-//                    dynamicIndexInfo.setScheme(String.valueOf(((Map) newReadList.get(i)).get("scheme")));
-//                    dynamicIndexInfo.setIp(String.valueOf(((Map) newReadList.get(i)).get("ip")));
-//                    dynamicIndexInfo.setPort(String.valueOf(((Map) newReadList.get(i)).get("port")));
-//                    dynamicIndexInfo.setStateEndPoint(String.valueOf(((Map) newReadList.get(i)).get("stateEndPoint")));
-//                    dynamicIndexInfo.setConsumeEndPoint(String.valueOf(((Map) newReadList.get(i)).get("consumeEndPoint")));
-//                    readList.add(dynamicIndexInfo);
-//                }
-//
-//                if (readList.size() > 0) {
-//                    List<DynamicIndexInfo> allList = dynamicAdapter.findAll();
-//
-//                    if (allList.size() > 0) {
-//                        dynamicAdapter.deleteAll(allList);
-//                    }
-//
-//                    result = saveAll(readList).size();
-//                } else {
-//                    logger.info("readList size 0");
-//                }
-//            } else {
-//                logger.info("bodyList size 0");
-//            }
-//
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            logger.info("Exception");
-//        }
-//
-//        return result;
-//    }
+    @Transactional
+    public int saveAll(HashMap<String, Object> body) {
+        int result = 0;
 
-    public List<DynamicIndexInfo> saveAll(List<DynamicIndexInfo> list) {
-        return adapter.saveAll(list);
+        try {
+            String bodyStr = "";
+
+            if (body.containsKey("dynamic")) {
+                bodyStr = String.valueOf(body.get("dynamic"));
+            } else {
+                return result;
+            }
+
+            List<DynamicIndexInfo> bodyList = JsonUtils.createCustomGson().fromJson(bodyStr, new TypeToken<List<DynamicIndexInfo>>(){}.getType());
+
+            if (bodyList.size() > 0) {
+                List<DynamicIndexInfo> allList = adapter.findAll();
+                adapter.deleteAll(allList);
+                adapter.flush();
+                result = adapter.saveAll(bodyList).size();
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return result;
     }
-
-//    public List<DynamicIndexInfo> fileRead() {
-//        List<DynamicIndexInfo> result = new ArrayList<>();
-//
-//        try {
-//            Reader reader = new FileReader(dynamicInfoPath);
-//            result = JsonUtils.createCustomGson().fromJson(reader, List.class);
-//        } catch (Exception e) {
-//            logger.error("", e);
-//        }
-//
-//        return result;
-//    }
 
     public Map<String, Integer> state(long id) {
         Map<String, Integer> result = new HashMap<>();

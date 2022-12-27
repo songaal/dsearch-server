@@ -43,18 +43,13 @@ public class DynamicIndexController {
         return new ResponseEntity<>(dynamicIndexService.stateAll(), HttpStatus.OK);
     }
 
-//    @PutMapping
-//    public ResponseEntity<?> getFileUpload(@RequestBody HashMap<String, Object> body) {
-//        return new ResponseEntity<>(dynamicIndexService.fileUpload(body), HttpStatus.OK);
-//    }
-
     @PutMapping("/consume-all/{id}")
     public ResponseEntity<?> consumeAll(@PathVariable int id, @RequestBody HashMap<String, Object> body) throws IOException {
         return new ResponseEntity<>(dynamicIndexService.consumeAll(id, body), HttpStatus.OK);
     }
 
-//    @GetMapping("/file/read")
-//    public ResponseEntity<?> fileRead() {
-//        return new ResponseEntity<>(dynamicIndexService.fileRead(), HttpStatus.OK);
-//    }
+    @PutMapping
+    public ResponseEntity<?> saveAll(@RequestBody HashMap<String, Object> body) {
+        return new ResponseEntity<>(dynamicIndexService.saveAll(body), HttpStatus.OK);
+    }
 }
