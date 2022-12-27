@@ -4,8 +4,6 @@ import com.danawa.dsearch.server.dynamicIndex.adapter.DynamicIndexAdapter;
 import com.danawa.dsearch.server.dynamicIndex.dto.DynamicIndexInfoResponse;
 import com.danawa.dsearch.server.dynamicIndex.entity.BundleDescription;
 import com.danawa.dsearch.server.dynamicIndex.entity.DynamicIndexInfo;
-import com.danawa.dsearch.server.utils.JsonUtils;
-import com.google.common.reflect.TypeToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -69,27 +67,15 @@ public class DynamicIndexService {
     }
 
     @Transactional
-    public int saveAll(HashMap<String, Object> body) {
+    public int resetAll(List<DynamicIndexInfo> dynamicIndexInfoList) {
         int result = 0;
 
         try {
-            String bodyStr = "";
-
-            if (body.containsKey("dynamic")) {
-                bodyStr = String.valueOf(body.get("dynamic"));
-            } else {
-                return result;
+            if (dynamicIndexInfoList.size() > 0) {
+                deleteAll();
+                List<DynamicIndexInfo> savedList = saveAll(dynamicIndexInfoList);
+                result = savedList.size();
             }
-
-            List<DynamicIndexInfo> bodyList = JsonUtils.createCustomGson().fromJson(bodyStr, new TypeToken<List<DynamicIndexInfo>>(){}.getType());
-
-            if (bodyList.size() > 0) {
-                List<DynamicIndexInfo> allList = adapter.findAll();
-                adapter.deleteAll(allList);
-                adapter.flush();
-                result = adapter.saveAll(bodyList).size();
-            }
-
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -97,12 +83,22 @@ public class DynamicIndexService {
         return result;
     }
 
-    public Map<String, Integer> state(long id) {
+    private void deleteAll(){
+        List<DynamicIndexInfo> allList = adapter.findAll();
+        adapter.deleteAll(allList);
+        adapter.flush();
+    }
+
+    private List<DynamicIndexInfo> saveAll(List<DynamicIndexInfo> dynamicIndexInfoList){
+        return adapter.saveAll(dynamicIndexInfoList);
+    }
+
+    public Map<String, Integer> getState(long id) {
         Map<String, Integer> result = new HashMap<>();
         DynamicIndexInfo dynamicIndexInfo = adapter.findById(id);
 
         if (dynamicIndexInfo != null) {
-            return indexerState(dynamicIndexInfo);
+            return getQueueIndexerState(dynamicIndexInfo);
         } else {
             logger.info("Not Found Id {}", id);
         }
@@ -110,28 +106,26 @@ public class DynamicIndexService {
         return result;
     }
 
-    public Map<Long, Object> stateAll() {
+    public Map<Long, Object> getStateAll() {
         Map<Long, Object> result = new HashMap<>();
         List<DynamicIndexInfo> dynamicIndexInfoList = adapter.findAll();
 
         for (DynamicIndexInfo dynamicIndexInfo : dynamicIndexInfoList) {
-            result.put(dynamicIndexInfo.getId(), indexerState(dynamicIndexInfo));
+            result.put(dynamicIndexInfo.getId(), getQueueIndexerState(dynamicIndexInfo));
         }
 
         return result;
     }
 
-    public Map<String, Integer> indexerState(DynamicIndexInfo dynamicIndexInfo) {
+    private Map<String, Integer> getQueueIndexerState(DynamicIndexInfo dynamicIndexInfo) {
         Map<String, Integer> result = new HashMap<>();
 
         try {
-
             URI url = URI.create(String.format("%s://%s:%s/%s", "http", dynamicIndexInfo.getIp(), dynamicIndexInfo.getPort(), dynamicIndexInfo.getStateEndPoint()));
             ResponseEntity<?> responseEntity = queueIndexerClient.get(url);
             Map<String, Object> body = (Map<String, Object>) responseEntity.getBody();
 
             int sum = 0;
-
             if (body.get("consume") != null) {
                 Map<String, Object> subMap = (Map) body.get("consume");
                 for (String key : subMap.keySet()) {
@@ -149,6 +143,9 @@ public class DynamicIndexService {
     }
 
     public int consumeAll(long id, HashMap<String, Object> body) {
+        /**
+         * 큐 인덱서에서 사용하는 rabbitmq consume 워커 갯수 조절
+         */
         int result = 0;
         DynamicIndexInfo dynamicIndexInfo = adapter.findById(id);
 

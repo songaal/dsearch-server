@@ -181,24 +181,24 @@ public class ElasticsearchFactoryHighLevelWrapper {
         }
     }
 
-    public List getClusterShardSettings(UUID clusterId) throws IOException {
+    public List<Map<String, Object>> getClusterShardSettings(UUID clusterId) throws IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Request request = new Request("GET", "/_cat/shards");
             request.addParameter("h", "index,state");
             request.addParameter("format", "json");
             Response response = client.getLowLevelClient().performRequest(request);
 
-            return (List) JsonUtils.createCustomGson().fromJson(EntityUtils.toString(response.getEntity()), List.class);
+            return (List<Map<String, Object>>) JsonUtils.createCustomGson().fromJson(EntityUtils.toString(response.getEntity()), List.class);
         }
     }
 
-    public List getClusterShardDetailSettings(UUID clusterId, String indexes) throws IOException {
+    public List<Map<String, Object>> getClusterShardDetailSettings(UUID clusterId, String indexes) throws IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
             Request request = new Request("GET", "/_cat/recovery/" + String.join(",", indexes));
             request.addParameter("format", "json");
             Response response = client.getLowLevelClient().performRequest(request);
 
-            return (List) JsonUtils.createCustomGson().fromJson(EntityUtils.toString(response.getEntity()), List.class);
+            return (List<Map<String, Object>>) JsonUtils.createCustomGson().fromJson(EntityUtils.toString(response.getEntity()), List.class);
         }
     }
 

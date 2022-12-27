@@ -247,7 +247,7 @@ public class IndexingJobService {
     }
 
     private Map<String, Object> getJdbcContent(UUID clusterId, String jdbcId){
-        if (jdbcId != null && !jdbcId.equals("null") && "".equals(jdbcId)){
+        if (jdbcId == null || jdbcId.equals("null") || "".equals(jdbcId)){
             return new HashMap<>();
         }
 

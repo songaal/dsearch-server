@@ -24,11 +24,11 @@ public class DynamicIndexDatabaseAdapter implements DynamicIndexAdapter {
     }
 
     @Override
-    public DynamicIndexInfo findById(Long id) {
+    public DynamicIndexInfo findById(Long id) throws NoSuchElementException {
         try {
             return dynamicIndexDatabaseRepository.findById(id).get();
         } catch (NoSuchElementException e) {
-            return null;
+            throw new NoSuchElementException(e.getMessage());
         }
     }
 

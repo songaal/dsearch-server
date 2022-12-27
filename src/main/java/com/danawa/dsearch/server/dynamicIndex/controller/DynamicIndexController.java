@@ -1,6 +1,9 @@
 package com.danawa.dsearch.server.dynamicIndex.controller;
 
+import com.danawa.dsearch.server.dynamicIndex.dto.DynamicIndexInfoRequest;
+import com.danawa.dsearch.server.dynamicIndex.dto.DynamicIndexInfoResponse;
 import com.danawa.dsearch.server.dynamicIndex.entity.BundleDescription;
+import com.danawa.dsearch.server.dynamicIndex.entity.DynamicIndexInfo;
 import com.danawa.dsearch.server.dynamicIndex.service.DynamicIndexService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,7 +12,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 @RestController
 @RequestMapping("/dynamicIndex")
@@ -35,12 +40,12 @@ public class DynamicIndexController {
 
     @GetMapping("/state/{id}")
     public ResponseEntity<?> getState(@PathVariable int id) {
-        return new ResponseEntity<>(dynamicIndexService.state(id), HttpStatus.OK);
+        return new ResponseEntity<>(dynamicIndexService.getState(id), HttpStatus.OK);
     }
 
     @GetMapping("/state")
     public ResponseEntity<?> getStateAll() {
-        return new ResponseEntity<>(dynamicIndexService.stateAll(), HttpStatus.OK);
+        return new ResponseEntity<>(dynamicIndexService.getStateAll(), HttpStatus.OK);
     }
 
     @PutMapping("/consume-all/{id}")
@@ -49,7 +54,16 @@ public class DynamicIndexController {
     }
 
     @PutMapping
-    public ResponseEntity<?> saveAll(@RequestBody HashMap<String, Object> body) {
-        return new ResponseEntity<>(dynamicIndexService.saveAll(body), HttpStatus.OK);
+    public ResponseEntity<?> resetAll(@RequestBody List<DynamicIndexInfoRequest> body) {
+        List<DynamicIndexInfo> list = changeToDynamicIndexInfoList(body);
+        return new ResponseEntity<>(dynamicIndexService.resetAll(list), HttpStatus.OK);
+    }
+
+    private List<DynamicIndexInfo> changeToDynamicIndexInfoList(List<DynamicIndexInfoRequest> infoList){
+        List<DynamicIndexInfo> result = new ArrayList<>();
+        for(DynamicIndexInfoRequest request: infoList){
+            result.add(DynamicIndexInfoRequest.to(request));
+        }
+        return result;
     }
 }

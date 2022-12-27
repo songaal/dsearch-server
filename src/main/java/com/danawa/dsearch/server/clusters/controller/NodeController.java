@@ -1,7 +1,7 @@
-package com.danawa.dsearch.server.node.controller;
+package com.danawa.dsearch.server.clusters.controller;
 
-import com.danawa.dsearch.server.node.dto.NodeMoveInfoResponse;
-import com.danawa.dsearch.server.node.service.NodeService;
+import com.danawa.dsearch.server.clusters.dto.NodeMoveInfoResponse;
+import com.danawa.dsearch.server.clusters.service.NodeService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +26,7 @@ public class NodeController {
 
     @GetMapping("/move/info")
     public ResponseEntity<?> moveInfo(@RequestHeader(value = "cluster-id") UUID clusterId) throws IOException {
-        List<NodeMoveInfoResponse> response = nodeService.moveInfo(clusterId);
+        List<NodeMoveInfoResponse> response = nodeService.getMoveInfo(clusterId);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 

@@ -1,4 +1,4 @@
-package com.danawa.dsearch.server.node.dto;
+package com.danawa.dsearch.server.clusters.dto;
 
 import java.io.Serializable;
 
