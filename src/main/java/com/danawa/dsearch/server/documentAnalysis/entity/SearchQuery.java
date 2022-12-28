@@ -1,13 +1,20 @@
-package com.danawa.dsearch.server.document.dto;
-
-import com.danawa.dsearch.server.document.entity.SearchQuery;
+package com.danawa.dsearch.server.documentAnalysis.entity;
 
 import java.io.Serializable;
 
-public class DocumentAnalysisReqeust implements Serializable {
+public class SearchQuery implements Serializable {
+    private String id;
     private String name;
     private String index;
     private String query;
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
 
     public String getName() {
         return name;
@@ -21,8 +28,8 @@ public class DocumentAnalysisReqeust implements Serializable {
         return index;
     }
 
-    public void setIndex(String index) {
-        this.index = index;
+    public void setIndex(String indices) {
+        this.index = indices;
     }
 
     public String getQuery() {

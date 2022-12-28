@@ -1,9 +1,10 @@
-package com.danawa.dsearch.server.document.service;
+package com.danawa.dsearch.server.documentAnalysis.service;
 
-import com.danawa.dsearch.server.document.dto.SearchQueryCreateRequest;
-import com.danawa.dsearch.server.document.dto.SearchQueryUpdateRequest;
-import com.danawa.dsearch.server.document.entity.SearchQuery;
-import com.danawa.dsearch.server.document.repository.SearchQueryRepository;
+import com.danawa.dsearch.server.documentAnalysis.adapter.SearchQueryAdapter;
+import com.danawa.dsearch.server.documentAnalysis.dto.SearchQueryCreateRequest;
+import com.danawa.dsearch.server.documentAnalysis.dto.SearchQueryUpdateRequest;
+import com.danawa.dsearch.server.documentAnalysis.entity.SearchQuery;
+import com.danawa.dsearch.server.documentAnalysis.repository.SearchQueryRepository;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -25,32 +26,31 @@ public class SearchQueryServiceTests {
     private SearchQueryService searchQueryService;
 
     @Mock
-    private SearchQueryRepository searchQueryRepository;
+    private SearchQueryAdapter searchQueryAdapter;
 
     @BeforeEach
     public void setup(){
-        this.searchQueryService = new SearchQueryService(searchQueryRepository);
-
+        this.searchQueryService = new SearchQueryService(searchQueryAdapter);
     }
 
     @Test
     @DisplayName("기동 시 searchQuery 저장 인덱스 생성 성공")
     public void initialize_success() throws IOException {
         UUID clusterId = UUID.randomUUID();
-        doNothing().when(searchQueryRepository).initialize(clusterId);
+        doNothing().when(searchQueryAdapter).initialize(clusterId);
 
         Assertions.assertDoesNotThrow(() -> {
             searchQueryService.initialize(clusterId);
         });
 
-        verify(searchQueryRepository).initialize(clusterId);
+        verify(searchQueryAdapter).initialize(clusterId);
     }
 
     @Test
     @DisplayName("기동 시 searchQuery 저장 인덱스 생성 실패")
     public void initialize_fail() throws IOException {
         UUID clusterId = UUID.randomUUID();
-        doThrow(IOException.class).when(searchQueryRepository).initialize(clusterId);
+        doThrow(IOException.class).when(searchQueryAdapter).initialize(clusterId);
 
         Assertions.assertThrows(IOException.class, () -> {
             searchQueryService.initialize(clusterId);
@@ -77,7 +77,7 @@ public class SearchQueryServiceTests {
         searchQuery.setIndex(index);
         searchQuery.setName(name);
 
-        when(searchQueryRepository.save(eq(clusterId), any(SearchQuery.class))).thenReturn(searchQuery);
+        when(searchQueryAdapter.create(eq(clusterId), any(SearchQuery.class))).thenReturn(searchQuery);
         SearchQuery result = searchQueryService.createSearchQuery(clusterId, searchQueryCreateRequest);
         Assertions.assertEquals(id, result.getId());
         Assertions.assertEquals(index, result.getIndex());
@@ -105,7 +105,7 @@ public class SearchQueryServiceTests {
         searchQuery.setIndex(index);
         searchQuery.setName(name);
 
-        when(searchQueryRepository.save(eq(clusterId), any(SearchQuery.class))).thenReturn(null);
+        when(searchQueryAdapter.create(eq(clusterId), any(SearchQuery.class))).thenReturn(null);
         SearchQuery result = searchQueryService.createSearchQuery(clusterId, searchQueryCreateRequest);
         Assertions.assertNull(result);
     }
@@ -116,11 +116,11 @@ public class SearchQueryServiceTests {
         UUID clusterId = UUID.randomUUID();
         String id = "1";
 
-        doNothing().when(searchQueryRepository).delete(clusterId, id);
+        doNothing().when(searchQueryAdapter).deleteById(clusterId, id);
 
         searchQueryService.deleteSearchQuery(clusterId, id);
 
-        verify(searchQueryRepository, times(1)).delete(clusterId, id);
+        verify(searchQueryAdapter, times(1)).deleteById(clusterId, id);
     }
 
     @Test
@@ -154,10 +154,10 @@ public class SearchQueryServiceTests {
         List<SearchQuery> searchQueryList = new ArrayList();
         searchQueryList.add(searchQuery);
 
-        when(searchQueryRepository.findAll(eq(clusterId))).thenReturn(searchQueryList);
+        when(searchQueryAdapter.findAll(eq(clusterId))).thenReturn(searchQueryList);
         List<SearchQuery> list = searchQueryService.getSearchQueryList(clusterId);
 
-        when(searchQueryRepository.update(eq(clusterId), any(SearchQuery.class))).thenReturn(searchNewQuery);
+        when(searchQueryAdapter.update(eq(clusterId), any(SearchQuery.class))).thenReturn(searchNewQuery);
         SearchQuery result = searchQueryService.updateSearchQuery(clusterId, searchQueryUpdateRequest);
 
 

@@ -1,6 +1,6 @@
-package com.danawa.dsearch.server.document.repository;
+package com.danawa.dsearch.server.documentAnalysis.repository;
 
-import com.danawa.dsearch.server.document.entity.SearchQuery;
+import com.danawa.dsearch.server.documentAnalysis.entity.SearchQuery;
 
 import java.io.IOException;
 import java.util.List;

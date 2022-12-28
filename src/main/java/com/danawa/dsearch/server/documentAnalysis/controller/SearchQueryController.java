@@ -1,10 +1,9 @@
-package com.danawa.dsearch.server.document.controller;
+package com.danawa.dsearch.server.documentAnalysis.controller;
 
-import com.danawa.dsearch.server.document.dto.SearchQueryCreateRequest;
-import com.danawa.dsearch.server.document.dto.SearchQueryUpdateRequest;
-import com.danawa.dsearch.server.document.entity.SearchQuery;
-import com.danawa.dsearch.server.document.service.DocumentAnalysisService;
-import com.danawa.dsearch.server.document.service.SearchQueryService;
+import com.danawa.dsearch.server.documentAnalysis.dto.SearchQueryCreateRequest;
+import com.danawa.dsearch.server.documentAnalysis.dto.SearchQueryUpdateRequest;
+import com.danawa.dsearch.server.documentAnalysis.entity.SearchQuery;
+import com.danawa.dsearch.server.documentAnalysis.service.SearchQueryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;

@@ -1,8 +1,7 @@
-package com.danawa.dsearch.server.document.entity;
+package com.danawa.dsearch.server.documentAnalysis.dto;
 
-import java.io.Serializable;
+public class SearchQueryUpdateRequest {
 
-public class SearchQuery implements Serializable {
     private String id;
     private String name;
     private String index;
@@ -28,8 +27,8 @@ public class SearchQuery implements Serializable {
         return index;
     }
 
-    public void setIndex(String indices) {
-        this.index = indices;
+    public void setIndex(String index) {
+        this.index = index;
     }
 
     public String getQuery() {
@@ -39,4 +38,5 @@ public class SearchQuery implements Serializable {
     public void setQuery(String query) {
         this.query = query;
     }
+
 }

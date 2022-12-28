@@ -1,4 +1,4 @@
-package com.danawa.dsearch.server.document.entity;
+package com.danawa.dsearch.server.documentAnalysis.entity;
 
 import java.io.Serializable;
 import java.util.List;

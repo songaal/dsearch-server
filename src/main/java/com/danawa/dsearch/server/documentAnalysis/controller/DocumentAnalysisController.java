@@ -1,20 +1,14 @@
-package com.danawa.dsearch.server.document.controller;
+package com.danawa.dsearch.server.documentAnalysis.controller;
 
-import com.danawa.dsearch.server.document.dto.DocumentAnalysisDetailRequest;
-import com.danawa.dsearch.server.document.dto.DocumentAnalysisReqeust;
-import com.danawa.dsearch.server.document.dto.SearchQueryCreateRequest;
-import com.danawa.dsearch.server.document.dto.SearchQueryUpdateRequest;
-import com.danawa.dsearch.server.document.entity.SearchQuery;
-import com.danawa.dsearch.server.excpetions.ElasticQueryException;
-import com.danawa.dsearch.server.document.service.DocumentAnalysisService;
-import com.danawa.dsearch.server.document.entity.RankingTuningRequest;
+import com.danawa.dsearch.server.documentAnalysis.dto.DocumentAnalysisDetailRequest;
+import com.danawa.dsearch.server.documentAnalysis.dto.DocumentAnalysisReqeust;
+import com.danawa.dsearch.server.documentAnalysis.service.DocumentAnalysisService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
 import java.util.*;
 
 

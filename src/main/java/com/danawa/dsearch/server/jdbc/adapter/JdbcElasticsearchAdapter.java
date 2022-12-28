@@ -1,6 +1,7 @@
-package com.danawa.dsearch.server.jdbc.service;
+package com.danawa.dsearch.server.jdbc.adapter;
 
 import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactory;
+import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactoryHighLevelWrapper;
 import com.danawa.dsearch.server.jdbc.dto.JdbcCreateRequest;
 import com.danawa.dsearch.server.jdbc.dto.JdbcUpdateRequest;
 import com.danawa.dsearch.server.jdbc.entity.JdbcInfo;
@@ -30,36 +31,38 @@ import java.io.IOException;
 import java.util.*;
 
 @Service
-public class JdbcRepositoryAdapter {
-    private static Logger logger = LoggerFactory.getLogger(JdbcRepositoryAdapter.class);
+public class JdbcElasticsearchAdapter implements JdbcAdapter{
+    private static Logger logger = LoggerFactory.getLogger(JdbcElasticsearchAdapter.class);
     private ElasticsearchFactory elasticsearchFactory;
+    private ElasticsearchFactoryHighLevelWrapper esFactoryWrapper;
 
     private String jdbcIndex;
 
-    public JdbcRepositoryAdapter(
+    public JdbcElasticsearchAdapter(
             @Value("${dsearch.jdbc.setting}") String jdbcIndex,
-            ElasticsearchFactory elasticsearchFactory){
+            ElasticsearchFactory elasticsearchFactory,
+            ElasticsearchFactoryHighLevelWrapper esFactoryWrapper){
         this.jdbcIndex = jdbcIndex;
         this.elasticsearchFactory = elasticsearchFactory;
+        this.esFactoryWrapper = esFactoryWrapper;
     }
 
     public List<JdbcInfo> findAll(UUID clusterId) throws IOException {
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            SearchRequest searchRequest = new SearchRequest();
-            searchRequest.indices(jdbcIndex);
+        SearchRequest searchRequest = new SearchRequest();
+        searchRequest.indices(jdbcIndex);
 
-            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-            searchSourceBuilder.query(QueryBuilders.matchAllQuery()).size(1000);
-            searchRequest.source(searchSourceBuilder);
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.query(QueryBuilders.matchAllQuery()).size(1000);
+        searchRequest.source(searchSourceBuilder);
 
-            SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
-            return convertSearchResponseToList(searchResponse);
-        }
+        SearchHit[] searchHits = esFactoryWrapper.search(clusterId, searchRequest);
+        return convertSearchResponseToList(searchHits);
     }
-    private List<JdbcInfo> convertSearchResponseToList(SearchResponse response){
+
+    private List<JdbcInfo> convertSearchResponseToList(SearchHit[] response){
         List<JdbcInfo> list = new ArrayList<>();
 
-        for(SearchHit searchHit: response.getHits().getHits()){
+        for(SearchHit searchHit: response){
             Map<String, Object> sourceAsMap = searchHit.getSourceAsMap();
             sourceAsMap.put("_id", searchHit.getId());
             list.add(convertMapToJdbcInfo(sourceAsMap));
@@ -111,17 +114,11 @@ public class JdbcRepositoryAdapter {
         return jdbcInfo;
     }
 
-
     public boolean create(UUID clusterId, JdbcCreateRequest jdbcCreateRequest) throws IOException {
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            Map<String, Object> jsonMap = new HashMap<>();
-
-            covertCreateRequestToMap(jdbcCreateRequest, jsonMap);
-            IndexRequest indexRequest = new IndexRequest(jdbcIndex).source(jsonMap);
-            IndexResponse indexResponse = client.index(indexRequest, RequestOptions.DEFAULT);
-
-            return convertResponseToBoolean(indexResponse);
-        }
+        Map<String, Object> jsonMap = new HashMap<>();
+        covertCreateRequestToMap(jdbcCreateRequest, jsonMap);
+        IndexResponse indexResponse = esFactoryWrapper.insertDocument(clusterId, jdbcIndex, jsonMap);
+        return convertResponseToBoolean(indexResponse);
     }
 
     private void covertCreateRequestToMap(JdbcCreateRequest jdbcRequest, Map<String, Object> jsonMap){
@@ -162,22 +159,15 @@ public class JdbcRepositoryAdapter {
     }
 
     public boolean delete(UUID clusterId, String docId) throws IOException {
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            DeleteRequest request = new DeleteRequest(jdbcIndex, docId);
-            DeleteResponse deleteResponse = client.delete(request, RequestOptions.DEFAULT);
-            return convertResponseToBoolean(deleteResponse);
-        }
+        DeleteResponse deleteResponse = esFactoryWrapper.deleteDocument(clusterId, jdbcIndex, docId);
+        return convertResponseToBoolean(deleteResponse);
     }
 
     public boolean update(UUID clusterId, String id, JdbcUpdateRequest jdbcRequest) throws IOException {
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            Map<String, Object> jsonMap = new HashMap<>();
-
-            covertUpdateRequestToMap(jdbcRequest, jsonMap);
-            UpdateRequest updateRequest = new UpdateRequest(jdbcIndex, id).doc(jsonMap);
-            UpdateResponse updateResponse = client.update(updateRequest, RequestOptions.DEFAULT);
-            return convertResponseToBoolean(updateResponse);
-        }
+        Map<String, Object> jsonMap = new HashMap<>();
+        covertUpdateRequestToMap(jdbcRequest, jsonMap);
+        UpdateResponse updateResponse = esFactoryWrapper.updateDocument(clusterId, jdbcIndex, id, jsonMap);
+        return convertResponseToBoolean(updateResponse);
     }
 
     private void covertUpdateRequestToMap(JdbcUpdateRequest jdbcRequest, Map<String, Object> jsonMap){
@@ -196,41 +186,15 @@ public class JdbcRepositoryAdapter {
         if(!StringUtils.isNullOrEmpty(url)) jsonMap.put("url", url);
     }
 
-    public void fillJdbcInfoList(UUID clusterId, StringBuffer sb, Map<String, Object> jdbc){
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            SearchRequest searchRequest = new SearchRequest();
-            searchRequest.indices(jdbcIndex).source(new SearchSourceBuilder().query(QueryBuilders.matchAllQuery()).size(10000).from(0));
-            SearchResponse response = client.search(searchRequest, RequestOptions.DEFAULT);
-            SearchHit[] hits = response.getHits().getHits();
 
-            List<String> list = new ArrayList<>();
-            Gson gson = JsonUtils.createCustomGson();
+    /**
+     * JDBC 도큐먼트를 다운로드를 하기 위하여 Jdbc 이름은 리스트 형태, Jdbc 풀 내용을 Json String 형태로 받는다.
+     * @param clusterId : 현재 사용되는 elasticsearch clusterId
+     * @param sb : 저장된 Jdbc의 내용이 Json String으로 채워짐
+     * @param jdbc : 저장된 Jdbc 이름을 리스트형태 및 갯수를 저장해서 채워짐
+     */
+    public void fillJdbcInfoList(UUID clusterId, StringBuffer sb, Map<String, Object> jdbc) {
 
-            int count = 0;
-            for(SearchHit hit : hits){
-                if(count != 0){
-                    sb.append(",\n");
-                }
-                Map<String, Object> body = new HashMap<>();
-                body.put("_index", jdbcIndex);
-                body.put("_type", "_doc");
-                body.put("_id", hit.getId());
-                body.put("_score", hit.getScore());
-                body.put("_source", hit.getSourceAsMap());
-                list.add(hit.getSourceAsMap().get("id") + " [" + hit.getSourceAsMap().get("name") + "]");
-                String stringBody = gson.toJson(body);
-                sb.append(stringBody);
-                count++;
-            }
-            jdbc.put("result", true);
-            jdbc.put("count", hits.length);
-            jdbc.put("list", list);
-        } catch (IOException e) {
-            jdbc.put("result", false);
-            jdbc.put("count", 0);
-            jdbc.put("message", e.getMessage());
-            jdbc.put("list", new ArrayList<>());
-            logger.error("{}", e);
-        }
+        esFactoryWrapper.getDocumentsToString(clusterId, jdbcIndex, sb, jdbc);
     }
 }

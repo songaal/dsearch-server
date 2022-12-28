@@ -1,6 +1,7 @@
 package com.danawa.dsearch.server.elasticsearch;
 
 import com.danawa.dsearch.server.utils.JsonUtils;
+import com.google.gson.Gson;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
@@ -23,7 +24,9 @@ import org.elasticsearch.client.indices.GetMappingsRequest;
 import org.elasticsearch.client.indices.GetMappingsResponse;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
@@ -99,6 +102,24 @@ public class ElasticsearchFactoryHighLevelWrapper {
             updateRequest.doc(source, XContentType.JSON);
 
             return client.update(updateRequest, RequestOptions.DEFAULT);
+        }
+    }
+
+    public UpdateResponse updateDocument(UUID clusterId, String index, String docId, Map<String, Object> source) throws IOException {
+        try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)){
+            UpdateRequest updateRequest = new UpdateRequest();
+            updateRequest.index(index);
+            updateRequest.id(docId);
+            updateRequest.doc(source, XContentType.JSON);
+
+            return client.update(updateRequest, RequestOptions.DEFAULT);
+        }
+    }
+
+    public DeleteResponse deleteDocument(UUID clusterId, String index, String docId) throws IOException {
+        try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)){
+            DeleteRequest request = new DeleteRequest(index, docId);
+            return client.delete(request, RequestOptions.DEFAULT);
         }
     }
 
@@ -223,28 +244,126 @@ public class ElasticsearchFactoryHighLevelWrapper {
         }
     }
     
-    public Map<String, Object> getTermVectors(UUID clusterId, String index, String docId, String[] fields) throws IOException {
+    public TermVectorsResponse getTermVectors(UUID clusterId, String index, String docId, String[] fields) throws IOException {
         try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)){
-            Map<String, Object> result = new HashMap<>();
-
             TermVectorsRequest termVectorsRequest = new TermVectorsRequest(index, docId);
             termVectorsRequest.setFields(fields);
-            TermVectorsResponse response = client.termvectors(termVectorsRequest, RequestOptions.DEFAULT);
+            return client.termvectors(termVectorsRequest, RequestOptions.DEFAULT);
+        }
+    }
 
-            List<TermVectorsResponse.TermVector> termVectorList = response.getTermVectorsList();
 
-            for(TermVectorsResponse.TermVector termVector : termVectorList){
-                String fieldName = termVector.getFieldName();
-                List<String> termsList = new ArrayList<>();
+    public void getDocumentsToString(UUID clusterId, String index, StringBuffer sb, Map<String, Object> jdbc){
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            SearchRequest searchRequest = new SearchRequest();
+            searchRequest.indices(index).source(new SearchSourceBuilder().query(QueryBuilders.matchAllQuery()).size(10000).from(0));
+            SearchResponse response = client.search(searchRequest, RequestOptions.DEFAULT);
+            SearchHit[] hits = response.getHits().getHits();
 
-                for(TermVectorsResponse.TermVector.Term term: termVector.getTerms()){
-                    termsList.add(term.getTerm());
+            List<String> list = new ArrayList<>();
+            Gson gson = JsonUtils.createCustomGson();
+
+            int count = 0;
+            for(SearchHit hit : hits){
+                if(count != 0){
+                    sb.append(",\n");
                 }
-
-                result.put(fieldName, String.join(", ", termsList));
+                Map<String, Object> body = new HashMap<>();
+                body.put("_index", index);
+                body.put("_type", "_doc");
+                body.put("_id", hit.getId());
+                body.put("_score", hit.getScore());
+                body.put("_source", hit.getSourceAsMap());
+                list.add(hit.getSourceAsMap().get("id") + " [" + hit.getSourceAsMap().get("name") + "]");
+                String stringBody = gson.toJson(body);
+                sb.append(stringBody);
+                count++;
             }
+            jdbc.put("result", true);
+            jdbc.put("count", hits.length);
+            jdbc.put("list", list);
+        } catch (IOException e) {
+            jdbc.put("result", false);
+            jdbc.put("count", 0);
+            jdbc.put("message", e.getMessage());
+            jdbc.put("list", new ArrayList<>());
+            logger.error("{}", e);
+        }
+    }
 
-            return result;
+    public String getPlugins(UUID clusterId) throws IOException {
+        try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            RestClient restClient = client.getLowLevelClient();
+            Request request = new Request("GET", "_cat/plugins");
+            Response response = restClient.performRequest(request);
+            String responseBody = EntityUtils.toString(response.getEntity());
+            return responseBody;
+        }
+    }
+
+    public String analysisTextUsingPlugin(UUID clusterId, String index, String pluginName, boolean useForQuery, String text) throws IOException {
+        try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            RestClient restClient = client.getLowLevelClient();
+            String method = "POST";
+            String endPoint = "/_" + pluginName + "/analyze";
+
+            /* 임의의 쿼리를 만들어서 보낸다 */
+            String setJson = "{ \"index\": \"" + index + "\", \n" +
+                    "\"detail\": true, \n" +
+                    "\"useForQuery\": " + useForQuery +", \n" +
+                    "\"text\": \""+ text +"\"}";
+
+            Request pluginRequest = new Request(method, endPoint);
+            pluginRequest.setJsonEntity(setJson);
+            Response pluginResponse = restClient.performRequest(pluginRequest);
+            return EntityUtils.toString(pluginResponse.getEntity());
+        }
+    }
+
+    public String getPipelineLists(UUID clusterId) throws IOException {
+        try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            RestClient restClient = client.getLowLevelClient();
+            Request request = new Request("GET", "_ingest/pipeline?pretty");
+            Response response = restClient.performRequest(request);
+            return EntityUtils.toString(response.getEntity());
+        }
+    }
+
+    public String testPipeline(UUID clusterId, String pipelineName, String detail, String body) throws IOException {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            RestClient restClient = client.getLowLevelClient();
+            Request request = new Request("POST", "_ingest/pipeline/" + pipelineName +"/_simulate" + detail);
+            request.setJsonEntity(body);
+            Response response = restClient.performRequest(request);
+            return EntityUtils.toString(response.getEntity());
+        }
+    }
+
+    public String addPipeline(UUID clusterId, String name, String body) throws IOException {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            RestClient restClient = client.getLowLevelClient();
+            Request request = new Request("PUT", "_ingest/pipeline/" + name);
+            request.setJsonEntity(body);
+            Response response = restClient.performRequest(request);
+            return EntityUtils.toString(response.getEntity());
+        }
+    }
+
+    public String getPipeline(UUID clusterId, String name) throws IOException {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            RestClient restClient = client.getLowLevelClient();
+            Request request = new Request("GET", "_ingest/pipeline/" + name);
+            Response response = restClient.performRequest(request);
+            return EntityUtils.toString(response.getEntity());
+        }
+    }
+
+    public String deletePipeline(UUID clusterId, String name) throws IOException {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            RestClient restClient = client.getLowLevelClient();
+            Request request = new Request("DELETE", "_ingest/pipeline/" + name);
+            Response response = restClient.performRequest(request);
+            return EntityUtils.toString(response.getEntity());
         }
     }
 }

@@ -1,4 +1,4 @@
-package com.danawa.dsearch.server.document.dto;
+package com.danawa.dsearch.server.documentAnalysis.dto;
 
 public class SearchQueryCreateRequest {
     private String name;

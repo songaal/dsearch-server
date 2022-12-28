@@ -1,19 +1,11 @@
-package com.danawa.dsearch.server.document.dto;
+package com.danawa.dsearch.server.documentAnalysis.dto;
 
-public class SearchQueryUpdateRequest {
+import java.io.Serializable;
 
-    private String id;
+public class DocumentAnalysisReqeust implements Serializable {
     private String name;
     private String index;
     private String query;
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
 
     public String getName() {
         return name;
@@ -38,5 +30,4 @@ public class SearchQueryUpdateRequest {
     public void setQuery(String query) {
         this.query = query;
     }
-
 }

@@ -1,10 +1,10 @@
-package com.danawa.dsearch.server.document.service;
+package com.danawa.dsearch.server.documentAnalysis.service;
 
-import com.danawa.dsearch.server.document.dto.SearchQueryCreateRequest;
-import com.danawa.dsearch.server.document.dto.SearchQueryUpdateRequest;
-import com.danawa.dsearch.server.document.entity.SearchQuery;
-import com.danawa.dsearch.server.document.repository.SearchQueryRepository;
-import com.danawa.dsearch.server.indices.service.IndicesService;
+import com.danawa.dsearch.server.documentAnalysis.adapter.SearchQueryAdapter;
+import com.danawa.dsearch.server.documentAnalysis.dto.SearchQueryCreateRequest;
+import com.danawa.dsearch.server.documentAnalysis.dto.SearchQueryUpdateRequest;
+import com.danawa.dsearch.server.documentAnalysis.entity.SearchQuery;
+import com.danawa.dsearch.server.documentAnalysis.repository.SearchQueryRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -17,27 +17,28 @@ import java.util.UUID;
 public class SearchQueryService {
     private static Logger logger = LoggerFactory.getLogger(SearchQueryService.class);
 
-    private SearchQueryRepository searchQueryRepository;
 
-    public SearchQueryService(SearchQueryRepository searchQueryRepository) {
-        this.searchQueryRepository = searchQueryRepository;
+    private SearchQueryAdapter searchQueryAdapter;
+
+    public SearchQueryService(SearchQueryAdapter searchQueryAdapter) {
+        this.searchQueryAdapter = searchQueryAdapter;
     }
 
     public void initialize(UUID clusterId) throws IOException {
-        searchQueryRepository.initialize(clusterId);
+        searchQueryAdapter.initialize(clusterId);
     }
 
     public List<SearchQuery> getSearchQueryList(UUID clusterId){
-        return searchQueryRepository.findAll(clusterId);
+        return searchQueryAdapter.findAll(clusterId);
     }
 
     public void deleteSearchQuery(UUID clusterId, String id){
-        searchQueryRepository.delete(clusterId, id);
+        searchQueryAdapter.deleteById(clusterId, id);
     }
 
     public SearchQuery createSearchQuery(UUID clusterId, SearchQueryCreateRequest request){
         SearchQuery searchQuery = makeSearchQuery(request);
-        return searchQueryRepository.save(clusterId, searchQuery);
+        return searchQueryAdapter.create(clusterId, searchQuery);
     }
 
     private SearchQuery makeSearchQuery( SearchQueryCreateRequest request){
@@ -50,7 +51,7 @@ public class SearchQueryService {
 
     public SearchQuery updateSearchQuery(UUID clusterId, SearchQueryUpdateRequest request){
         SearchQuery searchQuery = makeSearchQuery(request);
-        return searchQueryRepository.update(clusterId, searchQuery);
+        return searchQueryAdapter.update(clusterId, searchQuery);
     }
 
     private SearchQuery makeSearchQuery( SearchQueryUpdateRequest request){

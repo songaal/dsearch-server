@@ -1,22 +1,12 @@
 package com.danawa.dsearch.server.jdbc.service;
 
 import com.danawa.dsearch.server.indices.service.IndicesService;
+import com.danawa.dsearch.server.jdbc.adapter.JdbcAdapter;
+import com.danawa.dsearch.server.jdbc.adapter.JdbcElasticsearchAdapter;
 import com.danawa.dsearch.server.jdbc.dto.JdbcCreateRequest;
 import com.danawa.dsearch.server.jdbc.dto.JdbcUpdateRequest;
 import com.danawa.dsearch.server.jdbc.entity.JdbcInfo;
-import com.danawa.dsearch.server.utils.JsonUtils;
-import com.google.gson.Gson;
 import org.apache.commons.lang.NullArgumentException;
-import org.elasticsearch.action.delete.DeleteRequest;
-import org.elasticsearch.action.delete.DeleteResponse;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.update.UpdateRequest;
-import org.elasticsearch.action.update.UpdateResponse;
-import org.elasticsearch.client.*;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,14 +25,14 @@ public class JdbcServiceImpl implements JdbcService{
     private final String JDBC_JSON = "jdbc.json";
     private IndicesService indicesService;
 
-    private JdbcRepositoryAdapter jdbcRepositoryAdapter;
+    private JdbcAdapter jdbcElasticsearchAdapter;
     
     public JdbcServiceImpl(@Value("${dsearch.jdbc.setting}") String jdbcIndex,
                            IndicesService indicesService,
-                           JdbcRepositoryAdapter jdbcRepositoryAdapter) {
+                           JdbcAdapter jdbcElasticsearchAdapter) {
         this.jdbcIndex = jdbcIndex;
         this.indicesService = indicesService;
-        this.jdbcRepositoryAdapter = jdbcRepositoryAdapter;
+        this.jdbcElasticsearchAdapter = jdbcElasticsearchAdapter;
     }
 
     @Override
@@ -87,7 +77,7 @@ public class JdbcServiceImpl implements JdbcService{
     @Override
     public List<JdbcInfo> findAll(UUID clusterId) throws IOException {
         if(clusterId == null) throw new NullArgumentException("clusterId 가 null 입니다.");
-        List<JdbcInfo> result = jdbcRepositoryAdapter.findAll(clusterId);
+        List<JdbcInfo> result = jdbcElasticsearchAdapter.findAll(clusterId);
         return result;
     }
 
@@ -97,7 +87,7 @@ public class JdbcServiceImpl implements JdbcService{
             throw new NullArgumentException("");
         }
 
-        return jdbcRepositoryAdapter.create(clusterId, createRequest);
+        return jdbcElasticsearchAdapter.create(clusterId, createRequest);
     }
 
 
@@ -108,7 +98,7 @@ public class JdbcServiceImpl implements JdbcService{
         } else if (id.equals("")) {
             return false;
         }
-        return jdbcRepositoryAdapter.delete(clusterId, id);
+        return jdbcElasticsearchAdapter.delete(clusterId, id);
     }
 
     @Override
@@ -119,14 +109,14 @@ public class JdbcServiceImpl implements JdbcService{
             return false;
         }
 
-        return jdbcRepositoryAdapter.update(clusterId, id, jdbcUpdateRequest);
+        return jdbcElasticsearchAdapter.update(clusterId, id, jdbcUpdateRequest);
     }
 
     @Override
     public String download(UUID clusterId, Map<String, Object> message){
         StringBuffer sb = new StringBuffer();
         Map<String, Object> jdbc = new HashMap<>();
-        jdbcRepositoryAdapter.fillJdbcInfoList(clusterId, sb, jdbc);
+        jdbcElasticsearchAdapter.fillJdbcInfoList(clusterId, sb, jdbc);
         message.put("jdbc", jdbc);
         return sb.toString();
     }

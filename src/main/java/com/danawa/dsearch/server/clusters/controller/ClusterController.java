@@ -10,7 +10,7 @@ import com.danawa.dsearch.server.collections.service.CollectionService;
 import com.danawa.dsearch.server.collections.service.status.StatusService;
 import com.danawa.dsearch.server.dictionary.service.DictionaryService;
 import com.danawa.dsearch.server.collections.entity.Collection;
-import com.danawa.dsearch.server.document.service.SearchQueryService;
+import com.danawa.dsearch.server.documentAnalysis.service.SearchQueryService;
 import com.danawa.dsearch.server.excpetions.NotFoundException;
 import com.danawa.dsearch.server.indices.service.IndicesService;
 import com.danawa.dsearch.server.jdbc.service.JdbcService;

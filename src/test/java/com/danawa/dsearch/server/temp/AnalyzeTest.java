@@ -1,6 +1,6 @@
 package com.danawa.dsearch.server.temp;
 
-import com.danawa.dsearch.server.document.entity.AnalyzerTokens;
+import com.danawa.dsearch.server.documentAnalysis.entity.AnalyzerTokens;
 import org.apache.http.HttpHost;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;

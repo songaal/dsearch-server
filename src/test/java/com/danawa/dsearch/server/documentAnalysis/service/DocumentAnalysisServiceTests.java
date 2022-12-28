@@ -1,7 +1,7 @@
-package com.danawa.dsearch.server.document.service;
+package com.danawa.dsearch.server.documentAnalysis.service;
 
-import com.danawa.dsearch.server.document.dto.DocumentAnalysisReqeust;
-import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactoryHighLevelWrapper;
+import com.danawa.dsearch.server.documentAnalysis.adapter.DocumentAnalysisElasticsearchAdapter;
+import com.danawa.dsearch.server.documentAnalysis.dto.DocumentAnalysisReqeust;
 import com.danawa.dsearch.server.utils.JsonUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,11 +26,11 @@ public class DocumentAnalysisServiceTests {
     private DocumentAnalysisService documentAnalysisService;
 
     @Mock
-    private ElasticsearchFactoryHighLevelWrapper elasticsearchFactoryHighLevelWrapper;
+    private DocumentAnalysisElasticsearchAdapter documentAnalysisElasticsearchAdapter;
 
     @BeforeEach
     public void setup(){
-        this.documentAnalysisService = new DocumentAnalysisService(elasticsearchFactoryHighLevelWrapper);
+        this.documentAnalysisService = new DocumentAnalysisService(documentAnalysisElasticsearchAdapter);
     }
 
     @Test
@@ -90,9 +90,9 @@ public class DocumentAnalysisServiceTests {
         documentAnalysisReqeust.setName(name);
         documentAnalysisReqeust.setQuery(query);
 
-        given(elasticsearchFactoryHighLevelWrapper.getIndexMappings(clusterId, index)).willReturn(mappings);
-        given(elasticsearchFactoryHighLevelWrapper.search(eq(clusterId), eq(index), any(String.class))).willReturn(searchList);
-        given(elasticsearchFactoryHighLevelWrapper.getTermVectors(eq(clusterId), eq(index), eq("bXXT8IQBPUNdwAk1KNQv"), any(String[].class))).willReturn(termVectors);
+        given(documentAnalysisElasticsearchAdapter.getIndexMappings(clusterId, index)).willReturn(mappings);
+        given(documentAnalysisElasticsearchAdapter.findAll(eq(clusterId), eq(index), any(String.class))).willReturn(searchList);
+        given(documentAnalysisElasticsearchAdapter.getTerms(eq(clusterId), eq(index), eq("bXXT8IQBPUNdwAk1KNQv"), any(String[].class))).willReturn(termVectors);
 
         Map<String, Object> analyzedResult = this.documentAnalysisService.analyzeDocument(clusterId, documentAnalysisReqeust);
         Map<String, Object> analyzedData = (Map<String, Object>)analyzedResult.get("analysis");
@@ -146,7 +146,7 @@ public class DocumentAnalysisServiceTests {
         documentAnalysisReqeust.setName(name);
         documentAnalysisReqeust.setQuery(query);
 
-        given(elasticsearchFactoryHighLevelWrapper.getIndexMappings(clusterId, index)).willReturn(mappings);
+        given(documentAnalysisElasticsearchAdapter.getIndexMappings(clusterId, index)).willReturn(mappings);
 
         Map<String, Object> analyzedResult = this.documentAnalysisService.analyzeDocument(clusterId, documentAnalysisReqeust);
         Map<String, Object> analyzedData = (Map<String, Object>)analyzedResult.get("analysis");
@@ -171,7 +171,7 @@ public class DocumentAnalysisServiceTests {
         documentAnalysisReqeust.setName(name);
         documentAnalysisReqeust.setQuery(query);
 
-        doThrow(IOException.class).when(elasticsearchFactoryHighLevelWrapper).getIndexMappings(eq(clusterId), eq(index));
+        doThrow(IOException.class).when(documentAnalysisElasticsearchAdapter).getIndexMappings(eq(clusterId), eq(index));
         Map<String, Object> analyzedResult = this.documentAnalysisService.analyzeDocument(clusterId, documentAnalysisReqeust);
         Map<String, Object> analyzedData = (Map<String, Object>)analyzedResult.get("analysis");
 

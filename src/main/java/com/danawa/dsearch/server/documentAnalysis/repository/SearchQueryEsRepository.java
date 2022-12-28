@@ -1,14 +1,9 @@
-package com.danawa.dsearch.server.document.repository;
+package com.danawa.dsearch.server.documentAnalysis.repository;
 
-import com.danawa.dsearch.server.document.entity.SearchQuery;
-import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactory;
+import com.danawa.dsearch.server.documentAnalysis.entity.SearchQuery;
 import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactoryHighLevelWrapper;
 import org.elasticsearch.action.index.IndexResponse;
-import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
