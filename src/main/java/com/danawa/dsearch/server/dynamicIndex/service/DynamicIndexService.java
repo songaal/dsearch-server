@@ -122,8 +122,7 @@ public class DynamicIndexService {
 
         try {
             URI url = URI.create(String.format("%s://%s:%s/%s", "http", dynamicIndexInfo.getIp(), dynamicIndexInfo.getPort(), dynamicIndexInfo.getStateEndPoint()));
-            ResponseEntity<?> responseEntity = queueIndexerClient.get(url);
-            Map<String, Object> body = (Map<String, Object>) responseEntity.getBody();
+            Map<String, Object> body = queueIndexerClient.get(url);
 
             int sum = 0;
             if (body.get("consume") != null) {
@@ -150,8 +149,7 @@ public class DynamicIndexService {
         DynamicIndexInfo dynamicIndexInfo = adapter.findById(id);
 
         URI url = URI.create(String.format("%s://%s:%s/%s", "http", dynamicIndexInfo.getIp(), dynamicIndexInfo.getPort(), dynamicIndexInfo.getConsumeEndPoint()));
-        ResponseEntity<?> responseEntity = queueIndexerClient.put(url, body);
-        Map<String, Object> stateMap = (Map<String, Object>) responseEntity.getBody();
+        Map<String, Object> stateMap = queueIndexerClient.put(url, body);
 
         if (stateMap.get("status") != null) {
             result = (int) stateMap.get("status");
