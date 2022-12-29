@@ -7,10 +7,10 @@ import java.io.IOException;
 import java.util.UUID;
 
 @Service
-public class ToolsElasticsearchAdapter implements ToolsAdapter{
+public class ToolsEsAdapter implements ToolsAdapter{
     private ElasticsearchFactoryHighLevelWrapper elasticsearchFactoryHighLevelWrapper;
 
-    ToolsElasticsearchAdapter(ElasticsearchFactoryHighLevelWrapper elasticsearchFactoryHighLevelWrapper){
+    ToolsEsAdapter(ElasticsearchFactoryHighLevelWrapper elasticsearchFactoryHighLevelWrapper){
         this.elasticsearchFactoryHighLevelWrapper = elasticsearchFactoryHighLevelWrapper;
     }
 

@@ -7,11 +7,11 @@ import java.io.IOException;
 import java.util.UUID;
 
 @Service
-public class PipelineElasticsearchAdapter implements PipelineAdapter{
+public class PipelineEsAdapter implements PipelineAdapter{
 
     private ElasticsearchFactoryHighLevelWrapper esHighLevelWrapper;
 
-    PipelineElasticsearchAdapter(ElasticsearchFactoryHighLevelWrapper esHighLevelWrapper){
+    PipelineEsAdapter(ElasticsearchFactoryHighLevelWrapper esHighLevelWrapper){
         this.esHighLevelWrapper = esHighLevelWrapper;
     }
 

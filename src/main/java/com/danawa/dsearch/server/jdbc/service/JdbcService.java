@@ -15,7 +15,7 @@ public interface JdbcService {
     void initialize(UUID clusterId) throws IOException;
     List<JdbcInfo> findAll(UUID clusterId) throws IOException;
 
-    boolean create(UUID clusterId, JdbcCreateRequest createRequest) throws IOException, NullArgumentException;
+    boolean create(UUID clusterId, JdbcInfo info) throws IOException, NullArgumentException;
 
     boolean delete(UUID clusterId, String id) throws IOException, NullArgumentException;
     boolean update(UUID clusterId, String id, JdbcUpdateRequest jdbcRequest) throws IOException;

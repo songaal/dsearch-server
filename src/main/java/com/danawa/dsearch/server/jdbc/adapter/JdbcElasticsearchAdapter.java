@@ -1,30 +1,17 @@
 package com.danawa.dsearch.server.jdbc.adapter;
 
-import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactory;
-import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactoryHighLevelWrapper;
-import com.danawa.dsearch.server.jdbc.dto.JdbcCreateRequest;
 import com.danawa.dsearch.server.jdbc.dto.JdbcUpdateRequest;
 import com.danawa.dsearch.server.jdbc.entity.JdbcInfo;
-import com.danawa.dsearch.server.utils.JsonUtils;
-import com.google.gson.Gson;
+import com.danawa.dsearch.server.jdbc.repository.JdbcRepository;
 import org.elasticsearch.action.DocWriteResponse;
-import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
-import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
-import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.h2.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -33,29 +20,16 @@ import java.util.*;
 @Service
 public class JdbcElasticsearchAdapter implements JdbcAdapter{
     private static Logger logger = LoggerFactory.getLogger(JdbcElasticsearchAdapter.class);
-    private ElasticsearchFactory elasticsearchFactory;
-    private ElasticsearchFactoryHighLevelWrapper esFactoryWrapper;
-
-    private String jdbcIndex;
+    private JdbcRepository jdbcRepository;
 
     public JdbcElasticsearchAdapter(
-            @Value("${dsearch.jdbc.setting}") String jdbcIndex,
-            ElasticsearchFactory elasticsearchFactory,
-            ElasticsearchFactoryHighLevelWrapper esFactoryWrapper){
-        this.jdbcIndex = jdbcIndex;
-        this.elasticsearchFactory = elasticsearchFactory;
-        this.esFactoryWrapper = esFactoryWrapper;
+            JdbcRepository jdbcRepository){
+        this.jdbcRepository = jdbcRepository;
     }
 
-    public List<JdbcInfo> findAll(UUID clusterId) throws IOException {
-        SearchRequest searchRequest = new SearchRequest();
-        searchRequest.indices(jdbcIndex);
-
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        searchSourceBuilder.query(QueryBuilders.matchAllQuery()).size(1000);
-        searchRequest.source(searchSourceBuilder);
-
-        SearchHit[] searchHits = esFactoryWrapper.search(clusterId, searchRequest);
+    public List<JdbcInfo> findAll(UUID clusterId, String index) throws IOException {
+        SearchResponse searchResponse = jdbcRepository.findAll(clusterId, index);
+        SearchHit[] searchHits = searchResponse.getHits().getHits();
         return convertSearchResponseToList(searchHits);
     }
 
@@ -114,38 +88,18 @@ public class JdbcElasticsearchAdapter implements JdbcAdapter{
         return jdbcInfo;
     }
 
-    public boolean create(UUID clusterId, JdbcCreateRequest jdbcCreateRequest) throws IOException {
-        Map<String, Object> jsonMap = new HashMap<>();
-        covertCreateRequestToMap(jdbcCreateRequest, jsonMap);
-        IndexResponse indexResponse = esFactoryWrapper.insertDocument(clusterId, jdbcIndex, jsonMap);
+    public boolean create(UUID clusterId, String index, JdbcInfo jdbcInfo) throws IOException {
+        Map<String, Object> jsonMap = convertJdbcInfoToMap(jdbcInfo);
+        IndexResponse indexResponse = jdbcRepository.save(clusterId, index, jsonMap);
         return convertResponseToBoolean(indexResponse);
     }
 
-    private void covertCreateRequestToMap(JdbcCreateRequest jdbcRequest, Map<String, Object> jsonMap){
-        String id = jdbcRequest.getId();
-        String name = jdbcRequest.getName();
-        String driver = jdbcRequest.getDriver();
-        String user = jdbcRequest.getUser();
-        String password = jdbcRequest.getPassword();
-        String url = jdbcRequest.getUrl();
-        String provider = jdbcRequest.getProvider();
-        String address = jdbcRequest.getAddress();
-        String port = jdbcRequest.getPort();
-        String db_name = jdbcRequest.getDB_name();
-        String params = jdbcRequest.getParams();
-
-        if(!StringUtils.isNullOrEmpty(id)) jsonMap.put("id", id);
-        if(!StringUtils.isNullOrEmpty(name)) jsonMap.put("name", name);
-        if(!StringUtils.isNullOrEmpty(driver)) jsonMap.put("driver", driver);
-        if(!StringUtils.isNullOrEmpty(user)) jsonMap.put("user", user);
-        if(!StringUtils.isNullOrEmpty(password)) jsonMap.put("password", password);
-        if(!StringUtils.isNullOrEmpty(url)) jsonMap.put("url", url);
-        if(!StringUtils.isNullOrEmpty(provider)) jsonMap.put("provider", provider);
-        if(!StringUtils.isNullOrEmpty(address)) jsonMap.put("address", address);
-        if(!StringUtils.isNullOrEmpty(port)) jsonMap.put("port", port);
-        if(!StringUtils.isNullOrEmpty(db_name)) jsonMap.put("db_name", db_name);
-        if(!StringUtils.isNullOrEmpty(params)) jsonMap.put("params", params);
+    private Map<String, Object> convertJdbcInfoToMap(JdbcInfo jdbcInfo){
+        Map<String, Object> result = new HashMap<>();
+        return result;
     }
+
+
 
     private boolean convertResponseToBoolean(DocWriteResponse response){
         switch (response.getResult()){
@@ -158,16 +112,29 @@ public class JdbcElasticsearchAdapter implements JdbcAdapter{
         }
     }
 
-    public boolean delete(UUID clusterId, String docId) throws IOException {
-        DeleteResponse deleteResponse = esFactoryWrapper.deleteDocument(clusterId, jdbcIndex, docId);
+    public boolean delete(UUID clusterId, String index, String docId) throws IOException {
+        DeleteResponse deleteResponse = jdbcRepository.deleteById(clusterId, index, docId);
         return convertResponseToBoolean(deleteResponse);
     }
 
-    public boolean update(UUID clusterId, String id, JdbcUpdateRequest jdbcRequest) throws IOException {
+    public boolean update(UUID clusterId, String index, String id, JdbcUpdateRequest jdbcRequest) throws IOException {
         Map<String, Object> jsonMap = new HashMap<>();
         covertUpdateRequestToMap(jdbcRequest, jsonMap);
-        UpdateResponse updateResponse = esFactoryWrapper.updateDocument(clusterId, jdbcIndex, id, jsonMap);
+        UpdateResponse updateResponse = jdbcRepository.save(clusterId, index, id, jsonMap);
         return convertResponseToBoolean(updateResponse);
+    }
+
+    /**
+     * JDBC 도큐먼트를 다운로드를 하기 위하여 Jdbc 이름은 리스트 형태, Jdbc 풀 내용을 Json String 형태로 받는다.
+     *
+     * @param clusterId : 현재 사용되는 elasticsearch clusterId
+     * @param index: 조회할 인덱스
+     * @param sb        : 저장된 Jdbc의 내용이 Json String으로 채워짐
+     * @return
+     */
+    @Override
+    public Map<String, Object> getJdbcInfoList(UUID clusterId, String index, StringBuffer sb) {
+        return jdbcRepository.getDocuments(clusterId, index, sb);
     }
 
     private void covertUpdateRequestToMap(JdbcUpdateRequest jdbcRequest, Map<String, Object> jsonMap){
@@ -187,14 +154,5 @@ public class JdbcElasticsearchAdapter implements JdbcAdapter{
     }
 
 
-    /**
-     * JDBC 도큐먼트를 다운로드를 하기 위하여 Jdbc 이름은 리스트 형태, Jdbc 풀 내용을 Json String 형태로 받는다.
-     * @param clusterId : 현재 사용되는 elasticsearch clusterId
-     * @param sb : 저장된 Jdbc의 내용이 Json String으로 채워짐
-     * @param jdbc : 저장된 Jdbc 이름을 리스트형태 및 갯수를 저장해서 채워짐
-     */
-    public void fillJdbcInfoList(UUID clusterId, StringBuffer sb, Map<String, Object> jdbc) {
-
-        esFactoryWrapper.getDocumentsToString(clusterId, jdbcIndex, sb, jdbc);
-    }
+    
 }

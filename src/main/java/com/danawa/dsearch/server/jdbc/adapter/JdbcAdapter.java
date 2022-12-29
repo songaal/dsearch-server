@@ -11,9 +11,9 @@ import java.util.UUID;
 
 public interface JdbcAdapter {
 
-    List<JdbcInfo> findAll(UUID cluster) throws IOException;
-    boolean create(UUID clusterId, JdbcCreateRequest jdbcCreateRequest) throws IOException;
-    boolean delete(UUID clusterId, String docId) throws IOException;
-    boolean update(UUID clusterId, String id, JdbcUpdateRequest jdbcRequest) throws IOException;
-    void fillJdbcInfoList(UUID clusterId, StringBuffer sb, Map<String, Object> jdbc) ;
+    List<JdbcInfo> findAll(UUID cluster, String index) throws IOException;
+    boolean create(UUID clusterId, String index, JdbcInfo jdbcInfo) throws IOException;
+    boolean delete(UUID clusterId, String index, String docId) throws IOException;
+    boolean update(UUID clusterId, String index, String id, JdbcUpdateRequest jdbcRequest) throws IOException;
+    Map<String, Object> getJdbcInfoList(UUID clusterId, String index, StringBuffer sb);
 }

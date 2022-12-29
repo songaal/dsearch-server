@@ -18,13 +18,13 @@ import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.*;
 import org.elasticsearch.client.core.TermVectorsRequest;
 import org.elasticsearch.client.core.TermVectorsResponse;
-import org.elasticsearch.client.indices.CreateIndexRequest;
-import org.elasticsearch.client.indices.GetIndexRequest;
-import org.elasticsearch.client.indices.GetMappingsRequest;
-import org.elasticsearch.client.indices.GetMappingsResponse;
+import org.elasticsearch.client.indices.*;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.query.MatchAllQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.Scroll;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.slf4j.Logger;
@@ -37,7 +37,7 @@ import java.io.IOException;
 
 import java.nio.charset.Charset;
 import java.util.*;
-
+import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -65,12 +65,20 @@ public class ElasticsearchFactoryHighLevelWrapper {
 
     public void createIndex(UUID clusterId, String index, String configurations) throws IOException {
         try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            if (!client.indices().exists(new GetIndexRequest(index), RequestOptions.DEFAULT)) {
+            if (!isExistIndex(clusterId, index)) {
                 client.indices().create(new CreateIndexRequest(index)
                                 .source(StreamUtils.copyToString(new ClassPathResource(configurations).getInputStream(),
                                         Charset.defaultCharset()), XContentType.JSON),
                         RequestOptions.DEFAULT);
             }
+        }
+    }
+
+    public String deleteIndex(UUID clusterId, String index) throws IOException {
+        try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            DeleteRequest deleteRequest = new DeleteRequest(index);
+            DeleteResponse response = client.delete(deleteRequest, RequestOptions.DEFAULT);
+            return response.getResult().getLowercase();
         }
     }
 
@@ -91,6 +99,12 @@ public class ElasticsearchFactoryHighLevelWrapper {
             IndexRequest indexRequest = new IndexRequest();
             indexRequest.index(index).source(source, XContentType.JSON);
 
+            return  client.index(indexRequest, RequestOptions.DEFAULT);
+        }
+    }
+
+    public IndexResponse insertDocument(UUID clusterId, IndexRequest indexRequest) throws IOException {
+        try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)){
             return  client.index(indexRequest, RequestOptions.DEFAULT);
         }
     }
@@ -167,10 +181,10 @@ public class ElasticsearchFactoryHighLevelWrapper {
         }
     }
 
-    public SearchHit[] search(UUID clusterId, SearchRequest request) throws IOException {
+    public SearchResponse search(UUID clusterId, SearchRequest request) throws IOException {
         try(RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)){
             SearchResponse searchResponse = client.search(request, RequestOptions.DEFAULT);
-            return searchResponse.getHits().getHits();
+            return searchResponse;
         }
     }
 
@@ -253,11 +267,13 @@ public class ElasticsearchFactoryHighLevelWrapper {
     }
 
 
-    public void getDocumentsToString(UUID clusterId, String index, StringBuffer sb, Map<String, Object> jdbc){
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            SearchRequest searchRequest = new SearchRequest();
-            searchRequest.indices(index).source(new SearchSourceBuilder().query(QueryBuilders.matchAllQuery()).size(10000).from(0));
-            SearchResponse response = client.search(searchRequest, RequestOptions.DEFAULT);
+    public Map<String, Object> getDocuments(UUID clusterId, String index, StringBuffer sb){
+        Map<String, Object> jdbcMap = new HashMap<>();
+        SearchRequest searchRequest = new SearchRequest();
+        searchRequest.indices(index).source(new SearchSourceBuilder().query(QueryBuilders.matchAllQuery()).size(10000).from(0));
+
+        try{
+            SearchResponse response = search(clusterId, searchRequest);
             SearchHit[] hits = response.getHits().getHits();
 
             List<String> list = new ArrayList<>();
@@ -279,16 +295,17 @@ public class ElasticsearchFactoryHighLevelWrapper {
                 sb.append(stringBody);
                 count++;
             }
-            jdbc.put("result", true);
-            jdbc.put("count", hits.length);
-            jdbc.put("list", list);
+            jdbcMap.put("result", true);
+            jdbcMap.put("count", hits.length);
+            jdbcMap.put("list", list);
         } catch (IOException e) {
-            jdbc.put("result", false);
-            jdbc.put("count", 0);
-            jdbc.put("message", e.getMessage());
-            jdbc.put("list", new ArrayList<>());
+            jdbcMap.put("result", false);
+            jdbcMap.put("count", 0);
+            jdbcMap.put("message", e.getMessage());
+            jdbcMap.put("list", new ArrayList<>());
             logger.error("{}", e);
         }
+        return jdbcMap;
     }
 
     public String getPlugins(UUID clusterId) throws IOException {
@@ -364,6 +381,57 @@ public class ElasticsearchFactoryHighLevelWrapper {
             Request request = new Request("DELETE", "_ingest/pipeline/" + name);
             Response response = restClient.performRequest(request);
             return EntityUtils.toString(response.getEntity());
+        }
+    }
+
+    public String migrateTemplate(UUID clusterId, String templateName, String template) throws IOException {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            RestClient restClient = client.getLowLevelClient();
+            Request request = new Request("PUT", "_template/" + templateName);
+            request.setJsonEntity(template);
+            Response response = restClient.performRequest(request);
+            return EntityUtils.toString(response.getEntity());
+        }
+    }
+
+    public String getTemplates(UUID clusterId) throws IOException {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            RestClient restClient = client.getLowLevelClient();
+            Request request = new Request("GET", "_template");
+            Response response = restClient.performRequest(request);
+            return EntityUtils.toString(response.getEntity());
+        }
+    }
+
+    public List<AnalyzeResponse.AnalyzeToken> analyze(UUID clusterId, String index, String analyzer, String text) throws IOException {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            AnalyzeResponse response = client.indices()
+                    .analyze(AnalyzeRequest.withIndexAnalyzer(index, analyzer, text), RequestOptions.DEFAULT);
+            return response.getTokens();
+        }
+    }
+
+    public SearchResponse searchScroll(UUID clusterId, String index) throws IOException {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            Scroll scroll = new Scroll(new TimeValue(1000, TimeUnit.MILLISECONDS));
+            SearchResponse response = client.search(new SearchRequest()
+                            .indices(index)
+                            .scroll(scroll)
+                            .source(new SearchSourceBuilder().query(new MatchAllQueryBuilder())),
+                    RequestOptions.DEFAULT);
+            return response;
+        }
+    }
+
+    public SearchResponse searchScroll(UUID clusterId, String index, String scrollId) throws IOException {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            Scroll scroll = new Scroll(new TimeValue(1000, TimeUnit.MILLISECONDS));
+            SearchResponse response = client.search(new SearchRequest()
+                            .indices(index)
+                            .scroll(scroll)
+                            .source(new SearchSourceBuilder().query(new MatchAllQueryBuilder())),
+                    RequestOptions.DEFAULT);
+            return response;
         }
     }
 }

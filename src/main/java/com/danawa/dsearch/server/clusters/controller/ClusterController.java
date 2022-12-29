@@ -14,7 +14,6 @@ import com.danawa.dsearch.server.documentAnalysis.service.SearchQueryService;
 import com.danawa.dsearch.server.excpetions.NotFoundException;
 import com.danawa.dsearch.server.indices.service.IndicesService;
 import com.danawa.dsearch.server.jdbc.service.JdbcService;
-import com.danawa.dsearch.server.reference.service.ReferenceService;
 import com.danawa.dsearch.server.templates.service.IndexTemplateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +32,6 @@ public class ClusterController {
     private final String deletePrefix;
     private final ClusterService clusterService;
     private final DictionaryService dictionaryService;
-    private final ReferenceService referenceService;
     private final CollectionService collectionService;
     private final JdbcService jdbcService;
     private final IndicesService indicesService;
@@ -50,7 +48,6 @@ public class ClusterController {
     public ClusterController(@Value("${dsearch.delete}") String deletePrefix,
                              ClusterService clusterService,
                              DictionaryService dictionaryService,
-                             ReferenceService referenceService,
                              CollectionService collectionService,
                              IndicesService indicesService,
                              JdbcService jdbcService,
@@ -63,7 +60,6 @@ public class ClusterController {
         this.deletePrefix = deletePrefix;
         this.clusterService = clusterService;
         this.dictionaryService = dictionaryService;
-        this.referenceService = referenceService;
         this.collectionService = collectionService;
         this.indicesService = indicesService;
         this.jdbcService = jdbcService;
@@ -124,8 +120,6 @@ public class ClusterController {
     public ResponseEntity<?> add(@RequestBody Cluster cluster) throws IOException, NullPointerException {
         Cluster registerCluster = clusterService.add(cluster);
         dictionaryService.initialize(registerCluster.getId());
-        referenceService.initialize(registerCluster.getId());
-
         indexTemplateService.initialize(registerCluster.getId()); /* 인덱스 템플릿 추가 */
         collectionService.initialize(registerCluster.getId());
         jdbcService.initialize(registerCluster.getId()); /* JDBC 인덱스 추가 */

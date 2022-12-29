@@ -14,6 +14,7 @@ import com.danawa.dsearch.server.utils.YamlUtils;
 import com.google.gson.Gson;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.MatchQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
@@ -503,7 +504,8 @@ public class IndexingJobService {
                         .sort("endTime", SortOrder.DESC)
                 );
 
-        SearchHit[] searchHits = elasticsearchFactoryWrapper.search(clusterId, searchRequest);
+        SearchResponse searchResponse = elasticsearchFactoryWrapper.search(clusterId, searchRequest);
+        SearchHit[] searchHits = searchResponse.getHits().getHits();
 
         if(searchHits.length == 1){
             // index_history 조회하여 대상 찾음.
