@@ -30,6 +30,7 @@ public class SearchQueryController {
         Map<String, Object> response = new HashMap<>();
         List<SearchQuery> result = searchQueryService.getSearchQueryList(clusterId);
         response.put("result", result);
+        logger.info("{}", result);
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
@@ -38,8 +39,17 @@ public class SearchQueryController {
                                              @RequestBody SearchQueryCreateRequest searchQueryCreateRequest) {
         Map<String, Object> response = new HashMap<>();
         SearchQuery result = searchQueryService.createSearchQuery(clusterId, searchQueryCreateRequest);
-        response.put("result", result);
-        response.put("id", result.getId());
+
+        if (result.getId() != null) {
+            response.put("result", result);
+            response.put("id", result.getId());
+            response.put("isSuccess", true);
+        }else{
+            response.put("result", result);
+            response.put("isSuccess", false);
+        }
+
+        logger.info("{}", response);
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
@@ -50,7 +60,7 @@ public class SearchQueryController {
         SearchQuery result = searchQueryService.updateSearchQuery(clusterId, searchQueryUpdateRequest);
         response.put("result", result);
         response.put("id", result.getId());
-
+        logger.info("{}", response);
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 

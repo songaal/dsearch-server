@@ -37,6 +37,7 @@ public class DocumentAnalysisService {
         Map<String, Object> result = new HashMap<>();
         Map<String, Object> data = new HashMap<>();
         result.put("index", index);
+        result.put("isSuccess", true);
 
         try {
             // 1. Index Mapping 가져오기
@@ -55,6 +56,7 @@ public class DocumentAnalysisService {
 
             // 5. 쿼리와 field 리스트를 합치기
             Map<String, Object> queryMap = JsonUtils.convertStringToMap(query);
+            queryMap.put("size", 1000); // 5-1. 1만건이 쿼리는 너무 많은 리소스를 소모하므로 1000건만
             queryMap.put("_source", extractedFields);
 
             // 6. 문자열 형태로 변환 후 검색
@@ -76,11 +78,13 @@ public class DocumentAnalysisService {
             }
         } catch (IOException e) {
             logger.error("", e);
+            result.put("isSuccess", false);
         }catch (NoSuchAnalyzerException e){
             logger.error("", e);
+            result.put("isSuccess", false);
         }
 
-        // 9. 셋팅 후 리턴
+        // 8. 셋팅 후 리턴
         result.put("analysis", data);
         return result;
     }

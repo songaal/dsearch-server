@@ -52,4 +52,9 @@ public class DocumentAnalysisElasticsearchAdapter implements DocumentAnalysisAda
         return elasticsearchFactoryHighLevelWrapper.searchForOneDocument(clusterId, index, docId);
     }
 
+    @Override
+    public long getTotalSize(UUID clusterId, String index) throws IOException {
+        return elasticsearchFactoryHighLevelWrapper.getTotalSize(clusterId, index);
+    }
+
 }

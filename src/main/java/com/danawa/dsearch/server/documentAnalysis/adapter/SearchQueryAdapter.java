@@ -1,7 +1,5 @@
 package com.danawa.dsearch.server.documentAnalysis.adapter;
 
-import com.danawa.dsearch.server.documentAnalysis.dto.SearchQueryCreateRequest;
-import com.danawa.dsearch.server.documentAnalysis.dto.SearchQueryUpdateRequest;
 import com.danawa.dsearch.server.documentAnalysis.entity.SearchQuery;
 
 import java.io.IOException;

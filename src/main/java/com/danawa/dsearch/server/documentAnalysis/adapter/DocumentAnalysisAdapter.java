@@ -13,4 +13,6 @@ public interface DocumentAnalysisAdapter {
     Map<String, Object> getTerms(UUID clusterId, String index, String docId, String[] fields) throws IOException;
 
     Map<String, Object> findById(UUID clusterId, String index, String docId) throws IOException;
+
+    long getTotalSize(UUID clusterId, String index) throws IOException;
 }

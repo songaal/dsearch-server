@@ -3,6 +3,7 @@ package com.danawa.dsearch.server.elasticsearch;
 import com.danawa.dsearch.server.utils.JsonUtils;
 import com.google.gson.Gson;
 import org.apache.http.util.EntityUtils;
+import org.checkerframework.checker.units.qual.C;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.delete.DeleteRequest;
@@ -16,6 +17,7 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.*;
+import org.elasticsearch.client.core.CountRequest;
 import org.elasticsearch.client.core.TermVectorsRequest;
 import org.elasticsearch.client.core.TermVectorsResponse;
 import org.elasticsearch.client.indices.*;
@@ -432,6 +434,14 @@ public class ElasticsearchFactoryHighLevelWrapper {
                             .source(new SearchSourceBuilder().query(new MatchAllQueryBuilder())),
                     RequestOptions.DEFAULT);
             return response;
+        }
+    }
+
+    public long getTotalSize(UUID clusterId, String index) throws IOException {
+        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
+            CountRequest countRequest = new CountRequest();
+            countRequest.indices(index);
+            return client.count(countRequest, RequestOptions.DEFAULT).getCount();
         }
     }
 }
