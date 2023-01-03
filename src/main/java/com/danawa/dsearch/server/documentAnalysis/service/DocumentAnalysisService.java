@@ -56,7 +56,9 @@ public class DocumentAnalysisService {
 
             // 5. 쿼리와 field 리스트를 합치기
             Map<String, Object> queryMap = JsonUtils.convertStringToMap(query);
-            queryMap.put("size", 100); // 5-1. 1만건 쿼리는 너무 많은 리소스를 소모하므로 100건만
+            if(queryMap.get("size") != null){
+                queryMap.put("size", 100); // 5-1. 1만건 쿼리는 너무 많은 리소스를 소모하므로 100건만
+            }
             queryMap.put("_source", extractedFields);
 
             // 6. 문자열 형태로 변환 후 검색
