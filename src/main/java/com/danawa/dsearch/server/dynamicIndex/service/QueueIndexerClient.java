@@ -21,7 +21,7 @@ public class QueueIndexerClient {
 
     public QueueIndexerClient(){
         HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory();
-        factory.setConnectTimeout(10 * 1000);
+        factory.setConnectTimeout(1000);
         this.restTemplate = new RestTemplate(factory);
     }
 
