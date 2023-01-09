@@ -14,12 +14,10 @@ public class IndexHistorySpecification {
         String indexA = collectionName +  "-a";
         return indexA;
     }
-
     private static String makeIndexB(String collectionName){
         String indexB = collectionName +  "-b";
         return indexB;
     }
-
     public static Specification<IndexHistory> whereExactCollectionName(UUID clusterId, String collectionName){
         return equalsClusterId(clusterId).and(equalsCollectionName(collectionName));
     }

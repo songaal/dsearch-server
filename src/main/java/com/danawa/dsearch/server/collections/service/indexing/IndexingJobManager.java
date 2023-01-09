@@ -229,19 +229,19 @@ public class IndexingJobManager {
         if (status == IndexerStatus.SUCCESS){
             indexingInfo.setEndTime(endTime);
 
-            indexStatusService.update(indexingInfo, status.toString());
+            indexStatusService.update(indexingInfo, "SUCCESS");
             IndexingStep nextStep = indexingInfo.getNextStep().poll();
 
             logger.info("Indexing {} ==> clusterId: {}, index: {}, collectionId", status, clusterId, indexingInfo.getIndex(), collectionId);
             indexingJobService.changeRefreshInterval(clusterId, collection, index); // 색인 끝나면 refresh_interval 변경
 
             if (nextStep != null) {
-                // 연속 색인 일 경우, 교체 시 인덱싱 상태 success 변경
+                // 교체까지 있는 색인
                 indexStatusService.create(indexingInfo, "RUNNING"); // Expose가 남아 있기 때문에 status 추가
                 indexingInfo.setCurrentStep(nextStep); // 교체 단계 셋팅 (안하면 Null Pointer Exception)
                 manageQueue.put(collectionId, indexingInfo); // 교체 단계가 있으므로 다시 스케줄에 넣는다.
             }else{
-                // 단순 색인 일 경우
+                // 단순 색인
                 deleteQueue.add(collectionId);
                 updateLookupQueue(collectionId, "SUCCESS");
             }

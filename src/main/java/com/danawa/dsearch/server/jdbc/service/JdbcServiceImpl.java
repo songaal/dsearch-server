@@ -1,6 +1,8 @@
 package com.danawa.dsearch.server.jdbc.service;
 
 import com.danawa.dsearch.server.indices.service.IndicesService;
+import com.danawa.dsearch.server.jdbc.adapter.JdbcAdapter;
+import com.danawa.dsearch.server.jdbc.adapter.JdbcElasticsearchAdapter;
 import com.danawa.dsearch.server.jdbc.dto.JdbcCreateRequest;
 import com.danawa.dsearch.server.jdbc.dto.JdbcUpdateRequest;
 import com.danawa.dsearch.server.jdbc.entity.JdbcInfo;
@@ -23,14 +25,14 @@ public class JdbcServiceImpl implements JdbcService{
     private final String JDBC_JSON = "jdbc.json";
     private IndicesService indicesService;
 
-    private JdbcRepositoryAdapter jdbcRepositoryAdapter;
+    private JdbcAdapter jdbcElasticsearchAdapter;
     
     public JdbcServiceImpl(@Value("${dsearch.jdbc.setting}") String jdbcIndex,
                            IndicesService indicesService,
-                           JdbcRepositoryAdapter jdbcRepositoryAdapter) {
+                           JdbcAdapter jdbcElasticsearchAdapter) {
         this.jdbcIndex = jdbcIndex;
         this.indicesService = indicesService;
-        this.jdbcRepositoryAdapter = jdbcRepositoryAdapter;
+        this.jdbcElasticsearchAdapter = jdbcElasticsearchAdapter;
     }
 
     @Override
@@ -75,17 +77,13 @@ public class JdbcServiceImpl implements JdbcService{
     @Override
     public List<JdbcInfo> findAll(UUID clusterId) throws IOException {
         if(clusterId == null) throw new NullArgumentException("clusterId 가 null 입니다.");
-        List<JdbcInfo> result = jdbcRepositoryAdapter.findAll(clusterId);
+        List<JdbcInfo> result = jdbcElasticsearchAdapter.findAll(clusterId, jdbcIndex);
         return result;
     }
 
     @Override
-    public boolean create(UUID clusterId, JdbcCreateRequest createRequest) throws IOException, NullArgumentException {
-        if(clusterId == null || createRequest == null){
-            throw new NullArgumentException("");
-        }
-
-        return jdbcRepositoryAdapter.create(clusterId, createRequest);
+    public boolean create(UUID clusterId, JdbcInfo jdbcInfo) throws IOException, NullArgumentException {
+        return jdbcElasticsearchAdapter.create(clusterId, jdbcIndex, jdbcInfo);
     }
 
 
@@ -96,7 +94,7 @@ public class JdbcServiceImpl implements JdbcService{
         } else if (id.equals("")) {
             return false;
         }
-        return jdbcRepositoryAdapter.delete(clusterId, id);
+        return jdbcElasticsearchAdapter.delete(clusterId, jdbcIndex, id);
     }
 
     @Override
@@ -107,14 +105,13 @@ public class JdbcServiceImpl implements JdbcService{
             return false;
         }
 
-        return jdbcRepositoryAdapter.update(clusterId, id, jdbcUpdateRequest);
+        return jdbcElasticsearchAdapter.update(clusterId, jdbcIndex, id, jdbcUpdateRequest);
     }
 
     @Override
     public String download(UUID clusterId, Map<String, Object> message){
         StringBuffer sb = new StringBuffer();
-        Map<String, Object> jdbc = new HashMap<>();
-        jdbcRepositoryAdapter.fillJdbcInfoList(clusterId, sb, jdbc);
+        Map<String, Object> jdbc = jdbcElasticsearchAdapter.getJdbcInfoList(clusterId, jdbcIndex, sb);
         message.put("jdbc", jdbc);
         return sb.toString();
     }

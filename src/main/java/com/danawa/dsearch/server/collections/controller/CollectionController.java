@@ -303,7 +303,6 @@ public class CollectionController {
                                            @RequestParam(name = "port") int port,
                                            @RequestParam(name = "collectionName") String collectionName) throws IOException, IndexingJobFailureException, ParameterInvalidException {
 
-        logger.info("/idxp/status");
         validateParams(host, port, collectionName, "empty");
         Cluster cluster = null;
         Collection collection = null;

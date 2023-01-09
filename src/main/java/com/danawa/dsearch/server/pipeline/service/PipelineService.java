@@ -1,6 +1,7 @@
 package com.danawa.dsearch.server.pipeline.service;
 
 import com.danawa.dsearch.server.elasticsearch.ElasticsearchFactory;
+import com.danawa.dsearch.server.pipeline.adapter.PipelineAdapter;
 import com.danawa.dsearch.server.utils.JsonUtils;
 import com.google.gson.Gson;
 import org.apache.commons.lang.NullArgumentException;
@@ -17,63 +18,38 @@ import java.util.*;
 public class PipelineService {
     private static Logger logger = LoggerFactory.getLogger(PipelineService.class);
 
-    private final ElasticsearchFactory elasticsearchFactory;
-    public PipelineService(ElasticsearchFactory elasticsearchFactory) {
-        this.elasticsearchFactory = elasticsearchFactory;
+    private PipelineAdapter pipelineAdapter;
+
+    public PipelineService(PipelineAdapter pipelineAdapter) {
+        this.pipelineAdapter = pipelineAdapter;
     }
     public String getPipeLineLists(UUID clusterId) throws IOException {
         if(clusterId == null){
             throw new NullArgumentException("");
         }
 
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            RestClient restClient = client.getLowLevelClient();
-            Request request = new Request("GET", "_ingest/pipeline?pretty");
-            Response response = restClient.performRequest(request);
-            return EntityUtils.toString(response.getEntity());
-        }
+        return pipelineAdapter.getPipelineLists(clusterId);
     }
 
     public String testPipeline(UUID clusterId, String name, String body, boolean isDetail) throws IOException {
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            String detail = "";
-            RestClient restClient = client.getLowLevelClient();
-            if(isDetail){
-                detail = "?verbose";
-            }
-            Request request = new Request("POST", "_ingest/pipeline/" + name +"/_simulate" + detail);
-            request.setJsonEntity(body);
-            Response response = restClient.performRequest(request);
-            return EntityUtils.toString(response.getEntity());
+        String detail = "";
+        if(isDetail){
+            detail = "?verbose";
         }
+
+        return pipelineAdapter.testPipeline(clusterId, name, detail, body);
     }
 
     public String addPipeLine(UUID clusterId, String name, String body) throws IOException {
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            RestClient restClient = client.getLowLevelClient();
-            Request request = new Request("PUT", "_ingest/pipeline/" + name);
-            request.setJsonEntity(body);
-            Response response = restClient.performRequest(request);
-            return EntityUtils.toString(response.getEntity());
-        }
+        return pipelineAdapter.addPipeline(clusterId, name, body);
     }
 
     public String getPipeLine(UUID clusterId, String name) throws IOException {
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            RestClient restClient = client.getLowLevelClient();
-            Request request = new Request("GET", "_ingest/pipeline/" + name);
-            Response response = restClient.performRequest(request);
-            return EntityUtils.toString(response.getEntity());
-        }
+        return pipelineAdapter.getPipeline(clusterId, name);
     }
 
     public String deletePipeLine(UUID clusterId, String name) throws IOException {
-        try (RestHighLevelClient client = elasticsearchFactory.getClient(clusterId)) {
-            RestClient restClient = client.getLowLevelClient();
-            Request request = new Request("DELETE", "_ingest/pipeline/" + name);
-            Response response = restClient.performRequest(request);
-            return EntityUtils.toString(response.getEntity());
-        }
+        return pipelineAdapter.deletePipeline(clusterId, name);
     }
 
     public String download(UUID clusterId, Map<String, Object> message) throws IOException{
