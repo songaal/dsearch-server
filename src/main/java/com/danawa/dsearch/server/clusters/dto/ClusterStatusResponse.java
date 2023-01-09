@@ -10,6 +10,10 @@ public class ClusterStatusResponse {
 
     public ClusterStatusResponse() {
     }
+    public ClusterStatusResponse(boolean connection) {
+        this.connection = connection;
+    }
+
     public ClusterStatusResponse(boolean connection, Map<String, Object> nodes, Map<String, Object> state) {
         this.connection = connection;
         this.nodes = nodes;

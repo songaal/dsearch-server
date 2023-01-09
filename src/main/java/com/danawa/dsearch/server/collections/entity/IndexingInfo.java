@@ -14,7 +14,6 @@ public class IndexingInfo implements Serializable {
     private String indexingJobId;
     private boolean isAutoRun;
     private UUID clusterId;
-
     private String taskId;
 
     private String status;

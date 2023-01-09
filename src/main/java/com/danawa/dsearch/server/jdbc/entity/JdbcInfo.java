@@ -13,6 +13,16 @@ public class JdbcInfo {
     private String url;
     private String user;
 
+    public String getParams() {
+        return params;
+    }
+
+    public void setParams(String params) {
+        this.params = params;
+    }
+
+    private String params;
+
     public String get_id() {
         return _id;
     }

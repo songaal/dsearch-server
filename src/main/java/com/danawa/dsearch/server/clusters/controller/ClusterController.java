@@ -10,10 +10,10 @@ import com.danawa.dsearch.server.collections.service.CollectionService;
 import com.danawa.dsearch.server.collections.service.status.StatusService;
 import com.danawa.dsearch.server.dictionary.service.DictionaryService;
 import com.danawa.dsearch.server.collections.entity.Collection;
+import com.danawa.dsearch.server.documentAnalysis.service.SearchQueryService;
 import com.danawa.dsearch.server.excpetions.NotFoundException;
 import com.danawa.dsearch.server.indices.service.IndicesService;
 import com.danawa.dsearch.server.jdbc.service.JdbcService;
-import com.danawa.dsearch.server.reference.service.ReferenceService;
 import com.danawa.dsearch.server.templates.service.IndexTemplateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +32,6 @@ public class ClusterController {
     private final String deletePrefix;
     private final ClusterService clusterService;
     private final DictionaryService dictionaryService;
-    private final ReferenceService referenceService;
     private final CollectionService collectionService;
     private final JdbcService jdbcService;
     private final IndicesService indicesService;
@@ -44,10 +43,11 @@ public class ClusterController {
     private final ClusterRoutingAllocationService clusterRoutingAllocationService;
     private final IndexingScheduler indexingScheduler;
 
+    private SearchQueryService searchQueryService;
+
     public ClusterController(@Value("${dsearch.delete}") String deletePrefix,
                              ClusterService clusterService,
                              DictionaryService dictionaryService,
-                             ReferenceService referenceService,
                              CollectionService collectionService,
                              IndicesService indicesService,
                              JdbcService jdbcService,
@@ -55,11 +55,11 @@ public class ClusterController {
                              ClusterRoutingAllocationService clusterRoutingAllocationService,
                              IndexingScheduler indexingScheduler,
                              StatusService indexStatusService,
-                             HistoryService historyService) {
+                             HistoryService historyService,
+                             SearchQueryService searchQueryService) {
         this.deletePrefix = deletePrefix;
         this.clusterService = clusterService;
         this.dictionaryService = dictionaryService;
-        this.referenceService = referenceService;
         this.collectionService = collectionService;
         this.indicesService = indicesService;
         this.jdbcService = jdbcService;
@@ -68,50 +68,54 @@ public class ClusterController {
         this.indexingScheduler = indexingScheduler;
         this.indexStatusService = indexStatusService;
         this.historyService = historyService;
+        this.searchQueryService = searchQueryService;
     }
 
     @GetMapping
-    public ResponseEntity<?> findAll(@RequestParam(required = false) boolean isStatus) {
+    public ResponseEntity<?> getClusterInfoAll(@RequestParam(required = false) boolean isStatus) {
         List<Map<String, Object>> response = new ArrayList<>();
         List<Cluster> clusterList = clusterService.findAll();
-        int size = clusterList.size();
 
-        for (int i = 0; i < size; i++) {
-            Cluster cluster = clusterList.get(i);
-            Map<String, Object> clusterMap = new HashMap<>();
-
-            if (isStatus) {
-                ClusterStatusResponse status = clusterService.scanClusterStatus(cluster.getScheme(),
-                        cluster.getHost(),
-                        cluster.getPort(),
-                        cluster.getUsername(),
-                        cluster.getPassword());
-                clusterMap.put("status", status);
-            } else {
-                Map<String, Object> statusMap = new HashMap<>();
-                statusMap.put("connection", false);
-                clusterMap.put("status", statusMap);
-            }
-
-            clusterMap.put("cluster", cluster);
+        for (Cluster cluster: clusterList) {
+            Map<String, Object> clusterMap = getClusterInfo(cluster, isStatus);
             response.add(clusterMap);
         }
 
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<?> find(@PathVariable String id) {
-        Cluster cluster = clusterService.findById(UUID.fromString(id));
-        ClusterStatusResponse status = clusterService.scanClusterStatus(cluster.getScheme(),
-                cluster.getHost(),
-                cluster.getPort(),
-                cluster.getUsername(),
-                cluster.getPassword());
+    private Map<String, Object> getClusterInfo(Cluster cluster, boolean isStatus){
+        Map<String, Object> clusterInfo = new HashMap<>();
+        ClusterStatusResponse status;
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("cluster", cluster);
-        response.put("status", status);
+        if (isStatus) {
+            status = clusterService.scanClusterStatus(cluster.getScheme(),
+                    cluster.getHost(),
+                    cluster.getPort(),
+                    cluster.getUsername(),
+                    cluster.getPassword());
+        } else {
+            status = new ClusterStatusResponse(false);
+        }
+
+        clusterInfo.put("status", status);
+        clusterInfo.put("cluster", cluster);
+        return clusterInfo;
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getClusterInfoOne(@PathVariable String id) {
+        Cluster cluster = clusterService.findById(UUID.fromString(id));
+        Map<String, Object> response = getClusterInfo(cluster, true);
+//        ClusterStatusResponse status = clusterService.scanClusterStatus(cluster.getScheme(),
+//                cluster.getHost(),
+//                cluster.getPort(),
+//                cluster.getUsername(),
+//                cluster.getPassword());
+//
+//        Map<String, Object> response = new HashMap<>();
+//        response.put("cluster", cluster);
+//        response.put("status", status);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
@@ -119,14 +123,12 @@ public class ClusterController {
     public ResponseEntity<?> add(@RequestBody Cluster cluster) throws IOException, NullPointerException {
         Cluster registerCluster = clusterService.add(cluster);
         dictionaryService.initialize(registerCluster.getId());
-        referenceService.initialize(registerCluster.getId());
-
         indexTemplateService.initialize(registerCluster.getId()); /* 인덱스 템플릿 추가 */
         collectionService.initialize(registerCluster.getId());
         jdbcService.initialize(registerCluster.getId()); /* JDBC 인덱스 추가 */
         historyService.initialize(registerCluster.getId());
         indexStatusService.initialize(registerCluster.getId());
-
+        searchQueryService.initialize(registerCluster.getId());
         indexingScheduler.init(); /* 이전에 등록되어 있던 클러스터라면 스케쥴 재 등록 */
         return new ResponseEntity<>(registerCluster, HttpStatus.OK);
     }
@@ -136,29 +138,32 @@ public class ClusterController {
                                     @RequestHeader(value = "client-ip", required = false) String clientIP,
                                     @RequestParam(required = false, defaultValue = "false") String isRemoveData) {
         if ("true".equalsIgnoreCase(isRemoveData)) {
-            logger.info("클러스터의 시스템인덱스를 삭제합니다. ==> {}, {}", id, clientIP);
-            try {
-                UUID clusterId = UUID.fromString(id);
-
-                List<Collection> collectionList = collectionService.findAll(clusterId);
-                for (int i = 0; i < collectionList.size(); i++) {
-                    try {
-                        Collection collection = collectionList.get(i);
-                        if (collection.isScheduled()) {
-                            collection.setScheduled(false);
-                            collectionService.updateSchedule(clusterId, collection.getId(), collection);
-                        }
-                    } catch (Exception e){
-                        logger.error("", e);
-                    }
-                }
-                indicesService.delete(clusterId, deletePrefix);
-            } catch (Exception e) {
-                logger.warn("dsearch system index remove fail. {}", e.getMessage());
-            }
+            logger.info("클러스터의 시스템 인덱스를 삭제합니다. ==> {}, {}", id, clientIP);
+            removeSystemIndex(id);
         }
         Cluster removeCluster = clusterService.remove(UUID.fromString(id));
         return new ResponseEntity<>(removeCluster, HttpStatus.OK);
+    }
+
+    private void removeSystemIndex(String id){
+        try {
+            UUID clusterId = UUID.fromString(id);
+
+            List<Collection> collectionList = collectionService.findAll(clusterId);
+            for (Collection collection: collectionList) {
+                try {
+                    if (collection.isScheduled()) {
+                        collection.setScheduled(false);
+                        collectionService.updateSchedule(clusterId, collection.getId(), collection);
+                    }
+                } catch (Exception e){
+                    logger.error("", e);
+                }
+            }
+            indicesService.delete(clusterId, deletePrefix);
+        } catch (Exception e) {
+            logger.error("dsearch system index remove fail. {}", e.getMessage());
+        }
     }
 
     @PutMapping("/{id}")
@@ -172,7 +177,10 @@ public class ClusterController {
     public ResponseEntity<?> check(@RequestHeader(value = "cluster-id") UUID clusterId,
                                    @RequestParam boolean flag) {
 
-        clusterRoutingAllocationService.updateClusterAllocation(clusterId, flag ? "none" : "all");
+        // 클러스터의 샤드 재분배 설정 변경
+        // none : 샤드 재분배 안함
+        // all : 샤드 재분배 함
+        clusterRoutingAllocationService.updateClusterAllocation(clusterId, flag);
 
         if(flag){
             // 해당 클러스터의 스케줄 제거

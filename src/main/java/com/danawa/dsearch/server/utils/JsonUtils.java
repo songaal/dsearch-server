@@ -1,5 +1,6 @@
 package com.danawa.dsearch.server.utils;
 
+import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.TypeAdapter;
@@ -18,6 +19,14 @@ import java.util.Map;
 
 @Component
 public class JsonUtils {
+
+    public static Map<String, Object> convertStringToMap(String data){
+        return createCustomGson().fromJson(data, new TypeToken<Map<String, Object>>(){}.getType());
+    }
+
+    public static String convertMapToString(Map<String, Object> data){
+        return createCustomGson().toJson(data);
+    }
 
 
     public boolean validate(String json) {

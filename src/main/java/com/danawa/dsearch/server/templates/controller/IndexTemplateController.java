@@ -27,7 +27,7 @@ public class IndexTemplateController {
     @PutMapping("/comments")
     public ResponseEntity<?> setTemplatesComment(@RequestHeader(value = "cluster-id") UUID clusterId,
                                                  @RequestBody Map<String, Object> map) throws IOException {
-        service.setTemplateComment(clusterId, map);
+        service.saveTemplateComment(clusterId, map);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
