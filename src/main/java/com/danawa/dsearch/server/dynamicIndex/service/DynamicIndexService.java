@@ -128,7 +128,7 @@ public class DynamicIndexService {
         } catch (Exception e) {
             logger.error("", e);
         }
-        return new HashMap<>();
+        return result;
     }
 
     public int consumeAll(long id, HashMap<String, Object> body) {
