@@ -8,8 +8,8 @@ RUN apt update -y
 RUN apt install sudo vim curl net-tools rsync iputils-ping -y
 
 # 유저 추가 후 변경 (root 권한 포함)
-RUN useradd -r -u 1000 -g users danawa
-RUN echo 'danawa ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+# RUN useradd -r -u 1000 -g users danawa
+# RUN echo 'danawa ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 WORKDIR /logs
 WORKDIR /data
@@ -24,13 +24,13 @@ COPY branch-desc.txt/ .
 ARG VERSION
 COPY target/dsearch-server-${VERSION}.jar dsearch-server.jar
 
-USER danawa
+# USER danawa
 
-RUN sudo chown -R danawa:users /logs
-RUN sudo chown -R danawa:users /app
-RUN sudo chown -R danawa:users /root
-RUN sudo chown -R danawa:users /data
-RUN sudo chown -R danawa:users /home/danawa
+# RUN sudo chown -R danawa:users /logs
+# RUN sudo chown -R danawa:users /app
+# RUN sudo chown -R danawa:users /root
+# RUN sudo chown -R danawa:users /data
+# RUN sudo chown -R danawa:users /home/danawa
 
 CMD ["java", "-jar", "dsearch-server.jar"]
 
