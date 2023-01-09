@@ -5,7 +5,7 @@ ENV LOG4J_FORMAT_MSG_NO_LOOKUPS=true
 
 # 필수 패키지 설치
 RUN apt update -y
-RUN apt install sudo vim curl net-tools rsync -y
+RUN apt install sudo vim curl net-tools rsync iputils-ping -y
 
 # 유저 추가 후 변경 (root 권한 포함)
 RUN useradd -r -u 1000 -g users danawa
