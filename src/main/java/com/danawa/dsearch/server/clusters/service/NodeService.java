@@ -19,7 +19,7 @@ public class NodeService {
         this.elasticsearchFactoryHighLevelWrapper = elasticsearchFactoryHighLevelWrapper;
     }
 
-    public List<NodeMoveInfoResponse> getMoveInfo(UUID clusterId) {
+    public List<NodeMoveInfoResponse> getNodeMoveInfo(UUID clusterId) {
         List<NodeMoveInfoResponse> result = new ArrayList<>();
 
         try{
@@ -77,8 +77,8 @@ public class NodeService {
         return response;
     }
 
-    // 제외 샤드 체크
-    public List<String> nodeClusterInfo(UUID clusterId) {
+    // 제외된 노드 이름 가져오기
+    public List<String> getExcludedNodes(UUID clusterId) {
         ArrayList<String> result = new ArrayList<>();
 
         try{

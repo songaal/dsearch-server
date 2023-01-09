@@ -24,14 +24,13 @@ public class DynamicIndexController {
     public DynamicIndexController(DynamicIndexService dynamicIndexService) {
         this.dynamicIndexService = dynamicIndexService;
     }
-
     @GetMapping
-    public ResponseEntity<?> getFindAll() {
+    public ResponseEntity<?> findAll() {
         return new ResponseEntity<>(dynamicIndexService.findAll(), HttpStatus.OK);
     }
 
     @GetMapping("/bundle")
-    public ResponseEntity<?> getBundleFindAll() {
+    public ResponseEntity<?> findBundleAll() {
         return new ResponseEntity<>(dynamicIndexService.findBundleAll(), HttpStatus.OK);
     }
 

@@ -65,7 +65,7 @@ public class DynamicIndexService {
                 result = savedList.size();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("", e);
         }
 
         return result;
@@ -112,21 +112,23 @@ public class DynamicIndexService {
             URI url = URI.create(String.format("%s://%s:%s/%s", "http", dynamicIndexInfo.getIp(), dynamicIndexInfo.getPort(), dynamicIndexInfo.getStateEndPoint()));
             Map<String, Object> body = queueIndexerClient.get(url);
 
-            int sum = 0;
+            int totalSize = 0;
             if (body.get("consume") != null) {
-                Map<String, Object> subMap = (Map) body.get("consume");
-                for (String key : subMap.keySet()) {
-                    List<String> list = (List) subMap.get(key);
-                    result.put(key, list.size());
-                    sum += list.size();
+                Map<String, Object> queueMap = (Map) body.get("consume");
+
+                for (String queueName : queueMap.keySet()) {
+                    List<String> consumeIdList = (List) queueMap.get(queueName);
+                    result.put(queueName, consumeIdList.size());
+                    totalSize += consumeIdList.size();
                 }
-                result.put("count", sum);
+                result.put("count", totalSize);
             } else {
                 logger.error("Queue Indexer Not Result {}", dynamicIndexInfo.getIp() + dynamicIndexInfo.getPort() + dynamicIndexInfo.getStateEndPoint());
             }
         } catch (Exception e) {
+            logger.error("", e);
         }
-        return result;
+        return new HashMap<>();
     }
 
     public int consumeAll(long id, HashMap<String, Object> body) {

@@ -4,6 +4,8 @@ import com.danawa.dsearch.server.utils.JsonUtils;
 import com.google.gson.Gson;
 import org.apache.http.util.EntityUtils;
 import org.checkerframework.checker.units.qual.C;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.delete.DeleteRequest;
@@ -22,6 +24,7 @@ import org.elasticsearch.client.core.TermVectorsRequest;
 import org.elasticsearch.client.core.TermVectorsResponse;
 import org.elasticsearch.client.indices.*;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.MatchAllQueryBuilder;
@@ -443,5 +446,13 @@ public class ElasticsearchFactoryHighLevelWrapper {
             countRequest.indices(index);
             return client.count(countRequest, RequestOptions.DEFAULT).getCount();
         }
+    }
+
+    public ClusterUpdateSettingsResponse updateClusterSettings(UUID clusterId, String allocation) throws IOException {
+        RestHighLevelClient client = elasticsearchFactory.getClient(clusterId);
+        ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest();
+        request.transientSettings(Settings.builder().put("cluster.routing.allocation.enable", allocation));
+        // 정상적으로 호출되었을때만 response에 객체가 생성됨
+        return client.cluster().putSettings(request, RequestOptions.DEFAULT);
     }
 }

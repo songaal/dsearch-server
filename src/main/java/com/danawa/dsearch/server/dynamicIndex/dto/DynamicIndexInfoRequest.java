@@ -1,6 +1,7 @@
 package com.danawa.dsearch.server.dynamicIndex.dto;
 
 import com.danawa.dsearch.server.dynamicIndex.entity.DynamicIndexInfo;
+import org.h2.util.StringUtils;
 
 import java.io.Serializable;
 
@@ -82,14 +83,14 @@ public class DynamicIndexInfoRequest implements Serializable {
 
     public static DynamicIndexInfo to(DynamicIndexInfoRequest request) {
         DynamicIndexInfo info = new DynamicIndexInfo();
-        info.setId(request.getId());
-        info.setBundleQueue(request.getBundleQueue());
-        info.setBundleServer(request.getBundleServer());
-        info.setScheme(request.getScheme());
-        info.setIp(request.getIp());
-        info.setPort(request.getPort());
-        info.setStateEndPoint(request.getStateEndPoint());
-        info.setConsumeEndPoint(request.getConsumeEndPoint());
+        info.setId(request.getId() );
+        info.setBundleQueue(request.getBundleQueue() == null ? "" : request.getBundleQueue());
+        info.setBundleServer(request.getBundleServer() == null ? "" : request.getBundleServer());
+        info.setScheme(request.getScheme() == null ? "" : request.getScheme());
+        info.setIp(request.getIp() == null ? "" : request.getIp());
+        info.setPort(request.getPort() == null ? "" : request.getPort());
+        info.setStateEndPoint(request.getStateEndPoint() == null ? "" : request.getStateEndPoint());
+        info.setConsumeEndPoint(request.getConsumeEndPoint() == null ? "" : request.getConsumeEndPoint());
         return info;
     }
 }

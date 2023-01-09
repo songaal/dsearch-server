@@ -25,14 +25,14 @@ public class NodeController {
     }
 
     @GetMapping("/move/info")
-    public ResponseEntity<?> moveInfo(@RequestHeader(value = "cluster-id") UUID clusterId) throws IOException {
-        List<NodeMoveInfoResponse> response = nodeService.getMoveInfo(clusterId);
+    public ResponseEntity<?> getNodeMoveInfo(@RequestHeader(value = "cluster-id") UUID clusterId) throws IOException {
+        List<NodeMoveInfoResponse> response = nodeService.getNodeMoveInfo(clusterId);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @GetMapping("/_cluster/settings")
-    public ResponseEntity<?> nodeClusterInfo(@RequestHeader(value = "cluster-id") UUID clusterId) throws IOException {
-        List<String> nodeClusterInfoList = nodeService.nodeClusterInfo(clusterId);
+    public ResponseEntity<?> getExcludedNodes(@RequestHeader(value = "cluster-id") UUID clusterId) throws IOException {
+        List<String> nodeClusterInfoList = nodeService.getExcludedNodes(clusterId);
         return new ResponseEntity<>(nodeClusterInfoList, HttpStatus.OK);
     }
 
