@@ -1,5 +1,4 @@
 package com.danawa.dsearch.server.collections.service.history;
-
 import com.danawa.dsearch.server.collections.dto.HistoryReadRequest;
 import com.danawa.dsearch.server.collections.service.history.entity.IndexHistory;
 import com.danawa.dsearch.server.collections.entity.IndexingInfo;

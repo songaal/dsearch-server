@@ -60,6 +60,7 @@ public class IndexStatusService implements StatusService {
     }
 
     @Override
+
     public void update(IndexingInfo indexingInfo, String status) {
         UUID clusterId = indexingInfo.getClusterId();
         String index = indexingInfo.getIndex();

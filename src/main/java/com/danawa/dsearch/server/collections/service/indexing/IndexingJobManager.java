@@ -335,4 +335,3 @@ public class IndexingJobManager {
         this.timeout = timeout;
     }
 }
-
