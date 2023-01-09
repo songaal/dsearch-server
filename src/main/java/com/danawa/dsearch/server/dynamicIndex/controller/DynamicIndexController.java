@@ -1,8 +1,6 @@
 package com.danawa.dsearch.server.dynamicIndex.controller;
 
 import com.danawa.dsearch.server.dynamicIndex.dto.DynamicIndexInfoRequest;
-import com.danawa.dsearch.server.dynamicIndex.dto.DynamicIndexInfoResponse;
-import com.danawa.dsearch.server.dynamicIndex.entity.BundleDescription;
 import com.danawa.dsearch.server.dynamicIndex.entity.DynamicIndexInfo;
 import com.danawa.dsearch.server.dynamicIndex.service.DynamicIndexService;
 import org.slf4j.Logger;
@@ -33,9 +31,8 @@ public class DynamicIndexController {
     }
 
     @GetMapping("/bundle")
-    public ResponseEntity<?> getBundleFindAll(@RequestParam(value = "desc", defaultValue = "queue") String desc) {
-        BundleDescription descriptionType = BundleDescription.getDescription(desc);
-        return new ResponseEntity<>(dynamicIndexService.findBundleAll(descriptionType), HttpStatus.OK);
+    public ResponseEntity<?> getBundleFindAll() {
+        return new ResponseEntity<>(dynamicIndexService.findBundleAll(), HttpStatus.OK);
     }
 
     @GetMapping("/state/{id}")

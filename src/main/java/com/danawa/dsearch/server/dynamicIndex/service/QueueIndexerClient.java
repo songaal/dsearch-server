@@ -7,7 +7,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
@@ -34,7 +33,7 @@ public class QueueIndexerClient {
             ResponseEntity<?> responseEntity = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(new HashMap<>()), Map.class);
             return (Map<String, Object>) responseEntity.getBody();
         }catch (Exception e){
-            logger.info("{}", e);
+            logger.error("queue indexer connection failed {}", url);
             return new HashMap<>();
         }
     }
@@ -44,7 +43,7 @@ public class QueueIndexerClient {
             ResponseEntity<?> responseEntity = restTemplate.exchange(url, HttpMethod.PUT, new HttpEntity<>(body), Map.class);
             return (Map<String, Object>) responseEntity.getBody();
         }catch (Exception e){
-            logger.info("{}", e);
+            logger.error("queue indexer connection failed {}", url);
             return new HashMap<>();
         }
     }

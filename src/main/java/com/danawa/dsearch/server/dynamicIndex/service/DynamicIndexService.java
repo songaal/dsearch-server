@@ -2,11 +2,9 @@ package com.danawa.dsearch.server.dynamicIndex.service;
 
 import com.danawa.dsearch.server.dynamicIndex.adapter.DynamicIndexAdapter;
 import com.danawa.dsearch.server.dynamicIndex.dto.DynamicIndexInfoResponse;
-import com.danawa.dsearch.server.dynamicIndex.entity.BundleDescription;
 import com.danawa.dsearch.server.dynamicIndex.entity.DynamicIndexInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,26 +39,16 @@ public class DynamicIndexService {
         return new ArrayList<DynamicIndexInfoResponse>();
     }
 
-    public Map<String, List<DynamicIndexInfoResponse>> findBundleAll(BundleDescription descriptionType){
+    public Map<String, List<DynamicIndexInfoResponse>> findBundleAll(){
         Map<String, List<DynamicIndexInfoResponse>> result = new HashMap<>();
 
         List<DynamicIndexInfoResponse> dynamicInfoList = findAll();
         for (DynamicIndexInfoResponse dynamicIndexInfoResponse : dynamicInfoList) {
-
-            if (descriptionType == BundleDescription.SERVER) {
-                // 큐 인덱서에 대한 서버 별 묶음 정렬
-                String bundleServer = dynamicIndexInfoResponse.getBundleServer();
-                List<DynamicIndexInfoResponse> subList = result.getOrDefault(bundleServer, new ArrayList<>());
-                subList.add(dynamicIndexInfoResponse);
-                result.put(bundleServer, subList);
-
-            } else if(descriptionType == BundleDescription.QUEUE){
-                // 큐 인덱서에 대한 큐 단위 묶음 정렬
-                String bundleQueue = dynamicIndexInfoResponse.getBundleQueue();
-                List<DynamicIndexInfoResponse> subList = result.getOrDefault(bundleQueue, new ArrayList<>());
-                subList.add(dynamicIndexInfoResponse);
-                result.put(bundleQueue, subList);
-            }
+            // 큐 인덱서에 대한 서버 별 묶음 정렬
+            String bundleServer = dynamicIndexInfoResponse.getBundleServer();
+            List<DynamicIndexInfoResponse> subList = result.getOrDefault(bundleServer, new ArrayList<>());
+            subList.add(dynamicIndexInfoResponse);
+            result.put(bundleServer, subList);
         }
 
         return result;
