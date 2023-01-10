@@ -156,22 +156,24 @@
             <artifactId>Altibase</artifactId>
             <version>1.0.0</version>
             <scope>system</scope>
-            <systemPath>${project.lib.path}/Altibase/Altibase/1.0.0/Altibase.jar</systemPath>
+            <systemPath>${project.lib.path}/Altibase.jar</systemPath>
         </dependency>
         <!-- indexer -->
         <dependency>
             <groupId>com.danawa.fastcatx</groupId>
             <artifactId>indexer</artifactId>
-            <version>1.9.0</version>
+            <version>1.11.0</version>
             <scope>system</scope>
-            <systemPath>${project.lib.path}/indexer-1.9.0.jar</systemPath>
+            <systemPath>${project.lib.path}/indexer-lib.jar</systemPath>
         </dependency>
-
-<!--        <dependency>-->
-<!--            <groupId>com.fasterxml.jackson.core</groupId>-->
-<!--            <artifactId>jackson-databind</artifactId>-->
-<!--            <version>2.11.0</version>-->
-<!--        </dependency>-->
+        <!-- indexer-extension -->
+        <dependency>
+            <groupId>com.danawa.fastcatx</groupId>
+            <artifactId>indexer-extension</artifactId>
+            <version>1.11.0</version>
+            <scope>system</scope>
+            <systemPath>${project.lib.path}/indexer-extension.jar</systemPath>
+        </dependency>
 
         <dependency>
             <groupId>org.yaml</groupId>
@@ -295,8 +297,7 @@
                         <id>install-Transformation altibase lib</id>
                         <phase>clean</phase>
                         <configuration>
-                            <file>${project.lib.path}/Altibase/Altibase/1.0.0/Altibase.jar</file>
-                            <!--<file>${project.lib.path}/Altibase.jar</file>-->
+                            <file>${project.lib.path}/Altibase.jar</file>
                             <repositoryLayout>default</repositoryLayout>
                             <groupId>Altibase</groupId>
                             <artifactId>Altibase</artifactId>
@@ -313,11 +314,28 @@
                         <id>install-Transformation indexer lib</id>
                         <phase>clean</phase>
                         <configuration>
-                            <file>${project.lib.path}/indexer-1.9.0.jar</file>
+                            <file>lib/indexer-lib.jar</file>
                             <repositoryLayout>default</repositoryLayout>
                             <groupId>com.danawa.fastcatx</groupId>
                             <artifactId>indexer</artifactId>
-                            <version>1.9.0</version>
+                            <version>1.11.0</version>
+                            <packaging>jar</packaging>
+                            <generatePom>true</generatePom>
+                        </configuration>
+                        <goals>
+                            <goal>install-file</goal>
+                        </goals>
+                    </execution>
+
+                    <execution>
+                        <id>install-Transformation indexer extension lib</id>
+                        <phase>clean</phase>
+                        <configuration>
+                            <file>lib/indexer-extension.jar</file>
+                            <repositoryLayout>default</repositoryLayout>
+                            <groupId>com.danawa.fastcatx</groupId>
+                            <artifactId>indexer-extension</artifactId>
+                            <version>1.11.0</version>
                             <packaging>jar</packaging>
                             <generatePom>true</generatePom>
                         </configuration>
