@@ -96,6 +96,29 @@ public class JdbcElasticsearchAdapter implements JdbcAdapter{
 
     private Map<String, Object> convertJdbcInfoToMap(JdbcInfo jdbcInfo){
         Map<String, Object> result = new HashMap<>();
+        String id = jdbcInfo.getId();
+        String name = jdbcInfo.getName();
+        String driver = jdbcInfo.getDriver();
+        String user = jdbcInfo.getUser();
+        String password = jdbcInfo.getPassword();
+        String url = jdbcInfo.getUrl();
+        String provider = jdbcInfo.getProvider();
+        String address = jdbcInfo.getAddress();
+        String port = jdbcInfo.getPort();
+        String db_name = jdbcInfo.getDb_name();
+        String params = jdbcInfo.getParams();
+
+        if(!StringUtils.isNullOrEmpty(id)) result.put("id", id);
+        if(!StringUtils.isNullOrEmpty(name)) result.put("name", name);
+        if(!StringUtils.isNullOrEmpty(driver)) result.put("driver", driver);
+        if(!StringUtils.isNullOrEmpty(user)) result.put("user", user);
+        if(!StringUtils.isNullOrEmpty(password)) result.put("password", password);
+        if(!StringUtils.isNullOrEmpty(url)) result.put("url", url);
+        if(!StringUtils.isNullOrEmpty(provider)) result.put("provider", provider);
+        if(!StringUtils.isNullOrEmpty(address)) result.put("address", address);
+        if(!StringUtils.isNullOrEmpty(port)) result.put("port", port);
+        if(!StringUtils.isNullOrEmpty(db_name)) result.put("db_name", db_name);
+        if(!StringUtils.isNullOrEmpty(params)) result.put("params", params);
         return result;
     }
 
